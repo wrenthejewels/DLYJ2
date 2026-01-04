@@ -5780,16 +5780,18 @@
             console.log(`  RESULT: ${gatePass ? 'PASS ✓' : 'FAIL ✗'} (faster AI must have higher readiness)`);
             if (!gatePass) allPassed = false;
             console.log('  Note: taskGate increases with higher H at fixed L (direction check)');
-
-            // Test 2: Reliability factor - r=0.95 should be ~13.5×, r=0.99 should be ~69-72×
+            // Test 2: Reliability factor - verify against H80/H50-derived expectation
             console.log('\nTEST 2: Reliability factor');
-            console.log('  Expected scale: f(0.95) ~33x, f(0.99) ~235x');
+            const expectedSigma = Math.log(METR_DEFAULTS.H80_0 / METR_DEFAULTS.H50_0) / Math.log(4);
+            const expectedF95 = Math.exp(-expectedSigma * Math.log(0.95 / 0.05));
+            const expectedF99 = Math.exp(-expectedSigma * Math.log(0.99 / 0.01));
             const f95 = reliabilityFactor(0.95);
             const f99 = reliabilityFactor(0.99);
-            const reliabilityPass = (f95 > 25 && f95 < 45) && (f99 > 180 && f99 < 320);
-            console.log(`  f(0.95) = ${f95.toFixed(2)} (expected ~33)`);
-            console.log(`  f(0.99) = ${f99.toFixed(2)} (expected ~235)`);
-            console.log(`  RESULT: ${reliabilityPass ? 'PASS ✓' : 'FAIL ✗'}`);
+            const within = (actual, expected, tol = 0.03) => Math.abs(actual - expected) <= expected * tol;
+            const reliabilityPass = within(f95, expectedF95) && within(f99, expectedF99) && f99 > f95 && f95 > 1;
+            console.log(`  f(0.95) = ${f95.toFixed(2)} (expected ~${expectedF95.toFixed(2)})`);
+            console.log(`  f(0.99) = ${f99.toFixed(2)} (expected ~${expectedF99.toFixed(2)})`);
+            console.log(`  RESULT: ${reliabilityPass ? 'PASS û' : 'FAIL ?'}`);
             if (!reliabilityPass) allPassed = false;
 
             // Test 3: Green curve clamp - should never sample negative time
