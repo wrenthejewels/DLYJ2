@@ -4557,6 +4557,12 @@
         }
         const RELIABILITY_GUARD = 1e-6;
 
+        function getBenchmarkMetrics(model) {
+            if (model?.metrics) return model.metrics;
+            if (model?.agents) return Object.values(model.agents)[0] || null;
+            return null;
+        }
+
         function computeDoublingMonthsFromBenchmark(data) {
             if (!data || !data.results) return null;
             const entries = [];
@@ -4565,9 +4571,9 @@
                 if (!release) continue;
                 const dt = new Date(release);
                 if (Number.isNaN(dt.getTime())) continue;
-                const agent = model.agents ? Object.values(model.agents)[0] : null;
-                if (!agent || !agent.is_sota) continue;
-                const p50 = agent.p50_horizon_length?.estimate;
+                const metrics = getBenchmarkMetrics(model);
+                if (!metrics || !metrics.is_sota) continue;
+                const p50 = metrics.p50_horizon_length?.estimate;
                 if (!Number.isFinite(p50) || p50 <= 0) continue;
                 entries.push({ date: dt, p50 });
             }
@@ -4634,21 +4640,23 @@
         // Embedded SOTA historical data for doubling time regression (extracted from benchmark_results.yaml)
         // Only includes models with is_sota: true, sorted by release date
         const EMBEDDED_SOTA_HISTORY = [
-            { name: 'gpt2', release_date: '2019-02-14', p50: 0.039744, p80: 0.005646 },
-            { name: 'davinci_002', release_date: '2020-05-28', p50: 0.148821, p80: 0.034119 },
-            { name: 'gpt_3_5_turbo_instruct', release_date: '2022-03-15', p50: 0.604384, p80: 0.173085 },
-            { name: 'gpt_4', release_date: '2023-03-14', p50: 5.364045, p80: 0.965175 },
-            { name: 'gpt_4_1106', release_date: '2023-11-06', p50: 8.557433, p80: 1.453006 },
-            { name: 'gpt_4o', release_date: '2024-05-13', p50: 9.17045, p80: 1.689572 },
-            { name: 'claude_3_5_sonnet', release_date: '2024-06-20', p50: 18.216831, p80: 3.19928 },
-            { name: 'o1_preview', release_date: '2024-09-12', p50: 22.095267, p80: 4.61942 },
-            { name: 'claude_3_5_sonnet_20241022', release_date: '2024-10-22', p50: 28.983512, p80: 4.640773 },
-            { name: 'o1_elicited', release_date: '2024-12-05', p50: 39.206576, p80: 5.973358 },
-            { name: 'claude_3_7_sonnet', release_date: '2025-02-24', p50: 54.226342, p80: 15.156049 },
-            { name: 'o3', release_date: '2025-04-16', p50: 92.179215, p80: 20.389159 },
-            { name: 'grok_4', release_date: '2025-07-09', p50: 110.075251, p80: 14.91113 },
-            { name: 'gpt_5', release_date: '2025-08-07', p50: 137.318539, p80: 26.372464 },
-            { name: 'gpt_5_1_codex_max', release_date: '2025-11-19', p50: 161.753349, p80: 31.306248 }
+            { name: 'gpt2', release_date: '2019-02-14', p50: 0.039762, p80: 0.005652 },
+            { name: 'davinci_002', release_date: '2020-05-28', p50: 0.148793, p80: 0.034139 },
+            { name: 'gpt_3_5_turbo_instruct', release_date: '2022-03-15', p50: 0.604245, p80: 0.1731 },
+            { name: 'gpt_4', release_date: '2023-03-14', p50: 5.35186, p80: 0.965652 },
+            { name: 'gpt_4_1106', release_date: '2023-11-06', p50: 8.525919, p80: 1.452328 },
+            { name: 'gpt_4o', release_date: '2024-05-13', p50: 9.178848, p80: 1.676437 },
+            { name: 'claude_3_5_sonnet', release_date: '2024-06-20', p50: 18.683233, p80: 3.145649 },
+            { name: 'o1_preview', release_date: '2024-09-12', p50: 21.960172, p80: 4.609009 },
+            { name: 'claude_3_5_sonnet_20241022', release_date: '2024-10-22', p50: 29.575983, p80: 4.595975 },
+            { name: 'o1_elicited', release_date: '2024-12-05', p50: 41.05291, p80: 6.071816 },
+            { name: 'claude_3_7_sonnet', release_date: '2025-02-24', p50: 56.09162, p80: 15.226294 },
+            { name: 'o3', release_date: '2025-04-16', p50: 94.005541, p80: 21.431305 },
+            { name: 'grok_4', release_date: '2025-07-09', p50: 109.172956, p80: 15.296487 },
+            { name: 'claude_4_1_opus', release_date: '2025-08-05', p50: 113.68507, p80: 21.891731 },
+            { name: 'gpt_5', release_date: '2025-08-07', p50: 137.735311, p80: 26.566128 },
+            { name: 'gpt_5_1_codex_max', release_date: '2025-11-19', p50: 173.253623, p80: 32.349982 },
+            { name: 'claude_opus_4_5', release_date: '2025-11-24', p50: 288.904952, p80: 27.159829 }
         ];
 
         // Current SOTA for baseline capability (last entry in history)
@@ -4709,12 +4717,10 @@
                 for (const m of EMBEDDED_SOTA_HISTORY) {
                     data.results[m.name] = {
                         release_date: m.release_date,
-                        agents: {
-                            default: {
-                                p50_horizon_length: { estimate: m.p50 },
-                                p80_horizon_length: { estimate: m.p80 },
-                                is_sota: true
-                            }
+                        metrics: {
+                            p50_horizon_length: { estimate: m.p50 },
+                            p80_horizon_length: { estimate: m.p80 },
+                            is_sota: true
                         }
                     };
                 }
@@ -4725,8 +4731,8 @@
             let sotaDate = null;
             for (const [modelName, modelData] of Object.entries(data.results)) {
                 const releaseDate = modelData.release_date ? new Date(modelData.release_date) : null;
-                const firstAgent = modelData.agents ? Object.values(modelData.agents)[0] : null;
-                const isSota = firstAgent && firstAgent.is_sota;
+                const metrics = getBenchmarkMetrics(modelData);
+                const isSota = metrics && metrics.is_sota;
                 if (!releaseDate || !isSota) continue;
                 if (!sotaDate || releaseDate > sotaDate) {
                     sotaModel = { name: modelName, ...modelData };
@@ -4747,12 +4753,12 @@
             }
 
             if (sotaModel) {
-                const agentData = Object.values(sotaModel.agents)[0];
-                if (agentData.p50_horizon_length?.estimate) {
-                    METR_DEFAULTS.H50_0 = agentData.p50_horizon_length.estimate;
+                const metrics = getBenchmarkMetrics(sotaModel);
+                if (metrics?.p50_horizon_length?.estimate) {
+                    METR_DEFAULTS.H50_0 = metrics.p50_horizon_length.estimate;
                 }
-                if (agentData.p80_horizon_length?.estimate) {
-                    METR_DEFAULTS.H80_0 = agentData.p80_horizon_length.estimate;
+                if (metrics?.p80_horizon_length?.estimate) {
+                    METR_DEFAULTS.H80_0 = metrics.p80_horizon_length.estimate;
                 }
 
                 // Set baseline date

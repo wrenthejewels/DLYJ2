@@ -1092,7 +1092,7 @@
                     <section>
                         <h2>Mathematical framework</h2>
 
-                        <p><a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/" target="_blank" rel="noopener noreferrer">METR benchmarks</a> measure AI capability growth and serve as the baseline for the model's task horizon estimates. The calculator loads the latest METR dataset, identifies the current SOTA model (e.g., GPT-5.1-Codex-Max, November 2025), and derives doubling time via linear regression across SOTA points (typically ~6-7 months). Reliability penalties shrink the usable horizon: at 95% reliability, a ~162-minute median horizon becomes ~4.8 minutes (33x shorter), or ~235x shorter at 99% reliability. See the <a href="/guide#understanding-ai-capabilities">Guide</a> for background.</p>
+                        <p><a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/" target="_blank" rel="noopener noreferrer">METR benchmarks</a> measure AI capability growth and serve as the baseline for the model's task horizon estimates. The calculator loads the latest METR dataset, identifies the current SOTA model (e.g., Claude Opus 4.5, November 2025), and derives doubling time via linear regression across SOTA points (typically ~6-7 months). Reliability penalties shrink the usable horizon sharply: at 95% reliability a ~289-minute median becomes ~1.9 minutes, and 99% reliability drops it to ~0.11 minutes (~7 seconds). See the <a href="/guide#understanding-ai-capabilities">Guide</a> for background.</p>
 
                         <p>Jobs are decomposed into five task duration buckets: [5, 30, 120, 360, 720] minutes. The hazard channel opens when AI can reliably complete enough of these categories based on your task weights.</p>
 
@@ -1302,7 +1302,7 @@
 
                         <h3 class="h3-accent">Model Defaults</h3>
                         <div class='bubble-table'>
-                            <div class='bubble-item'><span class='bubble-key'>$H_{50,0}$</span><span class='bubble-val'>~162 min (GPT-5.1-Codex-Max SOTA)</span></div>
+                            <div class='bubble-item'><span class='bubble-key'>$H_{50,0}$</span><span class='bubble-val'>~289 min (Claude Opus 4.5 SOTA)</span></div>
                             <div class='bubble-item'><span class='bubble-key'>$D$ (doubling, months)</span><span class='bubble-val'>~6-7 (computed from METR data)</span></div>
                             <div class='bubble-item'><span class='bubble-key'>$r$ (reliability)</span><span class='bubble-val'>0.95 (default)</span></div>
                             <div class='bubble-item'><span class='bubble-key'>$L_i$ (gate thresholds)</span><span class='bubble-val'>5, 30, 120, 360, 720 min</span></div>
@@ -1369,7 +1369,7 @@
                             <p style="font-size: 0.9em; margin-top: 8px; color: #666;">where $p_{\text{domain}}$ = role-specific penalty from questionnaire, $f_{\text{industry}}$ = industry friction slider</p>
                         </div>
                         <p>The numerator's exponential term $2^{(t \cdot 12)/D}$ doubles roughly every 6–7 months per METR data—this is the capability growth. Domain friction, industry friction, and the reliability penalty are constant divisors that scale down this baseline; they don't affect the growth rate, only the starting point.</p>
-                        <p>Reliability penalty: $\;f(r)=e^{-\sigma \cdot \text{logit}(r)}$ with $\sigma = \ln(H_{80}/H_{50}) / \ln(4)$. At 95% reliability, $f(r)\approx 33.4$, so the median 162-minute horizon becomes ~4.8 minutes of production-ready work.</p>
+                        <p>Reliability penalty: $\;f(r)=e^{-\sigma \cdot \text{logit}(r)}$ with $\sigma = \ln(H_{80}/H_{50}) / \ln(4)$. At 95% reliability, $f(r)\approx 151.7$, so the median ~289-minute horizon becomes ~1.9 minutes of production-ready work.</p>
                         <p>Domain penalty: weighted Q4/5/6 (−) vs Q7/9/11/12 (+) → exponential penalty clamped (default 0.8–1.6×; widened by friction presets). Industry slider multiplies on top. Neutral answers include a modest baseline bias (~1.2×) before clamping to reflect average domain mismatch.</p>
                         <ul class='detail-list'>
                             <li><strong>Personalized task weights $w_i$:</strong> Your answers to Q5 (task decomposability), Q6 (task standardization), Q7 (context dependency), and your hierarchy level determine how your job breaks down across the five buckets. Entry-level roles skew toward shorter tasks; executive roles skew toward longer tasks. Highly structured jobs concentrate weight in the short buckets; complex jobs shift weight to longer buckets. High-context work means more weight in the 1&ndash;3 hr and &gt;12 hr buckets. The weights always sum to 1.0 and represent what fraction of your job falls into each duration category.</li>
@@ -1537,7 +1537,7 @@
                                 <tr><th>Step</th><th>Result</th></tr>
                                 <tr><td>Task distribution</td><td>~60% in buckets 1-2 (short tasks), ~11% in buckets 4-5 (long tasks)</td></tr>
                                 <tr><td>Domain friction</td><td>0.80× (high digital alignment, modest context)</td></tr>
-                                <tr><td>Effective starting capability</td><td>~5.2 min (after 95% reliability penalty)</td></tr>
+                                <tr><td>Effective starting capability</td><td>~1.9 min (after 95% reliability penalty)</td></tr>
                                 <tr><td>50% job readiness reached</td><td>~20 months (~1.7 years; automation hazard activates)</td></tr>
                                 <tr><td>33% job readiness reached</td><td>~14 months (~1.2 years; compression hazard activates)</td></tr>
                                 <tr><td>Hierarchy vulnerability</td><td>80% (Level 2 → $(6-2)/5$)</td></tr>
