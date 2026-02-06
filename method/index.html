@@ -1333,13 +1333,14 @@
 
 
                         <p><strong>We consider three sources of uncertainty with a single-point prediction:</strong></p>
-                        <ol>
+                        <ol style="margin-left: 20px;">
                             <li><strong>Capability growth rate.</strong> The METR doubling time is estimated via regression across historical SOTA models. The confidence interval around this regression ($D \approx 105$&ndash;$156$ days) is the single largest source of forecast uncertainty, because it compounds exponentially through the task horizon formula $H_r(t) = H_{50,0} \cdot 2^{(t \cdot 12)/D} \;/\; (p \cdot f \cdot f(r))$.</li>
                             <li><strong>Baseline capability measurement.</strong> The SOTA model&rsquo;s p50 and p80 horizon lengths carry measurement uncertainty from METR&rsquo;s evaluation methodology (bootstrap confidence intervals). This uncertainty propagates through the reliability penalty parameter $\sigma$, which controls how sharply capability drops at higher reliability targets.</li>
                             <li><strong>Gate sharpness.</strong> The softness parameter $s$ that controls how gradually tasks transition from &ldquo;AI cannot do this&rdquo; to &ldquo;AI can do this&rdquo; is a modeling choice without direct empirical calibration. We vary it within its plausible range [0.20, 0.55] to capture structural model uncertainty.</li>
                         </ol>
 
-                        <p><strong>How the bands are computed.</strong> The model runs 30 Monte Carlo samples, each drawing parameter values from the uncertainty ranges described above (log-normal for doubling time, uniform for σ and softness). For each sample, the same hazard formulas are integrated with Simpson&rsquo;s rule (using 50 steps in Monte Carlo vs. 100 for the median path for performance). At each time point, the 10th and 90th percentile across all 30 runs define the band boundaries.</p>
+                        <p><strong>How the bands are computed.</strong></p>
+                        <p>The model runs 30 Monte Carlo samples, each drawing parameter values from the uncertainty ranges described above (log-normal for doubling time, uniform for σ and softness). For each sample, the same hazard formulas are integrated with Simpson&rsquo;s rule (using 50 steps in Monte Carlo vs. 100 for the median path for performance). At each time point, the 10th and 90th percentile across all 30 runs define the band boundaries.</p>
                         <p style="font-size: 0.9em; color: #666;">Because the sample size is 30, these bands are a fast approximation for interactive use and can move slightly between runs.</p>
 
                         <div class='equation-callout'>
