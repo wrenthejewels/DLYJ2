@@ -1092,7 +1092,7 @@
                     <section>
                         <h2>Mathematical framework</h2>
 
-                        <p><a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/" target="_blank" rel="noopener noreferrer">METR benchmarks</a> measure AI capability growth and serve as the baseline for the model's task horizon estimates. The calculator loads the latest METR dataset, identifies the current SOTA model (e.g., Claude Opus 4.5, January 2026), and derives doubling time via linear regression across SOTA points (typically ~6-7 months). Reliability penalties shrink the usable horizon sharply: at 95% reliability a ~289-minute median becomes ~1.9 minutes, and 99% reliability drops it to ~0.11 minutes (~7 seconds). See the <a href="/guide#understanding-ai-capabilities">Guide</a> for background.</p>
+                        <p><a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/" target="_blank" rel="noopener noreferrer">METR benchmarks</a> measure AI capability growth and serve as the baseline for the model's task horizon estimates. The calculator loads the latest METR dataset, identifies the current SOTA model (e.g., GPT-5.2, December 2025), and derives doubling time via linear regression across SOTA points (typically ~6-7 months). Reliability penalties shrink the usable horizon sharply: at 95% reliability a ~394-minute median becomes ~6.0 minutes, and 99% reliability drops it to ~0.58 minutes (~35 seconds). See the <a href="/guide#understanding-ai-capabilities">Guide</a> for background.</p>
 
                         <p>Jobs are decomposed into five task duration buckets: [5, 30, 120, 360, 720] minutes. The hazard channel opens when AI can reliably complete enough of these categories based on your task weights.</p>
 
@@ -1302,7 +1302,7 @@
 
                         <h3 class="h3-accent">Model Defaults</h3>
                         <div class='bubble-table'>
-                            <div class='bubble-item'><span class='bubble-key'>$H_{50,0}$</span><span class='bubble-val'>~289 min (Claude Opus 4.5 SOTA)</span></div>
+                            <div class='bubble-item'><span class='bubble-key'>$H_{50,0}$</span><span class='bubble-val'>~394 min (GPT-5.2 SOTA)</span></div>
                             <div class='bubble-item'><span class='bubble-key'>$D$ (doubling, months)</span><span class='bubble-val'>~6-7 (computed from METR data)</span></div>
                             <div class='bubble-item'><span class='bubble-key'>$r$ (reliability)</span><span class='bubble-val'>0.95 (default)</span></div>
                             <div class='bubble-item'><span class='bubble-key'>$L_i$ (gate thresholds)</span><span class='bubble-val'>5, 30, 120, 360, 720 min</span></div>
@@ -1326,6 +1326,28 @@
                             <div class='bubble-item'><span class='bubble-key'>Compression: amp</span><span class='bubble-val'>2.0 (max productivity boost)</span></div>
                             <div class='bubble-item'><span class='bubble-key'>Compression: gate</span><span class='bubble-val'>$\theta_c$=0.33, $\gamma_c$=6.0, $h_{\max,c}$=0.45/yr</span></div>
                         </div>
+
+                        <h3 class="h3-accent">Uncertainty and Confidence Bands</h3>
+                        <p>The shaded bands around each curve represent the 10th&ndash;90th percentile range of plausible outcomes given uncertainty in three key model inputs.</p>
+
+                        <p><strong>Why single-point predictions are insufficient.</strong> The model&rsquo;s output depends on parameters derived from empirical data &mdash; most critically the rate at which AI capability doubles. METR&rsquo;s benchmark data provides a point estimate for this doubling time (~6&ndash;7 months), but the 95% confidence interval spans roughly 3.4 to 5.1 months. Because capability growth is exponential, small differences in doubling time compound dramatically over a forecast horizon of years. A prediction of &ldquo;3.2 years to 50% risk&rdquo; might more honestly be expressed as &ldquo;2.1&ndash;5.8 years.&rdquo;</p>
+
+                        <p><strong>Three sources of uncertainty are propagated:</strong></p>
+                        <ol>
+                            <li><strong>Capability growth rate.</strong> The METR doubling time is estimated via regression across historical SOTA models. The confidence interval around this regression ($D \approx 105$&ndash;$156$ days) is the single largest source of forecast uncertainty, because it compounds exponentially through the task horizon formula $H_r(t) = H_{50,0} \cdot 2^{(t \cdot 12)/D} \;/\; (p \cdot f \cdot f(r))$.</li>
+                            <li><strong>Baseline capability measurement.</strong> The SOTA model&rsquo;s p50 and p80 horizon lengths carry measurement uncertainty from METR&rsquo;s evaluation methodology (bootstrap confidence intervals). This uncertainty propagates through the reliability penalty parameter $\sigma$, which controls how sharply capability drops at higher reliability targets.</li>
+                            <li><strong>Gate sharpness.</strong> The softness parameter $s$ that controls how gradually tasks transition from &ldquo;AI cannot do this&rdquo; to &ldquo;AI can do this&rdquo; is a modeling choice without direct empirical calibration. We vary it within its plausible range [0.20, 0.55] to capture structural model uncertainty.</li>
+                        </ol>
+
+                        <p><strong>How the bands are computed.</strong> The model runs 30 Monte Carlo samples, each drawing parameter values from distributions fitted to the empirical confidence intervals above. For each sample, the full hazard integration is computed identically to the median curve. At each time point, the 10th and 90th percentile across all 30 runs define the band boundaries.</p>
+
+                        <div class='equation-callout'>
+                            <span class='callout-label'>Monte Carlo loss probability</span>
+                            <div class='equation-display'>$$P_{\text{loss}}^{(k)}(t) = 1 - \exp\!\left(-\int_0^t \lambda^{(k)}(s)\, ds\right), \quad k = 1, \ldots, 30$$</div>
+                            <p style="font-size: 0.9em; margin-top: 8px; color: #666;">where each $\lambda^{(k)}$ uses a different draw of $(D^{(k)}, \sigma^{(k)}, s^{(k)})$.</p>
+                        </div>
+
+                        <p><strong>Interpreting the bands.</strong> Wider bands indicate that the prediction is more sensitive to assumptions the model cannot resolve from your questionnaire answers alone. Bands are typically narrow in the near term (1&ndash;2 years) where capability trajectories are well-constrained by recent data, and fan out substantially beyond 5 years as doubling-time uncertainty compounds. If the bands are wide for your profile, the model is telling you that the <em>timing</em> is uncertain even if the <em>direction</em> is clear &mdash; focus on the trend rather than the exact year.</p>
 
                         <h3 class="h3-accent">Friction Decay Parameter</h3>
                         <p>The model tracks how quickly organizational barriers weaken over time using a decay rate (&lambda;). This parameter is calculated from your questionnaire responses about company adoption readiness, infrastructure, labor market dynamics, and role characteristics:</p>
@@ -1369,8 +1391,8 @@
                             <p style="font-size: 0.9em; margin-top: 8px; color: #666;">where $p_{\text{domain}}$ = role-specific penalty from questionnaire, $f_{\text{industry}}$ = industry friction slider</p>
                         </div>
                         <p>The numerator's exponential term $2^{(t \cdot 12)/D}$ doubles roughly every 6–7 months per METR data—this is the capability growth. Domain friction, industry friction, and the reliability penalty are constant divisors that scale down this baseline; they don't affect the growth rate, only the starting point.</p>
-                        <p>Reliability penalty: $\;f(r)=e^{-\sigma \cdot \text{logit}(r)}$ with $\sigma = \ln(H_{80}/H_{50}) / \ln(4)$. At 95% reliability, $f(r)\approx 151.7$, so the median ~289-minute horizon becomes ~1.9 minutes of production-ready work.</p>
-                        <p class="insight-callout" style="font-size: 0.9em; margin: 16px 0;"><strong>Note on SOTA selection:</strong> The model uses the most recent overall SOTA model (currently Claude Opus 4.5, Nov 2025) for baseline H50 and H80 values. Different models may achieve state-of-the-art performance at different reliability thresholds. For example, Gemini 3 Pro (Nov 2025) slightly outperforms Opus 4.5 at 80% reliability (43.4 vs 41.6 hours), while Opus 4.5 leads at 50% reliability (320.4 vs 236.7 hours). We use a single model's values to maintain internal consistency, as they come from the same evaluation run and produce a coherent reliability curve.</p>
+                        <p>Reliability penalty: $\;f(r)=e^{-\sigma \cdot \text{logit}(r)}$ with $\sigma = \ln(H_{80}/H_{50}) / \ln(4)$. At 95% reliability, $f(r)\approx 65.3$, so the median ~394-minute horizon becomes ~6.0 minutes of production-ready work.</p>
+                        <p class="insight-callout" style="font-size: 0.9em; margin: 16px 0;"><strong>Note on SOTA selection:</strong> The model uses the most recent overall SOTA model (currently GPT-5.2, Dec 2025) for baseline H50 and H80 values. Different models may achieve state-of-the-art performance at different reliability thresholds. For example, Claude Opus 4.5 (Nov 2025) has a higher p80 horizon than Gemini 3 Pro (41.6 vs 43.4 minutes), while GPT-5.2 leads at both thresholds (394.4 / 55.1 minutes). We use a single model's values to maintain internal consistency, as they come from the same evaluation run and produce a coherent reliability curve.</p>
                         <p>Domain penalty: weighted Q4/5/6 (−) vs Q7/9/11/12 (+) → exponential penalty clamped (default 0.8–1.6×; widened by friction presets). Industry slider multiplies on top. Neutral answers include a modest baseline bias (~1.2×) before clamping to reflect average domain mismatch.</p>
                         <ul class='detail-list'>
                             <li><strong>Personalized task weights $w_i$:</strong> Your answers to Q5 (task decomposability), Q6 (task standardization), Q7 (context dependency), and your hierarchy level determine how your job breaks down across the five buckets. Entry-level roles skew toward shorter tasks; executive roles skew toward longer tasks. Highly structured jobs concentrate weight in the short buckets; complex jobs shift weight to longer buckets. High-context work means more weight in the 1&ndash;3 hr and &gt;12 hr buckets. The weights always sum to 1.0 and represent what fraction of your job falls into each duration category.</li>
@@ -1538,7 +1560,7 @@
                                 <tr><th>Step</th><th>Result</th></tr>
                                 <tr><td>Task distribution</td><td>~60% in buckets 1-2 (short tasks), ~11% in buckets 4-5 (long tasks)</td></tr>
                                 <tr><td>Domain friction</td><td>0.80× (high digital alignment, modest context)</td></tr>
-                                <tr><td>Effective starting capability</td><td>~1.9 min (after 95% reliability penalty)</td></tr>
+                                <tr><td>Effective starting capability</td><td>~6.0 min (after 95% reliability penalty)</td></tr>
                                 <tr><td>50% job readiness reached</td><td>~20 months (~1.7 years; automation hazard activates)</td></tr>
                                 <tr><td>33% job readiness reached</td><td>~14 months (~1.2 years; compression hazard activates)</td></tr>
                                 <tr><td>Hierarchy vulnerability</td><td>80% (Level 2 → $(6-2)/5$)</td></tr>
