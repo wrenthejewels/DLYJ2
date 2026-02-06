@@ -1339,7 +1339,7 @@
                             <li><strong>Gate sharpness.</strong> The softness parameter $s$ that controls how gradually tasks transition from &ldquo;AI cannot do this&rdquo; to &ldquo;AI can do this&rdquo; is a modeling choice without direct empirical calibration. We vary it within its plausible range [0.20, 0.55] to capture structural model uncertainty.</li>
                         </ol>
 
-                        <p><strong>How the bands are computed.</strong> The model runs 30 Monte Carlo samples, each drawing parameter values from distributions fitted to the empirical confidence intervals above. For each sample, the full hazard integration is computed identically to the median curve. At each time point, the 10th and 90th percentile across all 30 runs define the band boundaries.</p>
+                        <p><strong>How the bands are computed.</strong> The model runs 30 Monte Carlo samples, each drawing parameter values from the uncertainty ranges described above (log-normal for doubling time, uniform for σ and softness). For each sample, the full hazard integration is computed identically to the median curve. At each time point, the 10th and 90th percentile across all 30 runs define the band boundaries.</p>
 
                         <div class='equation-callout'>
                             <span class='callout-label'>Monte Carlo loss probability</span>

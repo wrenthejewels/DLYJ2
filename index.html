@@ -7285,9 +7285,9 @@ self.onmessage = function(e) {
 
     // Compute p10 and p90 at each time point
     const blueP10 = [], blueP90 = [], greenP10 = [], greenP90 = [];
-    // For 30 samples: p10 = sorted[2] (3rd value), p90 = sorted[27] (28th value)
+    // For 30 samples: p10 = sorted[2] (3rd value), p90 = sorted[26] (27th value)
     const p10Idx = Math.max(0, Math.round(numSamples * 0.1) - 1);
-    const p90Idx = Math.min(numSamples - 1, Math.round(numSamples * 0.9));
+    const p90Idx = Math.min(numSamples - 1, Math.round(numSamples * 0.9) - 1);
 
     for (let j = 0; j < timePoints.length; j++) {
         const blueCol = blueResults.map(row => row[j]).sort((a, b) => a - b);
@@ -7412,9 +7412,9 @@ self.onmessage = function(e) {
             const medianFast = findYearFromBand(lastMCResult.greenP90, PROBABILITY_MEDIAN);
             const medianSlow = findYearFromBand(lastMCResult.greenP10, PROBABILITY_MEDIAN);
             if (medianFast !== null && medianSlow !== null) {
-                setCIRange('median-year', `90% CI: ${medianFast.toFixed(1)}–${medianSlow.toFixed(1)} years`);
+                setCIRange('median-year', `80% CI: ${medianFast.toFixed(1)}–${medianSlow.toFixed(1)} years`);
             } else if (medianFast !== null) {
-                setCIRange('median-year', `90% CI: ${medianFast.toFixed(1)}–20+ years`);
+                setCIRange('median-year', `80% CI: ${medianFast.toFixed(1)}–20+ years`);
             } else {
                 setCIRange('median-year', null);
             }
@@ -7422,9 +7422,9 @@ self.onmessage = function(e) {
             const highFast = findYearFromBand(lastMCResult.greenP90, PROBABILITY_HIGH);
             const highSlow = findYearFromBand(lastMCResult.greenP10, PROBABILITY_HIGH);
             if (highFast !== null && highSlow !== null) {
-                setCIRange('high-year', `90% CI: ${highFast.toFixed(1)}–${highSlow.toFixed(1)} years`);
+                setCIRange('high-year', `80% CI: ${highFast.toFixed(1)}–${highSlow.toFixed(1)} years`);
             } else if (highFast !== null) {
-                setCIRange('high-year', `90% CI: ${highFast.toFixed(1)}–20+ years`);
+                setCIRange('high-year', `80% CI: ${highFast.toFixed(1)}–20+ years`);
             } else {
                 setCIRange('high-year', null);
             }
@@ -7439,7 +7439,7 @@ self.onmessage = function(e) {
                 if (idx < lastMCResult.greenP90.length) {
                     const riskHigh = lastMCResult.greenP90[idx];
                     const riskLow = lastMCResult.greenP10[idx];
-                    setCIRange('risk-2030', `90% CI: ${(riskLow * 100).toFixed(0)}–${(riskHigh * 100).toFixed(0)}%`);
+                    setCIRange('risk-2030', `80% CI: ${(riskLow * 100).toFixed(0)}–${(riskHigh * 100).toFixed(0)}%`);
                 }
             }
 
@@ -7448,7 +7448,7 @@ self.onmessage = function(e) {
                 if (idx < lastMCResult.greenP90.length) {
                     const riskHigh = lastMCResult.greenP90[idx];
                     const riskLow = lastMCResult.greenP10[idx];
-                    setCIRange('risk-2031', `90% CI: ${(riskLow * 100).toFixed(0)}–${(riskHigh * 100).toFixed(0)}%`);
+                    setCIRange('risk-2031', `80% CI: ${(riskLow * 100).toFixed(0)}–${(riskHigh * 100).toFixed(0)}%`);
                 }
             }
         }
