@@ -1331,9 +1331,8 @@
                         <h3 class="h3-accent">Uncertainty Bands</h3>
                         <p>The shaded bands around each curve represent the 10th&ndash;90th percentile range of simulated outcomes given uncertainty in three key model inputs. This is an 80% simulation interval (not a classical confidence interval).</p>
 
-                        <p><strong>Why single-point predictions are insufficient.</strong> The model&rsquo;s output depends on parameters derived from empirical data &mdash; most critically the rate at which AI capability doubles. METR&rsquo;s recent-from-2023 estimate is now around 4&ndash;5 months, while longer all-time stitched trends were closer to 6&ndash;7 months; the same METR fit also carries uncertainty, with a 95% interval of roughly 3.4 to 5.1 months for the recent estimate. Because capability growth is exponential, small differences in doubling time compound dramatically over a forecast horizon of years. A prediction of &ldquo;3.2 years to 50% risk&rdquo; might more honestly be expressed as &ldquo;2.1&ndash;5.8 years.&rdquo;</p>
 
-                        <p><strong>Three sources of uncertainty are propagated:</strong></p>
+                        <p><strong>We consider three sources of uncertainty with a single-point prediction:</strong></p>
                         <ol>
                             <li><strong>Capability growth rate.</strong> The METR doubling time is estimated via regression across historical SOTA models. The confidence interval around this regression ($D \approx 105$&ndash;$156$ days) is the single largest source of forecast uncertainty, because it compounds exponentially through the task horizon formula $H_r(t) = H_{50,0} \cdot 2^{(t \cdot 12)/D} \;/\; (p \cdot f \cdot f(r))$.</li>
                             <li><strong>Baseline capability measurement.</strong> The SOTA model&rsquo;s p50 and p80 horizon lengths carry measurement uncertainty from METR&rsquo;s evaluation methodology (bootstrap confidence intervals). This uncertainty propagates through the reliability penalty parameter $\sigma$, which controls how sharply capability drops at higher reliability targets.</li>
