@@ -3992,16 +3992,6 @@
                         <span class="value-display" id="ai-reliability-value">95%</span>
                     </div>
                 </div>
-                <div class="control-group">
-                    <h3>Growth Regime</h3>
-                    <p>Choose whether capability growth follows a constant trend or allows long-horizon agency catch-up.</p>
-                    <div class="slider-container">
-                        <select id="growth-regime" class="plane-dropdown">
-                            <option value="constant" selected>Constant slope (baseline)</option>
-                            <option value="catchup">Long-horizon catch-up</option>
-                        </select>
-                    </div>
-                </div>
             </div>
 
         <div class="parameter-breakdown">
@@ -4102,6 +4092,14 @@
                                         <button class="tuning-preset-btn" id="preset-guardrails-less" data-preset-group="guardrails" data-preset="less">Less drag</button>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="tuning-field" style="margin-top: 12px;">
+                                <label for="growth-regime">Growth Regime</label>
+                                <select id="growth-regime" class="plane-dropdown">
+                                    <option value="constant" selected>Constant slope (baseline)</option>
+                                    <option value="catchup">Long-horizon catch-up</option>
+                                </select>
+                                <div class="tuning-note" style="margin-top:6px;">Controls whether capability growth uses a fixed slope or converging long-horizon catch-up.</div>
                             </div>
                         </div>
                         <p class="tuning-note">Fine-tune every coefficient, clamp, and question weight used in the hazard/compression model. Toggle questions off to remove them from calculations.</p>
