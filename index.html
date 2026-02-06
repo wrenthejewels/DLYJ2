@@ -3992,6 +3992,16 @@
                         <span class="value-display" id="ai-reliability-value">95%</span>
                     </div>
                 </div>
+                <div class="control-group">
+                    <h3>Growth Regime</h3>
+                    <p>Choose whether capability growth follows a constant trend or allows long-horizon agency catch-up.</p>
+                    <div class="slider-container">
+                        <select id="growth-regime" class="plane-dropdown">
+                            <option value="constant" selected>Constant slope (baseline)</option>
+                            <option value="catchup">Long-horizon catch-up</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
         <div class="parameter-breakdown">
@@ -4240,6 +4250,14 @@
         const MODEL_DEFAULTS = {
             metr: {
                 doublingDays: METR_DOUBLING_DAYS_DEFAULT
+            },
+            growth: {
+                mode: 'constant',
+                catchup: {
+                    // Monthly log2 slope converges from beta0 to beta0 * maxSlopeMultiplier.
+                    rate: 0.35, // per year
+                    maxSlopeMultiplier: 1.6
+                }
             },
             baseline: {
                 thetaBaseEntry: 0.50,
@@ -4643,14 +4661,40 @@
             return resolvedDoublingDays() / DAYS_PER_MONTH;
         }
 
+        function capabilityLog2Progress(tYears, D_months = resolvedDoublingMonths(), growthCfg = modelConfig.growth) {
+            const t = Math.max(0, Number.isFinite(tYears) ? tYears : 0);
+            const D = Math.max(1e-6, Number.isFinite(D_months) ? D_months : resolvedDoublingMonths());
+            const beta0 = 1 / D; // log2-progress per month
+            const mode = growthCfg && growthCfg.mode ? growthCfg.mode : 'constant';
+
+            if (mode !== 'catchup') {
+                return 12 * beta0 * t;
+            }
+
+            const catchup = growthCfg && growthCfg.catchup ? growthCfg.catchup : {};
+            const maxMul = clamp(
+                Number.isFinite(catchup.maxSlopeMultiplier) ? catchup.maxSlopeMultiplier : 1.6,
+                1.0,
+                4.0
+            );
+            const k = Math.max(
+                1e-6,
+                Number.isFinite(catchup.rate) ? catchup.rate : 0.35
+            ); // convergence rate per year
+            const betaInf = beta0 * maxMul;
+
+            // Integral of beta(t) where beta(t)=betaInf-(betaInf-beta0)*exp(-k*t), converted to months.
+            return 12 * (betaInf * t - ((betaInf - beta0) * (1 - Math.exp(-k * t)) / k));
+        }
+
         function updateBaselineProgress() {
             if (BASELINE_YEAR_DECIMAL === null) {
                 BASELINE_PROGRESS = 1.0;
                 return;
             }
             const deltaYears = Math.max(0, getCurrentYearDecimal() - BASELINE_YEAR_DECIMAL);
-            const monthsElapsed = deltaYears * 12;
-            const progress = Math.pow(2, monthsElapsed / resolvedDoublingMonths());
+            const log2Progress = capabilityLog2Progress(deltaYears, resolvedDoublingMonths(), modelConfig.growth);
+            const progress = Math.pow(2, log2Progress);
             BASELINE_PROGRESS = progress;
         }
         // Initialize derived state now that baseline variables are declared
@@ -4979,6 +5023,10 @@
 
         function onModelConfigChange({ rerunAnalysis = true } = {}) {
             syncModelStateFromConfig();
+            const growthSelect = document.getElementById('growth-regime');
+            if (growthSelect) {
+                growthSelect.value = modelConfig?.growth?.mode || 'constant';
+            }
             if (rerunAnalysis) {
                 if (!selectedRole) {
                     // Ensure a role is set so updates (like doubling time) always re-run
@@ -5657,8 +5705,8 @@
             const reliability = r !== null ? r : resolvedReliabilityTarget();
 
             // Apply historical progress since SOTA release (BASELINE_PROGRESS)
-            const monthsElapsed = tYears * 12;
-            const progress = BASELINE_PROGRESS * Math.pow(2, monthsElapsed / D_months);
+            const log2Progress = capabilityLog2Progress(tYears, D_months, modelConfig.growth);
+            const progress = BASELINE_PROGRESS * Math.pow(2, log2Progress);
             const f_r = reliabilityFactor(reliability);
 
             // Industry friction affects CAPABILITY (via domainPenalty), NOT doubling time
@@ -7041,6 +7089,7 @@
                 BASELINE_PROGRESS: BASELINE_PROGRESS,
                 doublingDays: resolvedDoublingDays(),
                 DAYS_PER_MONTH: DAYS_PER_MONTH,
+                growth: deepClone(modelConfig.growth),
                 reliabilityTarget: resolvedReliabilityTarget(),
                 RELIABILITY_GUARD: RELIABILITY_GUARD,
                 METR_SIGMA: METR_SIGMA,
@@ -7120,9 +7169,28 @@ function taskGate(H, L, s) {
     return 1.0 / (1.0 + Math.exp(exponent));
 }
 
+function capabilityLog2Progress_mc(tYears, D_months, growthCfg) {
+    const t = Math.max(0, Number.isFinite(tYears) ? tYears : 0);
+    const D = Math.max(1e-6, Number.isFinite(D_months) ? D_months : 1);
+    const beta0 = 1 / D;
+    const mode = (growthCfg && growthCfg.mode) ? growthCfg.mode : 'constant';
+    if (mode !== 'catchup') {
+        return 12 * beta0 * t;
+    }
+    const catchup = growthCfg && growthCfg.catchup ? growthCfg.catchup : {};
+    const maxMul = clamp(
+        Number.isFinite(catchup.maxSlopeMultiplier) ? catchup.maxSlopeMultiplier : 1.6,
+        1.0,
+        4.0
+    );
+    const k = Math.max(1e-6, Number.isFinite(catchup.rate) ? catchup.rate : 0.35);
+    const betaInf = beta0 * maxMul;
+    return 12 * (betaInf * t - ((betaInf - beta0) * (1 - Math.exp(-k * t)) / k));
+}
+
 function H_r_mc(tYears, p, H50_0, D_months, f_r, industryFriction, domainPenalty) {
-    const monthsElapsed = tYears * 12;
-    const progress = p.BASELINE_PROGRESS * Math.pow(2, monthsElapsed / D_months);
+    const log2Progress = capabilityLog2Progress_mc(tYears, D_months, p.growth);
+    const progress = p.BASELINE_PROGRESS * Math.pow(2, log2Progress);
     const totalPenalty = domainPenalty * industryFriction;
     const baselineMinutes = H50_0 / totalPenalty;
     return (baselineMinutes * progress) / f_r;
@@ -7655,6 +7723,18 @@ self.onmessage = function(e) {
             updateChart();
         });
 
+        document.getElementById('growth-regime')?.addEventListener('change', function() {
+            if (!modelConfig.growth) {
+                modelConfig.growth = deepClone(MODEL_DEFAULTS.growth);
+            }
+            modelConfig.growth.mode = this.value === 'catchup' ? 'catchup' : 'constant';
+            syncModelStateFromConfig();
+            console.log('[Growth] Regime:', modelConfig.growth.mode);
+            if (currentParams) {
+                updateChart();
+            }
+        });
+
         // Lightweight top-of-page flow (dropdowns + progress dots)
         document.addEventListener('DOMContentLoaded', function() {
             const roleSelect = document.getElementById('role-select');
@@ -8071,6 +8151,10 @@ self.onmessage = function(e) {
 
             // Re-render the model tuning UI now that computed doubling time is available
             renderModelTuningUI();
+            const growthSelect = document.getElementById('growth-regime');
+            if (growthSelect) {
+                growthSelect.value = modelConfig?.growth?.mode || 'constant';
+            }
 
             const currentYear = getCurrentYearDecimal();
             console.log(`[System] Current date: ${new Date().toISOString().split('T')[0]} (${currentYear.toFixed(2)})`);
