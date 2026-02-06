@@ -6523,7 +6523,8 @@
                         backgroundColor: 'rgba(42, 82, 152, 0.13)',
                         borderWidth: 0,
                         pointRadius: 0,
-                        fill: '+1',
+                        pointHitRadius: 0,
+                        fill: { target: 1, above: 'rgba(42, 82, 152, 0.13)', below: 'rgba(42, 82, 152, 0.13)' },
                         tension: 0.4
                     },
                     // 1: Blue band lower (p10)
@@ -6534,6 +6535,7 @@
                         backgroundColor: 'transparent',
                         borderWidth: 0,
                         pointRadius: 0,
+                        pointHitRadius: 0,
                         fill: false,
                         tension: 0.4
                     },
@@ -6545,7 +6547,8 @@
                         backgroundColor: 'rgba(34, 197, 94, 0.13)',
                         borderWidth: 0,
                         pointRadius: 0,
-                        fill: '+1',
+                        pointHitRadius: 0,
+                        fill: { target: 3, above: 'rgba(34, 197, 94, 0.13)', below: 'rgba(34, 197, 94, 0.13)' },
                         tension: 0.4
                     },
                     // 3: Green band lower (p10)
@@ -6556,6 +6559,7 @@
                         backgroundColor: 'transparent',
                         borderWidth: 0,
                         pointRadius: 0,
+                        pointHitRadius: 0,
                         fill: false,
                         tension: 0.4
                     },
@@ -6984,6 +6988,7 @@
             chart.data.datasets[1].data = [];
             chart.data.datasets[2].data = [];
             chart.data.datasets[3].data = [];
+            lastMCResult = null;
 
             // Median curves (datasets 4 and 5)
             chart.data.datasets[4].data = technicalFeasibility;
@@ -7006,6 +7011,7 @@
         let mcDebounceTimer = null;
         let mcJobCounter = 0;
         let mcWorker = null;
+        let lastMCResult = null; // Stored for sidebar CI ranges
 
         function requestMCUpdate() {
             if (mcDebounceTimer) clearTimeout(mcDebounceTimer);
@@ -7295,15 +7301,25 @@ self.onmessage = function(e) {
 
             mcJobCounter++;
             const jobId = mcJobCounter;
+            console.log('[MC] Dispatching job', jobId);
 
             // Create worker if needed
             if (!mcWorker) {
-                mcWorker = createMCWorkerBlob();
+                try {
+                    mcWorker = createMCWorkerBlob();
+                } catch (err) {
+                    console.error('[MC Worker] Failed to create worker:', err);
+                    return;
+                }
                 mcWorker.onmessage = function(e) {
                     const result = e.data;
+                    console.log('[MC] Worker returned job', result.jobId, '(current:', mcJobCounter + ')');
                     // Discard stale results
                     if (result.jobId !== mcJobCounter) return;
                     applyConfidenceBands(result);
+                };
+                mcWorker.onerror = function(e) {
+                    console.error('[MC Worker] Error:', e.message, 'at line', e.lineno);
                 };
             }
 
@@ -7323,11 +7339,99 @@ self.onmessage = function(e) {
 
         function applyConfidenceBands(result) {
             if (!chart) return;
+            console.log('[MC] Applying bands. Blue p90[20]:', result.blueP90?.[20]?.toFixed(3),
+                        'Blue p10[20]:', result.blueP10?.[20]?.toFixed(3),
+                        'Green p90[20]:', result.greenP90?.[20]?.toFixed(3),
+                        'Green p10[20]:', result.greenP10?.[20]?.toFixed(3));
             chart.data.datasets[0].data = result.blueP90;  // Blue band upper
             chart.data.datasets[1].data = result.blueP10;  // Blue band lower
             chart.data.datasets[2].data = result.greenP90; // Green band upper
             chart.data.datasets[3].data = result.greenP10; // Green band lower
-            chart.update('none'); // Update without animation for smooth appearance
+            chart.update(); // Full update to ensure Filler plugin recalculates
+
+            // Store results and update sidebar CI ranges
+            lastMCResult = result;
+            updateSidebarCIRanges();
+        }
+
+        function findYearFromBand(bandData, targetProb) {
+            // bandData is an array of probabilities at 0.25-year intervals (0, 0.25, 0.50, ...)
+            if (!bandData || bandData.length === 0) return null;
+            for (let i = 1; i < bandData.length; i++) {
+                if (bandData[i] >= targetProb) {
+                    // Linear interpolation
+                    const t0 = (i - 1) * 0.25;
+                    const t1 = i * 0.25;
+                    const p0 = bandData[i - 1];
+                    const p1 = bandData[i];
+                    if (p1 === p0) return t0;
+                    return t0 + (targetProb - p0) / (p1 - p0) * (t1 - t0);
+                }
+            }
+            return null; // Never reaches target within 20 years
+        }
+
+        function updateSidebarCIRanges() {
+            if (!lastMCResult) return;
+            const MAX_YRS = 20;
+
+            // Green curve (actual job loss) CI ranges for sidebar metrics
+            // p90 = fast scenario (higher prob at each time → reaches threshold sooner)
+            // p10 = slow scenario (lower prob at each time → reaches threshold later)
+            const medianFast = findYearFromBand(lastMCResult.greenP90, PROBABILITY_MEDIAN);
+            const medianSlow = findYearFromBand(lastMCResult.greenP10, PROBABILITY_MEDIAN);
+
+            const medianEl = document.getElementById('median-year');
+            if (medianEl && medianFast !== null && medianSlow !== null) {
+                const baseText = medianEl.textContent.split('(')[0].trim();
+                medianEl.textContent = `${baseText} (${medianFast.toFixed(1)}–${medianSlow.toFixed(1)})`;
+            } else if (medianEl && medianFast !== null) {
+                const baseText = medianEl.textContent.split('(')[0].trim();
+                medianEl.textContent = `${baseText} (${medianFast.toFixed(1)}–20+)`;
+            }
+
+            const highFast = findYearFromBand(lastMCResult.greenP90, PROBABILITY_HIGH);
+            const highSlow = findYearFromBand(lastMCResult.greenP10, PROBABILITY_HIGH);
+
+            const highEl = document.getElementById('high-year');
+            if (highEl && highFast !== null && highSlow !== null) {
+                const baseText = highEl.textContent.split('(')[0].trim();
+                highEl.textContent = `${baseText} (${highFast.toFixed(1)}–${highSlow.toFixed(1)})`;
+            } else if (highEl && highFast !== null) {
+                const baseText = highEl.textContent.split('(')[0].trim();
+                highEl.textContent = `${baseText} (${highFast.toFixed(1)}–20+)`;
+            }
+
+            // Risk by 2030/2031: show CI range from band values at that time index
+            const currentYear = getCurrentYearDecimal();
+            const yearsTo2030 = YEAR_2030 - currentYear;
+            const yearsTo2031 = YEAR_2031 - currentYear;
+
+            if (yearsTo2030 > 0 && yearsTo2030 <= MAX_YRS) {
+                const idx = Math.round(yearsTo2030 / 0.25);
+                if (idx < lastMCResult.greenP90.length) {
+                    const riskHigh = lastMCResult.greenP90[idx];
+                    const riskLow = lastMCResult.greenP10[idx];
+                    const riskEl = document.getElementById('risk-2030');
+                    if (riskEl) {
+                        const baseText = riskEl.textContent.split('(')[0].trim();
+                        riskEl.textContent = `${baseText} (${(riskLow * 100).toFixed(0)}–${(riskHigh * 100).toFixed(0)}%)`;
+                    }
+                }
+            }
+
+            if (yearsTo2031 > 0 && yearsTo2031 <= MAX_YRS) {
+                const idx = Math.round(yearsTo2031 / 0.25);
+                if (idx < lastMCResult.greenP90.length) {
+                    const riskHigh = lastMCResult.greenP90[idx];
+                    const riskLow = lastMCResult.greenP10[idx];
+                    const riskEl = document.getElementById('risk-2031');
+                    if (riskEl) {
+                        const baseText = riskEl.textContent.split('(')[0].trim();
+                        riskEl.textContent = `${baseText} (${(riskLow * 100).toFixed(0)}–${(riskHigh * 100).toFixed(0)}%)`;
+                    }
+                }
+            }
         }
 
         function findYearForProbability(targetProb) {
