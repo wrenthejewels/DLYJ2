@@ -1101,8 +1101,8 @@
                         <div class='equation-callout'>
                             <span class='callout-label'>Survival relationship</span>
                             <div class='equation-display'>$$P_{\text{loss}}(t) = 1 - \exp\left(-\int_0^t \lambda_{\text{total}}(s)\, ds\right)$$</div>
-                            <span class='callout-label'>Stacked hazard model</span>
-                            <div class='equation-display'>$$\lambda_{\text{total}}(s) = \lambda_{\text{AI}}(s) + \lambda_{\text{macro}}(s) + \lambda_{\text{firm}}(s) + \lambda_{\text{role}}(s) + \lambda_{\text{personal}}(s)$$</div>
+                            <span class='callout-label'>Implemented hazard channels</span>
+                            <div class='equation-display'>$$\text{Blue curve: }\lambda_{\text{total}}(s)=\lambda_{\text{AI}}(s), \qquad \text{Green curve: }\lambda_{\text{total}}(s)=\min\!\left(0.60,\;\lambda_{\text{AI}}(\max(s-\Delta(s),0))+\lambda_{\text{compression}}(s)\right)$$</div>
                         </div>
 
                         <h3>Model Flow: How Your Inputs Become Predictions</h3>
@@ -1327,8 +1327,8 @@
                             <div class='bubble-item'><span class='bubble-key'>Compression: gate</span><span class='bubble-val'>$\theta_c$=0.33, $\gamma_c$=6.0, $h_{\max,c}$=0.45/yr</span></div>
                         </div>
 
-                        <h3 class="h3-accent">Uncertainty and Confidence Bands</h3>
-                        <p>The shaded bands around each curve represent the 10th&ndash;90th percentile range of plausible outcomes given uncertainty in three key model inputs.</p>
+                        <h3 class="h3-accent">Uncertainty Bands</h3>
+                        <p>The shaded bands around each curve represent the 10th&ndash;90th percentile range of simulated outcomes given uncertainty in three key model inputs. This is an 80% simulation interval (not a classical confidence interval).</p>
 
                         <p><strong>Why single-point predictions are insufficient.</strong> The model&rsquo;s output depends on parameters derived from empirical data &mdash; most critically the rate at which AI capability doubles. METR&rsquo;s benchmark data provides a point estimate for this doubling time (~6&ndash;7 months), but the 95% confidence interval spans roughly 3.4 to 5.1 months. Because capability growth is exponential, small differences in doubling time compound dramatically over a forecast horizon of years. A prediction of &ldquo;3.2 years to 50% risk&rdquo; might more honestly be expressed as &ldquo;2.1&ndash;5.8 years.&rdquo;</p>
 
@@ -1339,7 +1339,8 @@
                             <li><strong>Gate sharpness.</strong> The softness parameter $s$ that controls how gradually tasks transition from &ldquo;AI cannot do this&rdquo; to &ldquo;AI can do this&rdquo; is a modeling choice without direct empirical calibration. We vary it within its plausible range [0.20, 0.55] to capture structural model uncertainty.</li>
                         </ol>
 
-                        <p><strong>How the bands are computed.</strong> The model runs 30 Monte Carlo samples, each drawing parameter values from the uncertainty ranges described above (log-normal for doubling time, uniform for σ and softness). For each sample, the full hazard integration is computed identically to the median curve. At each time point, the 10th and 90th percentile across all 30 runs define the band boundaries.</p>
+                        <p><strong>How the bands are computed.</strong> The model runs 30 Monte Carlo samples, each drawing parameter values from the uncertainty ranges described above (log-normal for doubling time, uniform for σ and softness). For each sample, the same hazard formulas are integrated with Simpson&rsquo;s rule (using 50 steps in Monte Carlo vs. 100 for the median path for performance). At each time point, the 10th and 90th percentile across all 30 runs define the band boundaries.</p>
+                        <p style="font-size: 0.9em; color: #666;">Because the sample size is 30, these bands are a fast approximation for interactive use and can move slightly between runs.</p>
 
                         <div class='equation-callout'>
                             <span class='callout-label'>Monte Carlo loss probability</span>
@@ -1364,7 +1365,7 @@
                             <div class='bubble-item'><span class='bubble-key'>Q11 (Human judgment)</span><span class='bubble-val'>-0.01 weight</span></div>
                             <div class='bubble-item'><span class='bubble-key'>Q10 (Task reallocation)</span><span class='bubble-val'>-0.01 weight</span></div>
                         </div>
-                        <p>This parameter controls how quickly implementation barriers shrink as AI capability grows. The model implements dynamic friction decay where implementation delay decreases exponentially: $\Delta(t) = \Delta_0 \cdot e^{-\lambda t}$. At time $t$, the green curve (actual job loss) equals technical feasibility at the earlier time $t - \Delta(t)$. Higher $\lambda$ means barriers collapse faster once AI crosses initial thresholds, while lower $\lambda$ means barriers persist even as capability advances. This captures how regulatory frameworks and organizational inertia may initially delay adoption by several years, though these delays shrink as AI improves and more companies adopt it.</p>
+                        <p>This parameter controls how quickly implementation barriers shrink as AI capability grows. The model implements dynamic friction decay where implementation delay decreases exponentially: $\Delta(t) = \Delta_0 \cdot e^{-\lambda t}$. At each integration step, automation hazard is evaluated at the earlier time $\max(t - \Delta(t), 0)$, then added to same-time compression hazard and integrated into the green curve. Higher $\lambda$ means barriers collapse faster once AI crosses initial thresholds, while lower $\lambda$ means barriers persist even as capability advances. This captures how regulatory frameworks and organizational inertia may initially delay adoption by several years, though these delays shrink as AI improves and more companies adopt it.</p>
                         <p>The decay accelerates once $\lambda$ exceeds 0.025 (the knee point). Two additional parameters shape the dynamics: a saturation boost (0.6) that amplifies decay as capability matures, and a capability gain factor (0.8) that links delay compression to job readiness growth. Together these determine how quickly barriers collapse once AI capability and organizational readiness combine.</p>
 
                         <h3 class="h3-accent">Role Presets</h3>
@@ -1429,7 +1430,7 @@
 
                         <div class='equation-callout'>
                             <span class='callout-label'>Green curve total hazard</span>
-                            <div class='equation-display'>$$\lambda_{\text{total}}(t) = \lambda_{\text{AI}}(t - \Delta(t)) + \lambda_{\text{compression}}(t)$$</div>
+                            <div class='equation-display'>$$\lambda_{\text{total}}(t) = \min\!\left(0.60,\;\lambda_{\text{AI}}(\max(t-\Delta(t),0)) + \lambda_{\text{compression}}(t)\right)$$</div>
                             <span class='callout-label'>Where implementation delay decreases over time</span>
                             <div class='equation-display'>$$\Delta(t) = \Delta_0 \cdot e^{-\lambda t}$$</div>
                         </div>
@@ -1449,7 +1450,7 @@
                             <span class='callout-label'>Initial delay calculation</span>
                             <div class='equation-display'>$$\Delta_0 = \operatorname{clip}\big(1.75 - 1.25\, s_{\text{delay}} + \Delta^{\text{eff}}_{\text{seniority}},\; 0.3,\; 4.0\big)$$</div>
                             <div class='equation-display'>$$\Delta^{\text{eff}}_{\text{seniority}} = \Delta_{\text{seniority}} \cdot \Big[1 + 0.5\, (\operatorname{norm}(Q19) - 0.5)\, \operatorname{sign}(\Delta_{\text{seniority}})\Big]$$</div>
-                            <p style="font-size: 0.9em; margin-top: 8px; color: #666;">$s_{\text{delay}} \in [-2,2]$ from Q13-Q16; $\Delta_{\text{seniority}} \in \{-0.10,-0.03,+0.06,+0.10,+0.12\}$ years by level; result clamped to 0.3–4.0 years</p>
+                            <p style="font-size: 0.9em; margin-top: 8px; color: #666;">$s_{\text{delay}} \in [-2,2]$ from Q13, Q14, Q15, Q16, and Q19 via weighted score; $\Delta_{\text{seniority}} \in \{-0.10,-0.03,+0.06,+0.10,+0.12\}$ years by level; result clamped to 0.3–4.0 years</p>
                         </div>
 
                         <p><strong>Dynamic friction decay:</strong> The delay doesn't stay constant. As AI capability increases and adoption spreads, organizational barriers shrink over time: $\Delta(t) = \Delta_0 \cdot e^{-\lambda t}$. The decay rate $\lambda$ (typically 0.02–0.05/year) is derived from your questionnaire answers (see <em>Friction Decay Parameter</em> above).</p>
@@ -1482,7 +1483,7 @@
                         <ol class='action-list'>
                             <li><strong>Reallocation feasibility ($s_{\text{realloc}}$):</strong> Combines Q10 (direct reallocation question: <strong>50% weight</strong>), task structure (Q5: 18%, Q6: 12%, Q7: 8% inverted), tacit knowledge (Q9: 10% inverted), and physical presence (Q12: 2% inverted). Q10 is the dominant factor since it directly measures how easily your responsibilities could be redistributed to existing team members. Higher scores mean your work can be easily absorbed by others. Range: [0, 1].</li>
                             <li><strong>Senior productivity amplification ($B_{\text{amp}}$):</strong> AI only amplifies productivity for work that is both digital and AI-learnable. Raw digitization (Q4) is discounted by factors that make digital work harder for AI to learn from: context dependency (Q7: 35% weight), tacit knowledge (Q9: 30% weight), low decomposability (Q5: 20% weight), and low standardization (Q6: 15% weight). A senior consultant whose deliverables are 100% digital but require extensive context, relationships, and tacit judgment gets minimal amplification because while the work is digital, AI cannot learn to replicate it by observing outputs. Conversely, highly digital, standardized, decomposable work with low context enables strong amplification. The boost ranges from 0 to 2.0 (up to +200% output, or 3&times; productivity when used in $(1 + B_{\text{amp}})$), scaled by current AI performance (Q1) and job readiness $A_{\text{job}}(t)$. This factor grows over time as AI capability increases.</li>
-                            <li><strong>Hierarchy vulnerability ($V_{\text{hierarchy}}$):</strong> Your position in the workflow determines exposure. Calculated as $(6 - \text{level}) / 5$. Level 1 (many layers above) = 100% vulnerable. Level 4 = 40% vulnerable. Level 5 (top of domain, no one above can do your work) = 20% vulnerable. A principal engineer who owns a system faces minimal compression risk despite being in a "senior" role title.</li>
+                            <li><strong>Hierarchy vulnerability ($V_{\text{hierarchy}}$):</strong> Your position in the workflow determines exposure. Calculated as $\operatorname{clip}((6 - \text{level}) / 5,\;0.3,\;1.0)$. Level 1 (many layers above) = 100% vulnerable. Level 4 = 40% vulnerable. Level 5 (top of domain, no one above can do your work) = 30% vulnerable due to the model&rsquo;s minimum floor. A principal engineer who owns a system faces minimal compression risk despite being in a "senior" role title.</li>
                         </ol>
 
                         <p><strong>Parameters differ from full automation:</strong> The compression gate opens at $\theta_c = 0.33$ (vs. $\theta \approx 0.50$ for automation), has gentler slope ($\gamma_c = 6.0$ vs. $\gamma = 8.0$), and equal maximum hazard ($h_{\max,c} = 0.45$/year, matching automation's $h_{\max} = 0.45$/year). For vulnerable positions, AI-driven workforce compression poses significant risk alongside direct automation—earlier onset but more gradual ramp-up. Combined with automation hazard, the total is capped at 0.60/year to reflect real-world institutional friction that prevents instant mass layoffs.</p>
