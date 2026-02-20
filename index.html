@@ -4225,8 +4225,8 @@
 
         // METR-based capability model parameters
         const METR_DEFAULTS = {
-            H50_0: 394.383957,      // Baseline 50% task completion time in minutes (GPT-5.2, Dec 2025)
-            H80_0: 55.134067,       // Baseline 80% reliability horizon in minutes (GPT-5.2, Dec 2025)
+            H50_0: 870.027186,      // Baseline 50% task completion time in minutes (Claude Opus 4.6, Feb 2026)
+            H80_0: 62.851039,       // Baseline 80% reliability horizon in minutes (Claude Opus 4.6, Feb 2026)
             D_months: 7,            // METR doubling time in months
             r_target: 0.95,         // Reliability target (95%)
             softness: 0.35,         // Logistic softness parameter [0.20, 0.55] (sharper gate to delay saturation)
@@ -4590,9 +4590,9 @@
 
         // Doubling time CI from METR regression (populated from benchmark YAML)
         const DOUBLING_TIME_CI = {
-            ci_high: 155.654,  // days (fallback from embedded)
-            ci_low: 104.601,   // days (fallback from embedded)
-            point_estimate: 128.12  // days
+            ci_high: 149.259,  // days (fallback from embedded)
+            ci_low: 98.481,    // days (fallback from embedded)
+            point_estimate: 122.611  // days
         };
 
         function getBenchmarkMetrics(model) {
@@ -4719,7 +4719,8 @@
             { name: 'gpt_5', release_date: '2025-08-07', p50: 213.954459, p80: 31.643807 },
             { name: 'gemini_3_pro', release_date: '2025-11-18', p50: 236.654674, p80: 43.435618 },
             { name: 'claude_opus_4_5', release_date: '2025-11-24', p50: 320.422486, p80: 41.551151 },
-            { name: 'gpt_5_2', release_date: '2025-12-11', p50: 394.383957, p80: 55.134067 }
+            { name: 'gpt_5_2', release_date: '2025-12-11', p50: 394.383957, p80: 55.134067 },
+            { name: 'claude_opus_4_6', release_date: '2026-02-05', p50: 870.027186, p80: 62.851039 }
         ];
 
         // Current SOTA for baseline capability (last entry in history)
