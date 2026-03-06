@@ -1,0 +1,43 @@
+ui_role_key,ui_role_label,onet_soc_code,title,fit_rank,fit_type,notes
+software,Software/Tech,15-1252.00,Software Developers,1,primary,direct_category_anchor
+software,Software/Tech,15-1211.00,Computer Systems Analysts,2,adjacent,direct_category_anchor
+software,Software/Tech,15-1254.00,Web Developers,3,adjacent,direct_category_anchor
+admin,Administrative,43-6014.00,"Secretaries and Administrative Assistants, Except Legal, Medical, and Executive",1,primary,direct_category_anchor
+admin,Administrative,43-9061.00,"Office Clerks, General",2,primary,direct_category_anchor
+admin,Administrative,43-6011.00,Executive Secretaries and Executive Administrative Assistants,3,adjacent,direct_category_anchor
+data-analysis,Data Analysis,15-2051.00,Data Scientists,1,primary,direct_category_anchor
+data-analysis,Data Analysis,15-2031.00,Operations Research Analysts,2,primary,direct_category_anchor
+data-analysis,Data Analysis,43-9111.00,Statistical Assistants,3,adjacent,direct_category_anchor
+finance,Finance/Accounting,13-2011.00,Accountants and Auditors,1,primary,direct_category_anchor
+finance,Finance/Accounting,13-2051.00,Financial and Investment Analysts,2,primary,direct_category_anchor
+finance,Finance/Accounting,43-3031.00,"Bookkeeping, Accounting, and Auditing Clerks",3,adjacent,direct_category_anchor
+sales,Sales/Marketing,13-1161.00,Market Research Analysts and Marketing Specialists,1,primary,direct_category_anchor
+sales,Sales/Marketing,41-3091.00,"Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel",2,primary,direct_category_anchor
+sales,Sales/Marketing,41-3011.00,Advertising Sales Agents,3,adjacent,direct_category_anchor
+creative,Creative/Design,27-1024.00,Graphic Designers,1,primary,direct_category_anchor
+creative,Creative/Design,27-3043.00,Writers and Authors,2,adjacent,direct_category_anchor
+creative,Creative/Design,27-3041.00,Editors,3,adjacent,shared_with_content
+legal,Legal/Compliance,23-1011.00,Lawyers,1,primary,direct_category_anchor
+legal,Legal/Compliance,23-2011.00,Paralegals and Legal Assistants,2,primary,direct_category_anchor
+legal,Legal/Compliance,13-1041.00,Compliance Officers,3,adjacent,shared_with_operations
+product-management,Product Management,13-1082.00,Project Management Specialists,1,primary,hybrid_proxy
+product-management,Product Management,11-1021.00,General and Operations Managers,2,adjacent,hybrid_proxy
+product-management,Product Management,15-1211.00,Computer Systems Analysts,3,adjacent,hybrid_proxy
+consulting,Consulting/Strategy,13-1111.00,Management Analysts,1,primary,direct_category_anchor
+consulting,Consulting/Strategy,13-1199.00,"Business Operations Specialists, All Other",2,adjacent,direct_category_anchor
+consulting,Consulting/Strategy,13-1082.00,Project Management Specialists,3,adjacent,shared_with_product_management
+hr,HR/People Ops,13-1071.00,Human Resources Specialists,1,primary,direct_category_anchor
+hr,HR/People Ops,13-1151.00,Training and Development Specialists,2,primary,direct_category_anchor
+content-writing,Content Writing,27-3042.00,Technical Writers,1,primary,direct_category_anchor
+content-writing,Content Writing,27-3041.00,Editors,2,primary,direct_category_anchor
+content-writing,Content Writing,27-3043.00,Writers and Authors,3,adjacent,shared_with_creative
+journalism,Journalism,27-3023.00,"News Analysts, Reporters, and Journalists",1,primary,direct_category_anchor
+journalism,Journalism,27-3031.00,Public Relations Specialists,2,adjacent,communications_adjacent
+journalism,Journalism,27-3041.00,Editors,3,adjacent,shared_with_content
+engineering,Engineering (Non-Software),17-2141.00,Mechanical Engineers,1,primary,direct_category_anchor
+engineering,Engineering (Non-Software),17-2072.00,"Electronics Engineers, Except Computer",2,primary,direct_category_anchor
+engineering,Engineering (Non-Software),17-3029.00,"Engineering Technologists and Technicians, Except Drafters, All Other",3,adjacent,stretch_support_role
+operations,Operations Management,43-4051.00,Customer Service Representatives,1,primary,direct_category_anchor
+operations,Operations Management,13-1081.00,Logisticians,2,primary,direct_category_anchor
+operations,Operations Management,13-1041.00,Compliance Officers,3,adjacent,direct_category_anchor
+custom,Other/Custom,,,,,fallback_only

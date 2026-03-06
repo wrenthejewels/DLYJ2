@@ -1,0 +1,37 @@
+provisional_onet_soc_code,title_short,alias_primary,alias_secondary,employment_us_stub,median_wage_usd_stub,projection_growth_pct_stub,notes
+15-1252.00,Software Developer,software engineer,application developer,1748000,138110,17,rebalanced_launch_seed
+15-1211.00,Systems Analyst,business systems analyst,it analyst,531000,105000,11,rebalanced_launch_seed
+15-1254.00,Web Developer,frontend developer,interface developer,222000,98000,8,rebalanced_launch_seed
+43-6014.00,Administrative Assistant,secretary,office administrative assistant,2980000,47000,-4,rebalanced_launch_seed
+43-9061.00,Office Clerk,administrative clerk,general office assistant,2580000,42000,-5,rebalanced_launch_seed
+43-6011.00,Executive Assistant,executive secretary,senior administrative assistant,460000,74000,-8,rebalanced_launch_seed
+15-2051.00,Data Scientist,data analyst,analytics specialist,202000,112590,36,rebalanced_launch_seed
+15-2031.00,Operations Research Analyst,optimization analyst,decision scientist,118000,91000,23,rebalanced_launch_seed
+43-9111.00,Statistical Assistant,data technician,statistics assistant,7000,59000,5,rebalanced_launch_seed
+13-2011.00,Accountant,auditor,accounting analyst,1454000,81780,6,rebalanced_launch_seed
+13-2051.00,Financial Analyst,investment analyst,finance analyst,397000,101000,9,rebalanced_launch_seed
+43-3031.00,Bookkeeper,accounting clerk,bookkeeping clerk,1600000,50000,-5,rebalanced_launch_seed
+13-1161.00,Marketing Specialist,market research analyst,marketing analyst,903000,76730,8,rebalanced_launch_seed
+41-3091.00,Sales Representative,account executive,business development representative,1200000,69000,5,rebalanced_launch_seed
+41-3011.00,Advertising Sales Agent,media sales representative,advertising account executive,108000,68000,4,rebalanced_launch_seed
+27-1024.00,Graphic Designer,visual designer,brand designer,267000,61000,3,rebalanced_launch_seed
+27-3043.00,Writer,author,creative writer,49000,73000,5,rebalanced_launch_seed
+23-1011.00,Lawyer,attorney,counsel,859000,151000,5,rebalanced_launch_seed
+23-2011.00,Paralegal,legal assistant,litigation support specialist,352000,60740,5,rebalanced_launch_seed
+13-1082.00,Project Manager,project management specialist,program coordinator,980000,100000,7,rebalanced_launch_seed
+11-1021.00,Operations Manager,general manager,business unit manager,3584000,102950,6,rebalanced_launch_seed
+13-1111.00,Management Analyst,management consultant,business consultant,986000,101190,11,rebalanced_launch_seed
+13-1199.00,Business Operations Specialist,business specialist,operations analyst,1160000,80500,6,rebalanced_launch_seed
+13-1071.00,HR Specialist,recruiter,human resources generalist,919000,72810,8,rebalanced_launch_seed
+13-1151.00,Training Specialist,learning and development specialist,instructional specialist,389000,68800,11,rebalanced_launch_seed
+27-3042.00,Technical Writer,documentation specialist,documentation writer,47000,84000,4,rebalanced_launch_seed
+27-3041.00,Editor,copy editor,editorial specialist,95000,76000,2,rebalanced_launch_seed
+27-3023.00,Journalist,reporter,news analyst,45000,59000,-3,rebalanced_launch_seed
+27-3031.00,PR Specialist,communications specialist,public relations specialist,275000,69000,6,rebalanced_launch_seed
+17-2141.00,Mechanical Engineer,product engineer,design engineer,284000,103000,10,rebalanced_launch_seed
+17-2072.00,Electronics Engineer,electrical systems engineer,hardware engineer,124000,121000,7,rebalanced_launch_seed
+43-4051.00,Customer Service Representative,customer support specialist,client support representative,2900000,40000,5,rebalanced_launch_seed
+13-1081.00,Logistician,supply chain analyst,operations planner,191000,79000,19,rebalanced_launch_seed
+13-1041.00,Compliance Officer,risk and compliance analyst,regulatory compliance specialist,387000,78000,5,rebalanced_launch_seed
+17-3029.00,Engineering Technologist,engineering technician,applied engineering specialist,70000,71000,5,rebalanced_launch_seed
+15-2041.00,Statistician,quantitative analyst,applied statistician,35000,105000,12,rebalanced_launch_seed

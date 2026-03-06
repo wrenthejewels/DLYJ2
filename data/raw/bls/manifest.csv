@@ -1,0 +1,4 @@
+planned_file,category,priority,status,notes
+oews_may_2024_extract.csv,labor_market_context,core,pending_user_extract,Employment and wage context for selected occupations. labor_market_confidence is optional and defaults internally.
+occupational_projections_2024_2034_extract.csv,labor_market_context,core,pending_download,Projected growth and openings context.
+bls_crosswalk_notes.md,crosswalk_support,supporting,pending_manual_extract,Notes for SOC alignment and selector coverage.

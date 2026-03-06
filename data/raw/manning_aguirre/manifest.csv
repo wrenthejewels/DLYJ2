@@ -1,0 +1,6 @@
+planned_file,category,priority,status,notes
+occupation_exposure_extract.csv,occupation_prior,core,optional_alias,Normalizer also accepts manning_aguirre_2026_occupation_data.csv directly.
+adaptive_capacity_extract.csv,occupation_prior,core,embedded_in_primary_extract,Adaptive capacity is present in the occupation extract when published.
+appendix_table_extract.csv,occupation_prior,supporting,pending_manual_extract,Backup table for validation and derived fields.
+paper_metadata.json,metadata,supporting,pending_manual_extract,Citation release notes and extraction provenance.
+manning_aguirre_2026_occupation_data.csv,occupation_prior,core,manual_extract_added,Partial occupation table extracted from published paper tables with mapped O*NET codes.

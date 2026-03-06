@@ -1,0 +1,111 @@
+sources:
+  - source_id: src_onet_30_1
+    name: O*NET Database
+    category: occupation_structure
+    version_label: '30.1'
+    release_date: '2025-11-??'
+    download_url: 'https://www.onetcenter.org/database.html'
+    license: 'O*NET Web Services and database terms'
+    geography: us
+    granularity: occupation_and_task
+    status: planned_raw_import
+    notes: 'Structural backbone for occupations, tasks, work context, and skills.'
+  - source_id: src_anthropic_ei_2025_03_27
+    name: Anthropic Economic Index
+    category: task_exposure
+    version_label: '2025-03-27'
+    release_date: '2025-03-27'
+    download_url: 'https://huggingface.co/datasets/Anthropic/EconomicIndex'
+    license: 'See dataset card'
+    geography: global_usage_mapped_to_onet
+    granularity: task_level
+    status: planned_raw_import
+    notes: 'Primary task-level evidence for usage plus augmentation versus automation splits.'
+  - source_id: src_manning_aguirre_2026_01
+    name: Manning and Aguirre adaptive capacity paper
+    category: occupation_prior
+    version_label: 'NBER Working Paper 34705'
+    release_date: '2026-01-01'
+    download_url: 'https://www.nber.org/papers/w34705'
+    license: 'NBER working paper terms'
+    geography: us
+    granularity: occupation_level
+    status: partial_manual_extract
+    notes: 'Occupation-level exposure and adaptive capacity prior for selector and summary layers. Current repo coverage is partial and based on manually extracted published tables with mapped O*NET codes.'
+  - source_id: src_oecd_job_quality_2014
+    name: OECD Job Quality Framework
+    category: quality_framework
+    version_label: '2014 framework'
+    release_date: '2014-12-15'
+    download_url: 'https://www.oecd.org/en/publications/measuring-and-assessing-job-quality_5jrp02kjw1mr-en.html'
+    license: 'OECD terms'
+    geography: oecd
+    granularity: framework
+    status: framework_only
+    notes: 'Conceptual basis for quality indicators; not a direct occupation-level feed.'
+  - source_id: src_oecd_piaac_2023
+    name: OECD PIAAC public use files
+    category: quality_microdata
+    version_label: 'latest public release as of 2026-03-05'
+    release_date: '2023-12-31'
+    download_url: 'https://www.oecd.org/en/about/programmes/piaac/piaac-data.html'
+    license: 'OECD PIAAC terms'
+    geography: multi_country
+    granularity: respondent_microdata
+    status: planned_optional_extract
+    notes: 'Future empirical layer for OECD-inspired occupation quality indicators.'
+  - source_id: src_bls_oews_2024
+    name: BLS Occupational Employment and Wage Statistics
+    category: labor_market_context
+    version_label: 'May 2024'
+    release_date: '2025-04-02'
+    download_url: 'https://www.bls.gov/oes/oes_emp.htm'
+    license: public_domain
+    geography: us
+    granularity: occupation_level
+    status: planned_raw_import
+    notes: 'Employment and wage context for occupation selector and market context file.'
+  - source_id: src_bls_proj_2024_2034
+    name: BLS Occupational Projections
+    category: labor_market_context
+    version_label: '2024-2034'
+    release_date: '2025-09-04'
+    download_url: 'https://www.bls.gov/emp/data/occupational-data.htm'
+    license: public_domain
+    geography: us
+    granularity: occupation_level
+    status: planned_raw_import
+    notes: 'Growth and openings context for selector ranking and transition outlook.'
+  - source_id: src_aioe_2023
+    name: AI Occupational Exposure
+    category: occupation_prior
+    version_label: 'AIOE repository snapshot'
+    release_date: '2023-03-01'
+    download_url: 'https://github.com/AIOE-Data/AIOE'
+    license: 'Repository terms'
+    geography: us
+    granularity: occupation_level
+    status: planned_optional_benchmark
+    notes: 'Benchmark prior and sanity check against newer exposure sources.'
+  - source_id: src_ilo_genai_2025_05
+    name: ILO refined global GenAI exposure index
+    category: occupation_prior
+    version_label: '2025-05-20'
+    release_date: '2025-05-20'
+    download_url: 'https://www.ilo.org/publications/generative-ai-and-jobs-refined-global-index-occupational-exposure'
+    license: 'ILO terms'
+    geography: global
+    granularity: occupation_level
+    status: planned_optional_extract
+    notes: 'Optional global benchmark for augmentation versus automation framing.'
+  - source_id: src_internal_stub_2026_03
+    name: Internal v2 stub generator
+    category: development_scaffold
+    version_label: '2026-03-05'
+    release_date: '2026-03-05'
+    download_url: ''
+    license: internal_only
+    geography: us_first
+    granularity: occupation_and_task
+    status: active_stub
+    notes: 'Temporary generated placeholders used until real raw-source normalization is implemented.'

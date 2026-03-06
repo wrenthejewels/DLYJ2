@@ -1,0 +1,8 @@
+planned_file,category,priority,status,notes
+release_2025_02_10_onet_task_mappings.csv,task_exposure,core,pending_download,Maps Anthropic usage data onto O*NET task references.
+release_2025_02_10_onet_task_statements.csv,task_exposure,supporting,pending_download,Task-text support for O*NET joins.
+release_2025_02_10_automation_vs_augmentation.csv,task_exposure,core,pending_download,Early automation versus augmentation split.
+release_2025_03_27_task_pct_v1.csv,task_exposure,core,pending_download,Task usage proportions by mapped task.
+release_2025_03_27_task_pct_v2.csv,task_exposure,core,pending_download,Revised task usage proportions by mapped task.
+release_2025_03_27_task_thinking_fractions.csv,task_exposure,supporting,pending_download,Reasoning intensity signal for tasks.
+release_2025_03_27_automation_vs_augmentation_by_task.csv,task_exposure,core,pending_download,Preferred task-level augmentation versus automation file.
