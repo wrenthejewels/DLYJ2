@@ -301,15 +301,15 @@ These exist, but some are still heuristic rather than final research-grade input
 
 These decisions should be resolved before large UI implementation begins:
 
-1. What exactly is the `2.0` results page layout?
-2. What is the primary chart or visualization?
-3. What replaces the current blue/green hazard chart?
-4. What form should the new secondary hazard output take?
-5. Which parts of the current questionnaire remain unchanged, and which must be redesigned?
-6. Do we want occupation selection to be:
+1. Which parts of the current questionnaire remain unchanged, and which must be redesigned?
+2. What exact form should the new secondary hazard output take?
+3. Do we want occupation selection to be:
    - broad category only
    - category then occupation
    - inferred occupation candidates after questionnaire answers
+
+The results-page structure and headline output contract are now documented in:
+- `docs/v2_0_results_spec.md`
 
 ## Recommended V2.0 Architecture
 
@@ -347,7 +347,11 @@ Define:
 - main chart
 - secondary chart or timing panel
 
-This should be done before major UI coding.
+Status:
+- substantially locked in `docs/v2_0_results_spec.md`
+
+Remaining work:
+- translate the spec into actual UI implementation
 
 ### Workstream 2: Questionnaire redesign
 
@@ -360,6 +364,12 @@ Target dimensions:
 - adoption context
 - adaptation capacity
 
+Status:
+- now documented in `docs/v2_0_questionnaire_spec.md`
+
+Remaining work:
+- translate the spec into actual input fields and scoring code
+
 ### Workstream 3: Transformation model logic
 
 Implement:
@@ -368,6 +378,14 @@ Implement:
 - residual bundle viability
 - adaptation capacity
 - secondary hazard summary
+
+Status:
+- first runtime scaffold now exists in `v2_engine.js`
+
+Remaining work:
+- improve scoring quality
+- add direct task-family and residual-bundle inputs from the UI
+- wire the current homepage flow to the engine output
 
 ### Workstream 4: Occupation prior improvement
 
@@ -390,13 +408,11 @@ so the public explanation matches the `2.0` ontology.
 
 ## Recommended Near-Term Sequence
 
-1. lock the `2.0` results-page contract
-2. define the `2.0` questionnaire mapping
-3. add broader occupation-level exposure coverage
-4. implement the core transformation engine
-5. wire the homepage to category -> occupation candidates -> transformation outputs
-6. rewrite guide and methodology
-7. decide what secondary hazard output survives from `1.0`
+1. wire the homepage to category -> occupation candidates -> transformation outputs
+2. add broader occupation-level exposure coverage
+3. improve the transformation-engine scoring with the new intake fields
+4. rewrite guide and methodology
+5. finalize what secondary hazard output survives from `1.0`
 
 ## Acceptance Criteria For V2.0
 
@@ -442,8 +458,95 @@ Suggested update format:
   - `1.0` will eventually be archived rather than remain the main public model
 - new blockers:
   - no full `2.0` transformation engine yet
-  - no final results-page contract yet
   - no final questionnaire redesign yet
   - Manning coverage remains partial
 - next recommended step:
   - lock the `2.0` results-page structure and data contract before more implementation
+
+## Session Update - 2026-03-06-B
+
+- completed:
+  - created `docs/v2_0_results_spec.md`
+  - locked the recommended `2.0` headline cards
+  - locked the recommended transformation-first page structure
+  - defined a minimum app-facing `V2Result` contract
+  - moved the old `1.0` timeline outputs into a secondary-panel role in the spec
+- changed decisions:
+  - the primary `2.0` chart should be a `Role Transformation Map`
+  - the current `1.0` chart should not remain the main result visual
+- new blockers:
+  - no questionnaire-to-result mapping yet
+  - no actual `2.0` transformation engine implementing the result contract yet
+- next recommended step:
+  - define the `2.0` questionnaire mapping against the locked result contract
+
+## Session Update - 2026-03-06-C
+
+- completed:
+  - created `docs/v2_0_questionnaire_spec.md`
+  - mapped the current `Q1-Q19` intake into the `2.0` transformation model
+  - identified which legacy questions can be kept, reinterpreted, or renamed
+  - identified the minimum new `2.0`-specific fields needed for first launch
+- changed decisions:
+  - `Q1-Q19` can remain temporarily as an internal migration layer
+  - a full questionnaire rewrite is not required before the first transformation-engine scaffold
+- new blockers:
+  - no model code yet turns questionnaire answers into the new `V2Result` contract
+- next recommended step:
+  - implement the first `2.0` transformation-engine scaffold against the normalized data and questionnaire mapping
+
+## Session Update - 2026-03-06-D
+
+- completed:
+  - added `v2_engine.js` as the first runtime-capable `2.0` transformation-engine scaffold
+  - added `scripts/test_v2_engine.js` as a local harness for validating the scaffold
+  - implemented occupation resolution from the new UI role-category bridge
+  - implemented first-pass scoring for:
+    - exposed task share
+    - automation vs augmentation balance
+    - residual role viability
+    - adaptation capacity
+    - transformation pressure by 2030
+    - secondary hazard summary
+- changed decisions:
+  - the first `2.0` engine will be heuristic and data-backed before it is fully research-tuned
+- new blockers:
+  - the homepage still does not call the new engine
+  - the current UI does not yet collect the new `2.0`-specific inputs
+- next recommended step:
+  - wire the homepage flow to the new engine and render a first-pass `2.0` result object
+
+## Session Update - 2026-03-06-E
+
+- completed:
+  - wired the homepage to `v2_engine.js`
+  - added occupation-candidate resolution and user selection through the new occupation match dropdown
+  - rendered the `2.0` headline cards, role transformation map, narrative blocks, and evidence summary on the homepage
+  - demoted the old chart and hazard cards into a secondary timing view while preserving the legacy calculations
+  - added graceful fallback behavior for `Other/Custom`, which still has no mapped launch occupation in `2.0`
+- changed decisions:
+  - `Other/Custom` will remain supported only by the secondary timing view until a proper `2.0` occupation-resolution path exists
+- new blockers:
+  - the homepage still relies on legacy `Q1-Q19` only and does not collect the new `2.0`-specific fields directly
+  - the public guide and methodology still describe the old `1.0` ontology
+- next recommended step:
+  - add the minimum new `2.0` intake fields and start replacing the current guide and methodology with transformation-first documentation
+
+## Session Update - 2026-03-06-F
+
+- completed:
+  - added minimum direct `2.0` intake fields on the homepage for:
+    - primary task family
+    - secondary task family
+    - current AI/tool support
+    - residual role strength after routine work is absorbed
+  - wired those direct inputs into the `v2` engine without changing the legacy timing model
+  - rewrote the top framing of `guide/index.html` so it explains the transformation model first and the timing view second
+  - rewrote the top framing of `method/index.html` so it documents the `2.0` pipeline first and treats the old hazard math as a secondary appendix
+- changed decisions:
+  - the first production `2.0` homepage will use a hybrid intake: legacy `Q1-Q19` plus a narrow set of direct transformation fields
+- new blockers:
+  - the guide and methodology still contain substantial legacy timing detail further down the page, even though the public framing is now corrected
+  - occupation-level exposure priors remain incomplete for uncovered launch roles
+- next recommended step:
+  - improve occupation-prior coverage and then tighten the downstream scoring logic around the new direct `2.0` inputs

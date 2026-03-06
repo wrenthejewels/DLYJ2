@@ -813,7 +813,7 @@
             <article class='guide-article'>
                 <header class='article-hero'>
                     <h1>Guide</h1>
-                    <p class='lede'>Understanding how AI displaces jobs, what the model measures, and how to use this information.</p>
+                    <p class='lede'>Understanding task exposure, role transformation, residual viability, and how to use the new `2.0` model outputs.</p>
                 </header>
 
                 <div class='article-body'>
@@ -821,37 +821,35 @@
                     <section>
                         <h2>Key Claims</h2>
                         <ul class="detail-list">
-                            <li><strong>Displacement can occur even without full automation.</strong> AI can cost you your job without fully automating your role: once it amplifies enough of your coworkers or clients, compression effects can displace roles throughout the hierarchy.</li>
-                            <li><strong>Your risk depends on your tasks, not your job title:</strong> Risk is highly dependent on your task structures, hierarchy, and organizational context. Two people with the same job title can face displacement timelines that vary by years.</li>
-                            <li><strong>There is little cost to preparation:</strong> Over-preparing for displacement that never arrives is relatively cheap, while being underprepared can significantly affect your economic agency, especially as AI rapidly increases in capabilities.</li>
-                            <li><strong>Policy levers need to be implemented:</strong> This is a technology unlike any prior automation trends. In at-will employment, firms have little incentive to retain roles that add little value compared to purchasing AI compute; without active guardrails, mass unemployment will have significant effects upon the labor market.</li>
+                            <li><strong>Exposure is not displacement.</strong> A role can contain heavily exposed tasks while still remaining viable because those tasks stay coupled to higher-context work or become AI-augmented instead of fully automated.</li>
+                            <li><strong>The right unit is the task bundle, not the job title.</strong> Two people with the same title can have very different mixes of drafting, coordination, review, judgment, and client work, which creates very different transformation paths.</li>
+                            <li><strong>The main question is what remains.</strong> `2.0` focuses on the residual role after exposed tasks are absorbed: does the remaining bundle still cohere into a real job, and if so, what kind of worker benefits?</li>
+                            <li><strong>Timing still matters, but it is secondary.</strong> The old hazard view remains as a supporting panel. It is no longer the main output because it collapses several distinct questions into one timeline.</li>
                         </ul>
                     </section>
 
                     <!-- SECTION: Introduction -->
                     <section>
-                        <h2>Introduction</h2>
+                        <h2>What The Model Measures Now</h2>
 
-                        <p>Researchers at leading <a href="https://www.darioamodei.com/essay/machines-of-loving-grace" target="_blank" rel="noopener noreferrer">AI labs</a> predict that we will reach AGI (Artificial General Intelligence) sometime within the next 3-12 years. Politicians, business executives, and AI forecasters make similar predictions. <a href="https://arxiv.org/abs/2510.18212" target="_blank" rel="noopener noreferrer">AGI</a>, by definition, means systems that are more capable, cheaper, and faster than any human at any cognitive labor task. These systems will amplify individual productivity in the near term, but they also have the capability to displace human workers.</p>
+                        <p>The `2.0` release is no longer a single-purpose displacement-timeline calculator. It is a role transformation model. The central question is no longer “when does this job disappear?” but “what happens to the role as exposed tasks are augmented, absorbed, or automated?”</p>
 
-                        <p>If you're skeptical of that claim, you have good reason to be. "Automation will take your job" has been predicted before: by 19th century <a href="https://www.history.com/articles/who-were-the-luddites" target="_blank" rel="noopener noreferrer">Luddite textile workers</a>, by economists warning about <a href="https://www.ark-invest.com/articles/analyst-research/will-automation-cause-an-increase-in-the-unemployment-rate" target="_blank" rel="noopener noreferrer">tractors</a> in the 1920s, by analysts predicting the end of <a href="https://www.aei.org/economics/what-atms-bank-tellers-rise-robots-and-jobs/" target="_blank" rel="noopener noreferrer">bank tellers</a> when ATMs arrived. Those predictions were mostly wrong. New jobs emerged, transitions stretched over decades, and human adaptability proved more robust than forecasters expected. Why should AI be any different?</p>
+                        <p>The model starts from an occupation prior and a task bundle, then personalizes that structure using your answers about task composition, workflow conditions, hierarchy, and adaptability. It compares your likely task mix against occupation- and task-level evidence from sources such as O*NET, Anthropic’s Economic Index, BLS labor context, and occupation-level exposure priors.</p>
 
-                        <p>Three factors separate AI from previous waves: speed, breadth, and the economics of cognitive labor. AI capabilities are increasing much faster than the rate at which we can upskill, and these systems aim to replace the <em>function</em> of human intelligence in many cognitive tasks. But AI does not need to reach "general intelligence" levels of capability to disrupt the labor market, and we are already seeing it happen in white-collar roles.</p>
-
-                        <p>Displacement occurs <a href="https://www.lesswrong.com/posts/WEhLtRaPWjhi6RoeJ/the-barriers-to-your-unemployment" target="_blank" rel="noopener noreferrer">under two main scenarios</a>:</p>
+                        <p>The result is a transformation view with six headline outputs:</p>
 
                         <ul class="detail-list">
-                            <li><strong>Complete displacement:</strong> Your entire function or service can be replaced by AI. We're seeing this happen to low-level design work, transcription software, photographers, models, voice actors, etc. Even if your job is split into many tasks, you are still displaced because your colleagues or clients can replace your entire service at a low marginal cost by prompting AI.</li>
-                            <li><strong>Gradual displacement:</strong> This is more common, as most white-collar jobs involve diverse tasks that vary in complexity and time horizons. AI will automate <em>portions</em> of your task set, which reduces the organizational need that originally justified your role.</li>
+                            <li><strong>Likely Role State:</strong> the model’s best summary of what the role becomes.</li>
+                            <li><strong>Most Exposed Task Cluster:</strong> the part of the role under the most pressure.</li>
+                            <li><strong>Automation vs Augmentation:</strong> whether exposed work is more likely to be absorbed directly or remain as AI-assisted work.</li>
+                            <li><strong>Residual Role Viability:</strong> whether the remaining bundle still looks like a coherent job.</li>
+                            <li><strong>Adaptation Capacity:</strong> whether the worker is well-positioned to stay valuable in the transformed role or move into an adjacent one.</li>
+                            <li><strong>Transformation Pressure by 2030:</strong> a directional time summary without pretending to know a single exact displacement date.</li>
                         </ul>
 
-                        <p>Naturally, AI capabilities are compared to the human brain, and in many respects they are far off from matching the strengths of our working minds: tackling complex problems with incomplete information, <a href="https://www.dwarkesh.com/p/timelines-june-2025" target="_blank" rel="noopener noreferrer">continual learning</a>, navigating emotions or relationships, and long-term coherent agency. Your role may not be displaced by AI providing the entire service of Data Analyst III, but it might soon be able to do enough of your tasks that your organization no longer needs a full-time person in your position.</p>
+                        <p>The secondary timing chart still exists, but it is supporting context. It comes from the older hazard framework and remains useful as a sensitivity view. It should not be read as the main answer to what your role becomes.</p>
 
-                        <p>Don't Lose Your Job is a modeling platform that measures gradual displacement in white-collar roles. The questionnaire captures your job's task structure, domain characteristics, hierarchy position, and organizational context, then models those layers of friction and amplification against trends of AI capability growth from <a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/" target="_blank" rel="noopener noreferrer">METR data</a>. The model makes several assumptions about these forces, but you can (optionally) tune these coefficients in the Model Tuning section to see the effects of your own assumptions.</p>
-
-                        <p>The model does not forecast potential government or business policies that might mandate human involvement in certain tasks or slow AI adoption. Beyond individual planning, this tool aims to inform policy discussions about maintaining human agency and oversight in the labor market.</p>
-
-                        <p>The model is open-source. You can build your own versions by visiting <a href="https://github.com/wrenthejewels/DLYJ" target="_blank" rel="noopener noreferrer">github.com/wrenthejewels/DLYJ</a>.</p>
+                        <p>The model is open-source. You can build your own versions by visiting <a href="https://github.com/wrenthejewels/DLYJ2" target="_blank" rel="noopener noreferrer">github.com/wrenthejewels/DLYJ2</a>.</p>
 
                         <h3>Related Resources</h3>
 
@@ -991,7 +989,7 @@
 
                     <!-- SECTION: Translating AI Capabilities to Your Displacement Timeline -->
                     <section id="understanding-ai-capabilities">
-                        <h2>Translating AI Capabilities to Your Displacement Timeline</h2>
+                        <h2>How The Secondary Timing View Fits In</h2>
 
                         <h3>Measuring AI progress</h3>
 
@@ -1023,19 +1021,25 @@
 
                         <h3>Reading your results</h3>
 
-                        <p>The METR curve serves as the baseline for the forecasted capabilities of AI models. Then, we make assumptions about the time you spend in different task "buckets" (sorted by length they take to complete) based on your role and hierarchy level, and we add friction to the METR curve to essentially measure: <em>how hard is it for AI to do these tasks of different lengths?</em> That friction is measured by your responses to the questionnaire, but you can change the weights of these multipliers in the Model Tuning section.</p>
-
-                        <p>We also make assumptions about industry-specific friction for your tasks, and how reliable AI needs to be in order to enter that risk curve. These are tunable in the sliders beneath the model, and you'll notice that moving these sliders can have a pronounced effect on your displacement timeline. These forces combine into a weighted readiness score (typically around 50%, adjusted by hierarchy) that opens the automation hazard. Implementation delay and compression parameters then shift that hazard into the green curve you see in your results.</p>
-
-                        <p>When you complete the questionnaire, the model generates a chart showing two curves over time:</p>
-
-                        <p><strong>The blue curve</strong> shows technical feasibility (the automation hazard without implementation delay or compression). It turns on when AI clears your job's coverage threshold (typically ~50% of your task portfolio) based on your task mix. Digital, decomposable domains open the gate sooner; tacit/physical domains open later. Senior roles lift the threshold slightly and soften the ramp; entry-level roles lower it.</p>
-
-                        <p><strong>The green curve</strong> shows when you are likely to actually lose your job, accounting for real-world implementation barriers. This is the timeline that matters for planning your career. The green curve combines two displacement mechanisms:</p>
+                        <p>Start with the transformation cards and the role transformation map, not the timing panel. The core `2.0` interpretation sequence is:</p>
 
                         <ul class="detail-list">
-                            <li><strong>Delayed automation:</strong> The blue curve's timeline shifted forward by organizational friction.</li>
-                            <li><strong>Workforce compression:</strong> An earlier pathway where AI does not replace you directly but amplifies senior workers who then absorb your tasks. Junior roles and standardized work face higher compression risk.</li>
+                            <li><strong>What is exposed?</strong> Look at the top exposed task cluster and the exposed portion of the role map.</li>
+                            <li><strong>How is it changing?</strong> Use the automation-vs-augmentation balance and the “What Is Changing” narrative to see whether the model expects AI to substitute for work directly or change how it gets done.</li>
+                            <li><strong>What remains?</strong> Use residual role viability plus the residual bundle column to judge whether the remaining tasks still add up to a real position.</li>
+                            <li><strong>Who does better?</strong> Use adaptation capacity and the “Who Benefits” block to see whether the transformed role rewards upskilling, judgment, coordination, or adjacency moves.</li>
+                        </ul>
+
+                        <p>The secondary timing view is still based on the older hazard framework. It remains useful for seeing how fast pressure could build if AI capability keeps advancing and adoption frictions collapse, but it is now deliberately demoted because it compresses too many separate questions into one timeline.</p>
+
+                        <p><strong>The blue curve</strong> remains a technical-feasibility proxy from the older model. <strong>The green curve</strong> remains a displacement proxy that combines delayed automation and workforce compression. They are still informative, but they are no longer the product’s main ontology.</p>
+
+                        <p>The secondary timing panel can still help with planning when:</p>
+
+                        <ul class="detail-list">
+                            <li><strong>Residual viability is weak</strong> and you want a rough sense of how quickly that weakness could matter.</li>
+                            <li><strong>Two roles look similar in exposure</strong> but differ in organizational friction or hierarchy vulnerability.</li>
+                            <li><strong>You are running scenario analysis</strong> through the tuning controls and want to see how much the timing view moves under different assumptions.</li>
                         </ul>
 
                         <p>The vertical axis shows cumulative displacement probability. A green curve reaching 50% at year 4 means there is a 50% probability of displacement within 4 years, and 50% probability you remain employed beyond that point. Steep curves indicate displacement risk concentrates in a narrow window, while gradual curves spread risk over many years. Early divergence between curves signals high compression vulnerability.</p>

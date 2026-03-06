@@ -1096,14 +1096,49 @@
             <article class='guide-article'>
                 <header class='article-hero'>
                     <h1>Methodology</h1>
-                    <p class='lede'>Technical breakdown of the hazard model, mathematical framework, and advanced model tuning.</p>
+                    <p class='lede'>Technical breakdown of the `2.0` transformation model, its evidence layers, and how the secondary timing view now fits underneath it.</p>
                 </header>
 
                 <div class='article-body'>
 
-                    
                     <section>
-                        <h2>Mathematical framework</h2>
+                        <h2>V2.0 Model Pipeline</h2>
+
+                        <p>The default model is now transformation-first. It no longer begins by asking when a job disappears. It begins by estimating which parts of the role are exposed, how exposed tasks interact with the rest of the bundle, and whether the remaining work still forms a viable job.</p>
+
+                        <p>The runtime pipeline currently sits on top of the normalized data layer built for `2.0`. The main evidence classes are O*NET for occupation structure and task content, Anthropic’s Economic Index for task-level exposure and augmentation signals, BLS for labor-market context, and occupation-level priors such as Manning/Aguirre where available.</p>
+
+                        <p>The engine produces six primary outputs: likely role state, most exposed task cluster, automation vs augmentation balance, residual role viability, adaptation capacity, and transformation pressure by 2030. Those outputs are generated through the following steps:</p>
+
+                        <ol class='action-list'>
+                            <li><strong>Role family to occupation resolution.</strong> The homepage role category maps to a short list of launch occupations, and the user can confirm the occupation match directly.</li>
+                            <li><strong>Occupation prior loading.</strong> The engine loads occupation priors, task-cluster weights, adaptation priors, and labor context for that occupation.</li>
+                            <li><strong>Questionnaire personalization.</strong> Existing `Q1-Q19` answers and the new `2.0` refinement inputs adjust task prominence, coupling protection, fragility, adoption pressure, and adaptation signals.</li>
+                            <li><strong>Task-cluster exposure scoring.</strong> Each cluster receives exposure, augmentation, and automation scores by blending occupation structure, task priors, and questionnaire-derived conditions.</li>
+                            <li><strong>Residual bundle reconstruction.</strong> The model estimates what share of each cluster is absorbed, retained, or elevated, then scores whether the residual bundle still looks like a coherent role.</li>
+                            <li><strong>Secondary timing derivation.</strong> Only after the transformation state is computed does the app show the older timing model as a supporting panel.</li>
+                        </ol>
+
+                        <div class='equation-callout'>
+                            <span class='callout-label'>Current V2 result contract</span>
+                            <div class='equation-display'>$$\text{Role transformation} = f(\text{occupation prior},\ \text{task priors},\ \text{questionnaire signals},\ \text{bundle reconstruction})$$</div>
+                            <span class='callout-label'>Secondary timing relationship</span>
+                            <div class='equation-display'>$$\text{Timing view} \leftarrow g(\text{legacy hazard model},\ \text{current questionnaire},\ \text{adoption friction})$$</div>
+                        </div>
+
+                        <p>This means the ontology of the product has changed. The primary result is now “what the role becomes.” Timing remains present because it is still useful, but it is not the main thing the model claims to know.</p>
+                    </section>
+
+                    <section>
+                        <h2>Secondary Timing View</h2>
+
+                        <p>The blue/green hazard machinery still powers the secondary timing panel on the homepage. It is retained because it offers directional information about how quickly pressure may build under the older framework, but it now sits beneath the transformation model rather than defining it.</p>
+
+                        <p>The remaining sections on this page document that timing system in detail. Read them as a technical appendix to the `2.0` transformation model rather than the core model itself.</p>
+                    </section>
+
+                    <section>
+                        <h2>Legacy Timing Appendix: Mathematical framework</h2>
 
                         <p><a href="https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/" target="_blank" rel="noopener noreferrer">METR benchmarks</a> measure AI capability growth and serve as the baseline for the model's task horizon estimates. The calculator loads the latest METR dataset, identifies the current SOTA model (currently Claude Opus 4.6, February 2026), and derives doubling time via linear regression across SOTA points. Historically, all-time stitched METR trends were around 6 months, while the recent-from-2023 estimate is now closer to 4 months (about 123 days). Reliability penalties shrink the usable horizon sharply: at 95% reliability a ~870-minute median becomes ~3.3 minutes, and 99% reliability drops it to ~0.14 minutes (~9 seconds). See the <a href="/guide#understanding-ai-capabilities">Guide</a> for background.</p>
 
@@ -1419,7 +1454,7 @@
                     </section>
 
                     <section>
-                        <h2>How your answers move the curve</h2>
+                        <h2>Secondary Timing Inputs</h2>
                         <p>Your answers (on a 1–5 Likert scale) are converted so that neutral (3) maps to 0, allowing symmetric effects above and below the midpoint. The model combines these into amplifier and friction scores, then converts them to multipliers ranging from 0.33&times; to 3.0&times;.</p>
                         <p>The prompts fall into four themes:</p>
                         <ul class='detail-list'>
@@ -1434,7 +1469,7 @@
                     </section>
 
                     <section>
-                        <h2>The green curve: Implementation delay and workforce compression</h2>
+                        <h2>Secondary Timing View: Implementation delay and workforce compression</h2>
 
                         <p>The green curve (actual job loss) differs from the blue curve (technical feasibility) through two mechanisms: organizational adoption barriers that delay automation, and compression-driven workforce reductions that can cause job loss earlier.</p>
 
@@ -1565,7 +1600,7 @@
                     </section>
 
                     <section>
-                        <h2>Worked Example: Mid-Level Data Analyst</h2>
+                        <h2>Secondary Timing Example: Mid-Level Data Analyst</h2>
 
                         <p>Taylor is a Level 2 data analyst at a 500-person SaaS company. Key questionnaire responses: Q1=4 (strong AI tools in domain), Q4=5 (fully digital), Q5=4 (decomposable), Q6=3 (mixed standardization), Q7=3 (moderate context), Q10=4 (easily reallocated).</p>
 
@@ -1593,7 +1628,7 @@
                     </section>
 
                     <section>
-                        <h2>Guide to Model Tuning</h2>
+                        <h2>Legacy Timing Tuning Appendix</h2>
                         <p>The tuning panel exposes every parameter used in the hazard and compression calculations. Presets are grouped by the math they touch so you can mix capability, friction, compression, and rollout assumptions independently:</p>
                         <ul class='detail-list'>
                             <li><strong>Model Capability:</strong> Conservative / Baseline / Fast-Takeoff adjust only capability growth (METR doubling time and gate softness).</li>
