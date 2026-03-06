@@ -9,3 +9,6 @@ build/
 # Env files
 .env
 .env.*
+
+# Large local raw workbooks
+data/raw/bls/*.xlsx
