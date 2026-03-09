@@ -21,9 +21,9 @@
 
     var ROLE_STATE_LABELS = {
         mostly_augmented: 'Mostly augmented',
-        routine_tasks_absorbed: 'Routine tasks absorbed',
+        routine_tasks_absorbed: 'Routine work compressed',
         role_becomes_more_senior: 'Role becomes more senior',
-        role_narrows_but_remains_viable: 'Role narrows but remains viable',
+        role_narrows_but_remains_viable: 'Role becomes narrower',
         role_fragments: 'Role fragments',
         high_displacement_risk: 'High displacement risk'
     };
@@ -375,41 +375,43 @@
     }
 
     function buildNarrative(result) {
-        var topCluster = result.top_exposed_task_cluster || 'your routine task bundle';
-        var whatIsChanging = 'The main pressure in this role is concentrated in ' + topCluster.toLowerCase() + ', where AI exposure is high enough to change how the role is staffed and executed.';
+        var topCluster = result.top_exposed_work && result.top_exposed_work.label
+            ? result.top_exposed_work.label
+            : 'your routine task bundle';
+        var whyThisRoleChanges = 'This role is changing primarily through pressure on ' + topCluster.toLowerCase() + ', where the selected occupation profile and your questionnaire answers both point to meaningful AI exposure.';
 
-        var whatGetsAbsorbed;
-        if (result.automation_vs_augmentation_balance === 'mostly_automation') {
-            whatGetsAbsorbed = 'The most exposed routine tasks are more likely to be absorbed directly into automated workflows or into thinner human-supervised processes.';
-        } else if (result.automation_vs_augmentation_balance === 'mostly_augmentation') {
-            whatGetsAbsorbed = 'The most exposed tasks are more likely to be accelerated and reshaped by AI tools than removed cleanly from the role.';
+        var whatIsUnderPressure;
+        if (result.mode_of_change === 'mostly_automation') {
+            whatIsUnderPressure = 'The highest-pressure tasks look most vulnerable to direct workflow absorption, especially where the work is reviewable, structured, and easy to separate from the rest of the role.';
+        } else if (result.mode_of_change === 'mostly_augmentation') {
+            whatIsUnderPressure = 'The highest-pressure tasks look more likely to stay inside the role as AI-assisted work than to disappear entirely.';
         } else {
-            whatGetsAbsorbed = 'Some exposed tasks are likely to be automated outright while others remain in the role as AI-assisted work.';
+            whatIsUnderPressure = 'The highest-pressure tasks split between direct automation pressure and augmentation pressure, so the role is more likely to be restructured than cleanly removed.';
         }
 
-        var whatRemains;
-        if (result.residual_role_viability === 'strong') {
-            whatRemains = 'The residual bundle still looks like a coherent role, especially around coordination, review, judgment, or higher-context work.';
-        } else if (result.residual_role_viability === 'moderate') {
-            whatRemains = 'The residual bundle likely holds together, but it narrows and depends more heavily on the higher-value parts of the role.';
+        var whatStaysCore;
+        if (result.residual_role_strength === 'strong') {
+            whatStaysCore = 'The remaining bundle still looks coherent, with enough context-heavy, judgment-heavy, or coordinating work to hold the role together.';
+        } else if (result.residual_role_strength === 'moderate') {
+            whatStaysCore = 'The role still holds together, but the stable core becomes narrower and more dependent on the highest-value work.';
         } else {
-            whatRemains = 'The residual bundle looks thin enough that the role may fragment unless the higher-value tasks become a clearer standalone function.';
+            whatStaysCore = 'The remaining bundle looks thin enough that the role could fragment unless the non-routine parts become a clearer standalone function.';
         }
 
-        var whoBenefits;
-        if (result.adaptation_capacity === 'strong') {
-            whoBenefits = 'Workers who can shift toward the retained and elevated task clusters should still have room to stay valuable in the transformed version of the role.';
-        } else if (result.adaptation_capacity === 'moderate') {
-            whoBenefits = 'Workers with some flexibility should be able to stay in the role, but the transition likely requires meaningful upskilling or scope change.';
+        var personalizationFitSummary;
+        if (result.personalization_fit === 'strong') {
+            personalizationFitSummary = 'Your answers point to a stronger fit with the retained version of the role than the occupation average, especially through leverage, context, or non-routine work.';
+        } else if (result.personalization_fit === 'moderate') {
+            personalizationFitSummary = 'Your answers point to a mixed fit with the retained version of the role: there is still room inside the transformed bundle, but not much slack.';
         } else {
-            whoBenefits = 'Workers who cannot move toward the retained bundle or adjacent roles are more exposed to downside from the role transition.';
+            personalizationFitSummary = 'Your answers point to a weaker fit with the retained version of the role, which means more of your current work sits inside the part of the bundle under pressure.';
         }
 
         return {
-            what_is_changing: whatIsChanging,
-            what_gets_absorbed: whatGetsAbsorbed,
-            what_remains: whatRemains,
-            who_benefits: whoBenefits
+            why_this_role_changes: whyThisRoleChanges,
+            what_is_under_pressure: whatIsUnderPressure,
+            what_stays_core: whatStaysCore,
+            personalization_fit_summary: personalizationFitSummary
         };
     }
 
@@ -591,41 +593,21 @@
                 1
             );
 
-            var adaptationScore = clamp(
+            var personalizationFitScore = clamp(
                 average([
                     occupationAdaptive,
-                    adaptationPrior ? toNumber(adaptationPrior.transferability_score, 0.5) : 0.5,
-                    adaptationPrior ? toNumber(adaptationPrior.learning_intensity_score, 0.5) : 0.5,
+                    strategicResidualShare,
+                    signals.couplingProtection,
                     signals.adaptationEdge,
-                    signals.seniority * 0.55 + 0.45
+                    signals.seniority * 0.55 + signals.roleDistinctiveness * 0.45,
+                    1 - signals.fragility
                 ]),
                 0,
                 1
             );
 
-            var transformationPressureScore = clamp(
-                average([
-                    exposedTaskShare,
-                    automationShare,
-                    signals.adoptionPressure,
-                    occupationExposure,
-                    signals.exposureReadiness
-                ]) - (signals.couplingProtection * 0.12),
-                0,
-                1
-            );
-
-            var secondaryHazard = clamp(
-                (transformationPressureScore * 0.45) +
-                (automationShare * 0.20) +
-                ((1 - residualViabilityScore) * 0.22) +
-                ((1 - adaptationScore) * 0.13),
-                0,
-                1
-            );
-
             var roleState;
-            if (secondaryHazard >= 0.70 && residualViabilityScore < 0.40) {
+            if (residualViabilityScore < 0.34 && automationShare >= 0.58 && exposedTaskShare >= 0.58) {
                 roleState = 'high_displacement_risk';
             } else if (residualViabilityScore < 0.42 && exposedTaskShare >= 0.55) {
                 roleState = 'role_fragments';
@@ -641,28 +623,47 @@
 
             var topExposed = exposedClusters[0] || currentBundle[0] || null;
             var viabilityTier = toTier(residualViabilityScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
-            var adaptationTier = toTier(adaptationScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
-            var pressureTier = toTier(transformationPressureScore, [0.40, 0.68], ['low', 'moderate', 'high']);
+            var personalizationTier = toTier(personalizationFitScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
             var balanceTier = automationShare >= 0.60
                 ? 'mostly_automation'
                 : (automationShare <= 0.42 ? 'mostly_augmentation' : 'mixed');
-
-            var displacementWindowStart = 2027 + Math.round((1 - transformationPressureScore) * 5);
-            var displacementWindowEnd = displacementWindowStart + (viabilityTier === 'weak' ? 2 : 4);
+            var exposureLevel = topExposed
+                ? toTier(topExposed.exposure_score, [0.40, 0.68], ['low', 'moderate', 'high'])
+                : 'low';
+            var occupationAnchorConfidence = average([
+                occupationPrior ? toNumber(occupationPrior.confidence, 0.45) : 0.40,
+                store.selectorByOcc[occupationId] ? toNumber(store.selectorByOcc[occupationId].selector_weight, 0.50) : 0.50
+            ]);
+            var personalizationConfidence = average([
+                signals.roleDistinctiveness,
+                1 - signals.fragility,
+                signals.couplingProtection,
+                average(currentBundle.map(function (cluster) {
+                    return cluster.evidence_confidence;
+                }))
+            ]);
+            var laborContextConfidence = laborContext
+                ? toNumber(laborContext.labor_market_confidence, 0.55)
+                : 0;
+            var roleSummary = occupation.title + ' shows ' + Math.round(exposedTaskShare * 100) + '% exposed task share, led by ' + (topExposed ? topExposed.label.toLowerCase() : 'the current bundle') + ', while the retained bundle looks ' + viabilityTier + '.';
 
             var evidenceSummary = {
                 task_evidence_confidence: average(currentBundle.map(function (cluster) {
                     return cluster.evidence_confidence;
                 })),
-                occupation_prior_confidence: occupationPrior ? toNumber(occupationPrior.confidence, 0.45) : 0.40,
-                residual_bundle_confidence: average([
-                    average(currentBundle.map(function (cluster) { return cluster.evidence_confidence; })),
-                    signals.roleDistinctiveness,
-                    1 - signals.fragility
-                ]),
+                occupation_anchor_confidence: occupationAnchorConfidence,
+                personalization_confidence: personalizationConfidence,
+                labor_context_confidence: laborContextConfidence,
+                source_coverage: {
+                    occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
+                    task_prior_rows: currentBundle.length,
+                    exposed_cluster_rows: exposedClusters.length,
+                    labor_context_available: !!laborContext
+                },
                 notes: [
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
-                    'Task evidence is drawn from normalized task-cluster priors and occupation structure.',
+                    'Headline outputs are driven by O*NET task structure plus Anthropic task-level transformation evidence.',
+                    'Labor-market data is shown as context and does not drive the main role labels.',
                     laborContext ? ('Labor context includes employment=' + laborContext.employment_us + ', median_wage=' + laborContext.median_wage_usd + ', growth=' + laborContext.projection_growth_pct + '%.') : 'Labor context unavailable for this occupation.',
                     laborContext && laborContext.unemployment_group_label ? ('Latest official BLS unemployment for ' + laborContext.unemployment_group_label + ' is ' + laborContext.latest_unemployment_rate + '% (' + laborContext.latest_unemployment_period + ').') : 'No mapped BLS unemployment series for this occupation yet.'
                 ]
@@ -672,16 +673,22 @@
                 selected_role_category: roleCategory,
                 selected_occupation_id: occupationId,
                 selected_occupation_title: occupation.title,
-                likely_role_state: roleState,
-                likely_role_state_label: ROLE_STATE_LABELS[roleState],
-                top_exposed_task_cluster: topExposed ? topExposed.label : 'Unknown',
+                role_outlook: roleState,
+                role_outlook_label: ROLE_STATE_LABELS[roleState],
+                role_summary: roleSummary,
+                top_exposed_work: topExposed ? {
+                    task_cluster_id: topExposed.task_cluster_id,
+                    label: topExposed.label,
+                    share_of_role: Number(topExposed.share_of_role.toFixed(3)),
+                    exposure_score: Number(topExposed.exposure_score.toFixed(3)),
+                    exposure_level: exposureLevel
+                } : null,
                 exposed_task_share: Number(exposedTaskShare.toFixed(3)),
-                automation_vs_augmentation_balance: balanceTier,
+                mode_of_change: balanceTier,
                 augmentation_share: Number(augmentationShare.toFixed(3)),
                 automation_share: Number(automationShare.toFixed(3)),
-                residual_role_viability: viabilityTier,
-                adaptation_capacity: adaptationTier,
-                transformation_pressure_2030: pressureTier,
+                residual_role_strength: viabilityTier,
+                personalization_fit: personalizationTier,
                 transformation_map: {
                     current_bundle: currentBundle,
                     exposed_clusters: exposedClusters,
@@ -689,17 +696,6 @@
                     elevated_clusters: elevatedClusters
                 },
                 narrative_summary: null,
-                secondary_hazard: {
-                    transformation_pressure_by_2030: Number(transformationPressureScore.toFixed(3)),
-                    secondary_displacement_hazard: Number(secondaryHazard.toFixed(3)),
-                    displacement_window_start: displacementWindowStart,
-                    displacement_window_end: displacementWindowEnd,
-                    confidence: Number(average([
-                        evidenceSummary.task_evidence_confidence,
-                        evidenceSummary.occupation_prior_confidence,
-                        evidenceSummary.residual_bundle_confidence
-                    ]).toFixed(3))
-                },
                 evidence_summary: evidenceSummary,
                 labor_market_context: laborContext ? {
                     employment_us: toNumber(laborContext.employment_us, 0),
@@ -729,11 +725,19 @@
                     occupation_prior_adaptive_capacity: Number(occupationAdaptive.toFixed(3)),
                     adoption_pressure: Number(signals.adoptionPressure.toFixed(3)),
                     fragility: Number(signals.fragility.toFixed(3)),
+                    personalization_fit_score: Number(personalizationFitScore.toFixed(3)),
+                    residual_role_strength_score: Number(residualViabilityScore.toFixed(3)),
                     retained_transformed_share: Number(clamp(sum(Object.keys(transformedShares).map(function (key) {
                         return transformedShares[key];
                     })), 0, 1).toFixed(3)),
                     absorbed_share: Number(clamp(absorbedTotal, 0, 1).toFixed(3))
-                }
+                },
+                likely_role_state: roleState,
+                likely_role_state_label: ROLE_STATE_LABELS[roleState],
+                top_exposed_task_cluster: topExposed ? topExposed.label : 'Unknown',
+                automation_vs_augmentation_balance: balanceTier,
+                residual_role_viability: viabilityTier,
+                adaptation_capacity: personalizationTier
             };
 
             result.narrative_summary = buildNarrative(result);

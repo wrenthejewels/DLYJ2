@@ -39,12 +39,12 @@ async function main() {
   console.log(JSON.stringify({
     summary: {
       occupation: result.selected_occupation_title,
-      roleState: result.likely_role_state_label,
-      topExposed: result.top_exposed_task_cluster,
-      automationBalance: result.automation_vs_augmentation_balance,
-      viability: result.residual_role_viability,
-      adaptation: result.adaptation_capacity,
-      pressure2030: result.transformation_pressure_2030
+      roleOutlook: result.role_outlook_label,
+      topExposed: result.top_exposed_work?.label || null,
+      topExposureLevel: result.top_exposed_work?.exposure_level || null,
+      modeOfChange: result.mode_of_change,
+      residualRoleStrength: result.residual_role_strength,
+      personalizationFit: result.personalization_fit
     },
     counts: {
       currentBundle: result.transformation_map.current_bundle.length,

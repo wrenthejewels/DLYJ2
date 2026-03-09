@@ -3466,7 +3466,7 @@
                     </div>
                     <div class="resource-card nav-button sequence-item" data-page="/method2" data-seq="9">
                         <div class="resource-title">Methodology</div>
-                        <div class="resource-desc">Technical breakdown of the transformation engine, evidence layers, and the secondary timing view.</div>
+                        <div class="resource-desc">Technical breakdown of the transformation engine, evidence layers, and labor-market context.</div>
                     </div>
                 </div>
             </div>
@@ -3560,7 +3560,7 @@
                     <div class="card-header">
                         <div>
                             <h2 class="card-title">2.0 transformation inputs</h2>
-                            <p class="card-description">These direct inputs refine the new transformation view without changing the secondary timing model.</p>
+                            <p class="card-description">These direct inputs personalize the transformation briefing around your actual task mix and context.</p>
                         </div>
                     </div>
 
@@ -4256,10 +4256,10 @@
                 <div class="model-explanation hidden-block" id="model-explanation-section" style="margin-top: 48px; margin-bottom: 32px;">
                     <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Understanding your output</h3>
                     <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 12px;">
-                        Your `2.0` result is a transformation forecast, not a certainty. It estimates which parts of your role are exposed, whether those tasks are more likely to be augmented or absorbed, and whether the remaining bundle still looks like a viable job.
+                        Your `2.0` result is an empirical role briefing, not a certainty. It estimates which parts of your role are exposed, whether the change looks more like augmentation or automation, and whether the remaining bundle still looks like a viable job.
                     </p>
                     <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary);">
-                        The secondary timing panel is still derived from the older hazard model and should be read as supporting context, not the main result. Visit the <a href="/method2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Methodology</a> for the new pipeline and the <a href="/guide2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Guide</a> for how to interpret the transformation view.
+                        The main result is driven by O*NET task structure, Anthropic task-level evidence, and BLS labor-market context. Visit the <a href="/method2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Methodology</a> for the pipeline and the <a href="/guide2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Guide</a> for how to interpret the briefing.
                     </p>
                 </div>
 
@@ -4270,7 +4270,7 @@
                     <div class="v2-results-copy">
                         <div class="v2-results-kicker">V2.0 Transformation View</div>
                         <h3 id="v2-role-state-label">Select a role to begin</h3>
-                        <p id="v2-role-summary">Choose a broad role category, hierarchy level, and questionnaire profile to generate the transformation view.</p>
+                        <p id="v2-role-summary">Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.</p>
                     </div>
                     <div class="v2-occupation-picker">
                         <label for="occupation-match-select">Occupation match</label>
@@ -4282,28 +4282,24 @@
 
                 <div class="results v2-results-grid">
                     <div class="result-card result-card--primary">
-                        <h4>Likely Role State</h4>
+                        <h4>Role Outlook</h4>
                         <div class="result-value" id="v2-role-state-card">-</div>
                     </div>
                     <div class="result-card">
-                        <h4>Most Exposed Task Cluster</h4>
+                        <h4>Top Exposed Work</h4>
                         <div class="result-value" id="v2-top-cluster">-</div>
                     </div>
                     <div class="result-card">
-                        <h4>Automation vs Augmentation</h4>
+                        <h4>Mode Of Change</h4>
                         <div class="result-value" id="v2-balance">-</div>
                     </div>
                     <div class="result-card">
-                        <h4>Residual Role Viability</h4>
+                        <h4>Residual Role Strength</h4>
                         <div class="result-value" id="v2-viability">-</div>
                     </div>
                     <div class="result-card">
-                        <h4>Adaptation Capacity</h4>
+                        <h4>Personalization Fit</h4>
                         <div class="result-value" id="v2-adaptation">-</div>
-                    </div>
-                    <div class="result-card">
-                        <h4>Transformation Pressure By 2030</h4>
-                        <div class="result-value" id="v2-pressure">-</div>
                     </div>
                 </div>
 
@@ -4330,19 +4326,19 @@
 
                 <div class="v2-narrative-grid">
                     <div class="result-card">
-                        <h4>What Is Changing</h4>
+                        <h4>Why This Role Changes</h4>
                         <p class="v2-body-copy" id="v2-what-changing">-</p>
                     </div>
                     <div class="result-card">
-                        <h4>What Gets Absorbed</h4>
+                        <h4>What Is Under Pressure</h4>
                         <p class="v2-body-copy" id="v2-what-absorbed">-</p>
                     </div>
                     <div class="result-card">
-                        <h4>What Remains</h4>
+                        <h4>What Stays Core</h4>
                         <p class="v2-body-copy" id="v2-what-remains">-</p>
                     </div>
                     <div class="result-card">
-                        <h4>Who Benefits</h4>
+                        <h4>How Your Answers Shape The Result</h4>
                         <p class="v2-body-copy" id="v2-who-benefits">-</p>
                     </div>
                 </div>
@@ -4353,7 +4349,7 @@
                         <span class="v2-evidence-value" id="v2-task-confidence">-</span>
                     </div>
                     <div class="v2-evidence-item">
-                        <span class="v2-evidence-label">Occupation Prior Confidence</span>
+                        <span class="v2-evidence-label">Personalization Confidence</span>
                         <span class="v2-evidence-value" id="v2-prior-confidence">-</span>
                     </div>
                     <div class="v2-evidence-item v2-evidence-item--wide">
@@ -4399,11 +4395,11 @@
                 </div>
             </div>
 
-            <div class="pinnable-section" id="pinnable-section">
+            <div class="pinnable-section" id="pinnable-section" hidden>
                 <div class="chart-container">
                     <div class="chart-header">
                         <div class="chart-header-top">
-                            <h3 class="chart-title">Secondary Timing View</h3>
+                            <h3 class="chart-title">Legacy Archive</h3>
                             <label class="pin-checkbox-label">
                                 <input type="checkbox" id="pin-chart-toggle">
                                 <span>Pin to side</span>
@@ -4442,7 +4438,7 @@
 
                     <div class="result-card" id="outputs-guide-card" role="button" tabindex="0" aria-label="How to read these outputs">
                         <div class="reemployment-header">
-                            <h4>How to Read Secondary Timing</h4>
+                            <h4>Legacy Output Guide</h4>
                         </div>
                     </div>
                 </div>
@@ -4468,7 +4464,7 @@
                 </div>
             </div>
 
-        <div class="parameter-breakdown">
+        <div class="parameter-breakdown" hidden>
             <div class="profile-timeline">
                     <h4 class="section-title section-title--with-actions">
                         <button id="edit-task-buckets" class="header-btn header-btn--compact">
@@ -4517,7 +4513,7 @@
             </div>
         </div>
 
-        <div class="parameter-breakdown">
+        <div class="parameter-breakdown" hidden>
             <div class="profile-timeline">
                     <h4 class="section-title section-title--with-actions">
                         <button id="toggle-model-tuning" class="header-btn header-btn--compact">
@@ -8373,13 +8369,12 @@ self.onmessage = function(e) {
 
         function resetV2Results(message, detail) {
             safeSetText('v2-role-state-label', message || 'Select a role to begin');
-            safeSetText('v2-role-summary', detail || 'Choose a broad role category, hierarchy level, and questionnaire profile to generate the transformation view.');
+            safeSetText('v2-role-summary', detail || 'Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.');
             safeSetText('v2-role-state-card', '-');
             safeSetText('v2-top-cluster', '-');
             safeSetText('v2-balance', '-');
             safeSetText('v2-viability', '-');
             safeSetText('v2-adaptation', '-');
-            safeSetText('v2-pressure', '-');
             safeSetText('v2-what-changing', '-');
             safeSetText('v2-what-absorbed', '-');
             safeSetText('v2-what-remains', '-');
@@ -8387,7 +8382,7 @@ self.onmessage = function(e) {
             safeSetText('v2-task-confidence', '-');
             safeSetText('v2-prior-confidence', '-');
             safeSetText('v2-evidence-notes', '-');
-            safeSetText('v2-map-subtitle', 'This view shows what in the role is exposed, what is likely to be absorbed, and what remains.');
+            safeSetText('v2-map-subtitle', 'This view shows what in the role is exposed, how the change is split between augmentation and automation, and what remains.');
             renderV2LaborMarketContext(null, '');
             renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped role to populate the current bundle.' });
             renderV2ClusterList('v2-exposed-bundle', [], { emptyText: 'Exposure detail appears once the transformation view is active.' });
@@ -8401,7 +8396,7 @@ self.onmessage = function(e) {
 
             if (!roleCategory || roleCategory === 'custom') {
                 select.disabled = true;
-                select.innerHTML = '<option value="">No mapped occupation for Other/Custom yet</option>';
+                select.innerHTML = '<option value="">Choose a mapped role family to continue</option>';
                 selectedOccupationId = null;
                 return [];
             }
@@ -8450,7 +8445,7 @@ self.onmessage = function(e) {
             const roleCategory = selectedRole;
 
             if (!roleCategory) {
-                resetV2Results('Select a role to begin', 'Choose a broad role category, hierarchy level, and questionnaire profile to generate the transformation view.');
+                resetV2Results('Select a role to begin', 'Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.');
                 return null;
             }
 
@@ -8458,12 +8453,12 @@ self.onmessage = function(e) {
                 const select = document.getElementById('occupation-match-select');
                 if (select) {
                     select.disabled = true;
-                    select.innerHTML = '<option value="">No mapped occupation for Other/Custom yet</option>';
+                    select.innerHTML = '<option value="">Choose a mapped role family to continue</option>';
                 }
                 selectedOccupationId = null;
                 resetV2Results(
-                    'Pick a mapped role family for the transformation view',
-                    'The 2.0 engine currently runs on launch occupations mapped to the preset role families. Other/Custom still uses the secondary timing view only.'
+                    'Choose the closest mapped role family',
+                    'The empirical 2.0 briefing only runs on mapped launch occupations. Select the closest preset role family and then confirm the occupation match before scoring.'
                 );
                 return null;
             }
@@ -8518,20 +8513,23 @@ self.onmessage = function(e) {
 
             lastV2Result = result;
 
-            safeSetText('v2-role-state-label', `${result.selected_occupation_title} · ${result.likely_role_state_label}`);
-            safeSetText('v2-role-summary', result.narrative_summary?.what_is_changing || 'The transformation view is driven by task exposure, bundle viability, and adaptation capacity.');
-            safeSetText('v2-role-state-card', result.likely_role_state_label || '-');
-            safeSetText('v2-top-cluster', result.top_exposed_task_cluster || '-');
-            safeSetText('v2-balance', formatV2Label(result.automation_vs_augmentation_balance));
-            safeSetText('v2-viability', formatV2Label(result.residual_role_viability));
-            safeSetText('v2-adaptation', formatV2Label(result.adaptation_capacity));
-            safeSetText('v2-pressure', formatV2Label(result.transformation_pressure_2030));
-            safeSetText('v2-what-changing', result.narrative_summary?.what_is_changing || '-');
-            safeSetText('v2-what-absorbed', result.narrative_summary?.what_gets_absorbed || '-');
-            safeSetText('v2-what-remains', result.narrative_summary?.what_remains || '-');
-            safeSetText('v2-who-benefits', result.narrative_summary?.who_benefits || '-');
+            const topExposedLabel = result.top_exposed_work?.label
+                ? `${result.top_exposed_work.label} · ${formatV2Label(result.top_exposed_work.exposure_level)} exposure`
+                : '-';
+
+            safeSetText('v2-role-state-label', `${result.selected_occupation_title} · ${result.role_outlook_label}`);
+            safeSetText('v2-role-summary', result.role_summary || 'The transformation view is driven by task exposure, mode of change, residual role strength, and labor-market context.');
+            safeSetText('v2-role-state-card', result.role_outlook_label || '-');
+            safeSetText('v2-top-cluster', topExposedLabel);
+            safeSetText('v2-balance', formatV2Label(result.mode_of_change));
+            safeSetText('v2-viability', formatV2Label(result.residual_role_strength));
+            safeSetText('v2-adaptation', formatV2Label(result.personalization_fit));
+            safeSetText('v2-what-changing', result.narrative_summary?.why_this_role_changes || '-');
+            safeSetText('v2-what-absorbed', result.narrative_summary?.what_is_under_pressure || '-');
+            safeSetText('v2-what-remains', result.narrative_summary?.what_stays_core || '-');
+            safeSetText('v2-who-benefits', result.narrative_summary?.personalization_fit_summary || '-');
             safeSetText('v2-task-confidence', formatConfidence(result.evidence_summary?.task_evidence_confidence));
-            safeSetText('v2-prior-confidence', formatConfidence(result.evidence_summary?.occupation_prior_confidence));
+            safeSetText('v2-prior-confidence', formatConfidence(result.evidence_summary?.personalization_confidence));
             safeSetText(
                 'v2-evidence-notes',
                 Array.isArray(result.evidence_summary?.notes) && result.evidence_summary.notes.length
@@ -8540,7 +8538,7 @@ self.onmessage = function(e) {
             );
             safeSetText(
                 'v2-map-subtitle',
-                `${result.selected_occupation_title} shows ${Math.round((result.exposed_task_share || 0) * 100)}% exposed task share with a ${formatV2Label(result.automation_vs_augmentation_balance).toLowerCase()} balance.`
+                `${result.selected_occupation_title} shows ${Math.round((result.exposed_task_share || 0) * 100)}% exposed task share, with a ${formatV2Label(result.mode_of_change).toLowerCase()} pattern and a ${formatV2Label(result.residual_role_strength).toLowerCase()} retained bundle.`
             );
             renderV2LaborMarketContext(result.labor_market_context, result.selected_occupation_title);
 
@@ -9095,11 +9093,6 @@ self.onmessage = function(e) {
             console.log(`[System] Years to 2030: ${(YEAR_2030 - currentYear).toFixed(2)}`);
 
             resetV2Results();
-
-            const customBtn = document.querySelector('.preset-btn[data-role="custom"]');
-            if (customBtn) {
-                customBtn.click();
-            }
 
             // Run tests after initial analysis completes
             setTimeout(() => {

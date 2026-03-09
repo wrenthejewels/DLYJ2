@@ -520,8 +520,6 @@ Suggested update format:
 - next recommended step:
   - implement the first `2.0` transformation-engine scaffold against the normalized data and questionnaire mapping
 
-## Session Update - 2026-03-06-D
-
 ## Session Update - 2026-03-08
 
 - completed:
@@ -538,6 +536,25 @@ Suggested update format:
   - preview guide and methodology pages still need to explain the new labor-market panel
 - next recommended step:
   - retrofit the intake and role selector so users choose a more precise launch occupation before role-specific panels render
+
+## Session Update - 2026-03-09-B
+
+- completed:
+  - removed the secondary timing view from the main `2.0` page surface
+  - reworked the main `2.0` result into a five-factor role briefing
+  - changed the main outputs to role outlook, top exposed work, mode of change, residual role strength, and personalization fit
+  - kept labor-market metrics as a separate context panel rather than a headline score input
+  - changed `Other/Custom` so it no longer falls back to the old timing-only behavior on the main `2.0` page
+- changed decisions:
+  - the main `2.0` page is now a role-structure briefing only, not a timing forecast
+  - timing and METR hazard outputs are excluded from the public `2.0` main-page experience
+- new blockers:
+  - the guide and methodology pages still describe older output labels and timing concepts
+  - the embedded legacy hazard code still exists under the hood and should be removed in a future cleanup pass
+- next recommended step:
+  - rewrite `guide2` and `method2` so the public explanation matches the new five-factor model contract
+
+## Session Update - 2026-03-06-D
 
 - completed:
   - added `v2_engine.js` as the first runtime-capable `2.0` transformation-engine scaffold

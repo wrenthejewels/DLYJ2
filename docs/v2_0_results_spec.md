@@ -8,7 +8,7 @@ It defines:
 - the top-level outputs
 - the page layout
 - the primary chart
-- the secondary timing panel
+- the labor-market context panel
 - the minimum data contract required from the `2.0` model layer
 
 This is a product and implementation spec, not public copy.
@@ -32,12 +32,11 @@ It should not lead with:
 The recommended page order is:
 
 1. role summary header
-2. six headline result cards
+2. five headline result cards
 3. primary transformation map
-4. exposed vs retained task section
-5. likely role evolution narrative
-6. secondary timing and hazard panel
-7. evidence and caveats
+4. likely role evolution narrative
+5. labor-market context panel
+6. evidence and caveats
 
 ## Header
 
@@ -53,7 +52,7 @@ Example summary patterns:
 
 ## Headline Cards
 
-These six cards are the locked default headline outputs for `2.0`.
+These five cards are the locked default headline outputs for `2.0`.
 
 ### 1. Likely Role State
 
@@ -73,7 +72,7 @@ Allowed values should come from a small fixed label set:
 
 This is the primary card and should be visually dominant.
 
-### 2. Most Exposed Task Cluster
+### 2. Top Exposed Work
 
 Type:
 - task-cluster label plus exposure level
@@ -91,7 +90,7 @@ Secondary line:
 - `High exposure`
 - `Moderate exposure`
 
-### 3. Automation vs Augmentation Balance
+### 3. Mode Of Change
 
 Type:
 - split label plus supporting balance bar
@@ -109,7 +108,7 @@ Recommended supporting display:
   - `augmentation`
   - `automation`
 
-### 4. Residual Role Viability
+### 4. Residual Role Strength
 
 Type:
 - tier or score
@@ -127,13 +126,13 @@ Optional supporting line:
 - `Residual bundle likely holds but narrows`
 - `Residual bundle is at risk of collapsing into fragments`
 
-### 5. Adaptation Capacity
+### 5. Personalization Fit
 
 Type:
 - tier or score
 
 Purpose:
-- estimate the worker's ability to stay valuable within the transformed bundle or move into adjacent roles
+- estimate how well the user's stated task mix and work context fit the retained version of the role
 
 Recommended tiers:
 - `Strong`
@@ -141,25 +140,9 @@ Recommended tiers:
 - `Weak`
 
 Optional supporting line:
-- `High mobility into adjacent roles`
-- `Some transition room`
-- `Limited adaptation room without substantial retraining`
-
-### 6. Transformation Pressure By 2030
-
-Type:
-- time-bounded forward-looking summary
-
-Purpose:
-- retain the timing dimension without reverting to `1.0` hazard framing
-
-Recommended tiers:
-- `Low`
-- `Moderate`
-- `High`
-
-Optional subtitle:
-- `Pressure reflects expected task absorption and role restructuring by 2030`
+- `Your answers fit the retained version of the role`
+- `Your answers produce a mixed fit`
+- `Your answers lean toward the more exposed part of the bundle`
 
 ## Primary Chart
 
@@ -232,21 +215,19 @@ Recommended template:
 3. `What remains`
 4. `What kind of worker benefits in the transformed version of the role`
 
-### Secondary Timing And Hazard Panel
+### Labor Market Context Panel
 
-This is where the surviving timing logic belongs.
-
-Recommended section title:
-- `Secondary Timing View`
+This section provides market context, not a second model.
 
 Recommended outputs:
-- `Transformation pressure by year`
-- `Secondary displacement hazard`
-- `Possible displacement window`
+- `U.S. employment`
+- `Annual openings`
+- `Median wage`
+- `Growth`
+- `Latest unemployment`
+- `12-month BLS unemployment trend`
 
-This section should be collapsible or visually subordinate to the main transformation result.
-
-It should not reuse the `1.0` card prominence.
+This panel should help interpret the result without driving the headline role labels.
 
 ## Evidence And Caveats Section
 
@@ -266,7 +247,6 @@ It should also display source-confidence language such as:
 This is the minimum app-facing result contract for the `2.0` engine.
 
 ```ts
-type ResultTier = 'low' | 'moderate' | 'high'
 type ViabilityTier = 'strong' | 'moderate' | 'weak'
 type BalanceTier = 'mostly_augmentation' | 'mixed' | 'mostly_automation'
 type RoleState =
@@ -297,40 +277,38 @@ type TransformationMap = {
   elevated_clusters: ResultTaskCluster[]
 }
 
-type SecondaryHazardSummary = {
-  transformation_pressure_by_2030: number
-  secondary_displacement_hazard?: number
-  displacement_window_start?: number
-  displacement_window_end?: number
-  confidence: number
-}
-
 type V2Result = {
   selected_role_category: string
   selected_occupation_id: string
   selected_occupation_title: string
-  likely_role_state: RoleState
-  likely_role_state_label: string
-  top_exposed_task_cluster: string
+  role_outlook: RoleState
+  role_outlook_label: string
+  role_summary: string
+  top_exposed_work: {
+    task_cluster_id: string
+    label: string
+    share_of_role: number
+    exposure_score: number
+    exposure_level: 'low' | 'moderate' | 'high'
+  } | null
   exposed_task_share: number
-  automation_vs_augmentation_balance: BalanceTier
+  mode_of_change: BalanceTier
   augmentation_share: number
   automation_share: number
-  residual_role_viability: ViabilityTier
-  adaptation_capacity: ViabilityTier
-  transformation_pressure_2030: ResultTier
+  residual_role_strength: ViabilityTier
+  personalization_fit: ViabilityTier
   transformation_map: TransformationMap
   narrative_summary: {
-    what_is_changing: string
-    what_gets_absorbed: string
-    what_remains: string
-    who_benefits: string
+    why_this_role_changes: string
+    what_is_under_pressure: string
+    what_stays_core: string
+    personalization_fit_summary: string
   }
-  secondary_hazard?: SecondaryHazardSummary
   evidence_summary: {
     task_evidence_confidence: number
-    occupation_prior_confidence: number
-    residual_bundle_confidence: number
+    occupation_anchor_confidence: number
+    personalization_confidence: number
+    labor_context_confidence: number
     notes: string[]
   }
 }
@@ -377,7 +355,7 @@ Current `1.0` headline cards in `index.html` are:
 - `Risk by 2031`
 - `Examine Re-Employment Likelihood`
 
-These should be replaced by the six `2.0` headline cards defined above.
+These should be replaced by the five `2.0` headline cards defined above.
 
 The old risk-year logic should move into the secondary timing panel.
 
