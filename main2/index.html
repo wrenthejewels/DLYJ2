@@ -2802,9 +2802,7 @@
         }
 
         .v2-briefing-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
-            gap: 20px;
+            display: block;
             margin-bottom: 20px;
         }
 
@@ -2829,10 +2827,7 @@
         }
 
         .v2-outlook-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
-            gap: 20px;
-            align-items: stretch;
+            display: block;
         }
 
         .v2-outlook-kicker {
@@ -2922,6 +2917,10 @@
             gap: 20px;
         }
 
+        .v2-briefing-rail--details {
+            margin-top: 18px;
+        }
+
         .v2-rail-card {
             padding: 20px;
             background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
@@ -2967,6 +2966,12 @@
             padding: 24px;
         }
 
+        .v2-narrative-panel--primary,
+        .v2-labor-panel,
+        .v2-details-panel {
+            margin-top: 20px;
+        }
+
         .v2-map-header {
             margin-bottom: 20px;
         }
@@ -2974,6 +2979,37 @@
         .v2-task-panel {
             margin-top: 20px;
             background: linear-gradient(180deg, #fffef9 0%, #f6fbff 100%);
+        }
+
+        .v2-details-panel {
+            border-radius: 24px;
+            border: 1px solid #e6e0d4;
+            background: #fffdfa;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.05);
+            padding: 0 24px 24px;
+        }
+
+        .v2-details-summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: baseline;
+            padding: 20px 0 18px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #193459;
+        }
+
+        .v2-details-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .v2-details-helper {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #7a736b;
         }
 
         .v2-task-summary {
@@ -3301,6 +3337,61 @@
 
         .v2-input-card {
             margin-bottom: 18px;
+        }
+
+        .v2-refinement-intro {
+            margin: 8px 0 18px;
+            font-size: 0.92rem;
+            line-height: 1.65;
+            color: #5f584f;
+        }
+
+        .v2-core-refinement {
+            border-radius: 18px;
+            border: 1px solid #e9e1d5;
+            background: rgba(255, 255, 255, 0.78);
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+
+        .v2-core-refinement-header {
+            margin-bottom: 14px;
+        }
+
+        .v2-advanced-refinement {
+            border-radius: 18px;
+            border: 1px solid #e9e1d5;
+            background: rgba(255, 253, 250, 0.86);
+            padding: 0 18px 18px;
+        }
+
+        .v2-advanced-summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: baseline;
+            padding: 18px 0 16px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #193459;
+        }
+
+        .v2-advanced-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .v2-advanced-helper {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #7a736b;
+        }
+
+        .v2-advanced-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .v2-input-grid {
@@ -3849,9 +3940,9 @@
                     <div class="step">
                         <div class="step-badge sequence-item" data-seq="7">Step 4</div>
                         <div class="step-card step-card-button sequence-item" data-seq="8" style="min-height:70px;">
-                            <button id="questionnaire-button" class="step-button" style="width:100%; height:100%;">Personalize attributes</button>
+                            <button id="questionnaire-button" class="step-button" style="width:100%; height:100%;">Refine result (optional)</button>
                         </div>
-                        <div class="step-caption sequence-item" data-seq="9">Refine the default occupation profile with your actual task mix, context, and current AI support.</div>
+                        <div class="step-caption sequence-item" data-seq="9">Optional: add task-mix and workflow detail if you want a more personalized read.</div>
                     </div>
                 </div>
                 <hr class="resources-divider">
@@ -3955,8 +4046,8 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <h2 class="card-title">Task mix and role fit</h2>
-                            <p class="card-description">These direct `2.0` inputs distinguish what dominates your time from what defines the role's value.</p>
+                            <h2 class="card-title">Optional task mix and role fit</h2>
+                            <p class="card-description">Use these only if your version of the occupation differs meaningfully from the default role. Otherwise the model will infer from the occupation and keep a neutral questionnaire baseline.</p>
                         </div>
                     </div>
 
@@ -4055,8 +4146,8 @@
                     <div class="card-header">
                         <div class="section-title--with-actions">
                             <div>
-                                <h2 class="card-title">Questionnaire</h2>
-                                <p class="card-description">These questions personalize the selected occupation around exposure conditions, bundle integrity, adoption context, and fit.</p>
+                                <h2 class="card-title">Optional questionnaire</h2>
+                                <p class="card-description">Use this if you want to refine the occupation baseline around exposure conditions, bundle integrity, adoption context, and fit.</p>
                             </div>
                             <label class="task-bucket-toggle" style="margin-left:auto;">
                                 <input type="checkbox" id="prefill-questions">
@@ -4064,6 +4155,24 @@
                             </label>
                         </div>
                     </div>
+
+                    <div class="v2-refinement-intro">
+                        <p>Start with a short refinement set. The full 19-question instrument is still available if you want a deeper calibration.</p>
+                    </div>
+                    <div class="v2-core-refinement">
+                        <div class="v2-core-refinement-header">
+                            <div class="v2-section-label">Core refinement</div>
+                            <p class="card-description">These six questions have the highest leverage on exposure conditions, context dependence, retained-role structure, and adoption readiness.</p>
+                        </div>
+                        <div class="question-grid" id="v2-core-refinement-grid"></div>
+                    </div>
+                    <details class="v2-advanced-refinement" id="v2-advanced-refinement">
+                        <summary class="v2-advanced-summary">
+                            <span>Advanced refinement</span>
+                            <span class="v2-advanced-helper" id="v2-advanced-helper">Remaining questions</span>
+                        </summary>
+                        <div class="v2-advanced-body" id="v2-advanced-refinement-body"></div>
+                    </details>
 
                 <div class="category">
                     <div class="category-header">
@@ -4686,7 +4795,7 @@
                     <div class="v2-results-copy">
                         <div class="v2-results-kicker">V2.0 Empirical Role Briefing</div>
                         <h3 id="v2-role-state-label">Select a category to begin</h3>
-                        <p id="v2-role-summary">Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.</p>
+                        <p id="v2-role-summary">Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.</p>
                     </div>
                     <div class="v2-occupation-picker">
                         <label for="occupation-match-select">Occupation anchor</label>
@@ -4723,7 +4832,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="v2-score-stack">
+                            <div class="v2-score-stack" hidden aria-hidden="true">
                                 <div class="v2-score-card">
                                     <span>Role outlook</span>
                                     <strong id="v2-score-role-outlook">-</strong>
@@ -4743,8 +4852,128 @@
                             </div>
                         </div>
                     </section>
+                </div>
 
-                    <aside class="v2-briefing-rail">
+                <section class="v2-narrative-panel v2-narrative-panel--primary">
+                    <div class="v2-section-label">Why this result</div>
+                    <div class="v2-narrative-grid">
+                        <div class="v2-narrative-item">
+                            <h4>Why This Role Changes</h4>
+                            <p class="v2-body-copy" id="v2-what-changing">-</p>
+                        </div>
+                        <div class="v2-narrative-item">
+                            <h4>What Is Under Pressure</h4>
+                            <p class="v2-body-copy" id="v2-what-absorbed">-</p>
+                        </div>
+                        <div class="v2-narrative-item">
+                            <h4>What Stays Core</h4>
+                            <p class="v2-body-copy" id="v2-what-remains">-</p>
+                        </div>
+                        <div class="v2-narrative-item">
+                            <h4>How Your Answers Shape The Result</h4>
+                            <p class="v2-body-copy" id="v2-who-benefits">-</p>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="v2-map-panel">
+                    <div class="v2-map-header">
+                        <div class="v2-section-label">Task-derived map</div>
+                        <h3 class="chart-title">Role Transformation Map</h3>
+                        <p class="chart-subtitle" id="v2-map-subtitle">This map is derived from the live task rows below. It ranks the occupation&apos;s mapped tasks by current share, exposed share, and retained share after your inputs are applied.</p>
+                    </div>
+                    <div class="v2-map-grid">
+                        <div class="v2-map-column">
+                            <h4>Current role</h4>
+                            <div class="v2-cluster-list" id="v2-current-bundle"></div>
+                        </div>
+                        <div class="v2-map-column">
+                            <h4>Exposed tasks</h4>
+                            <div class="v2-cluster-list" id="v2-exposed-bundle"></div>
+                        </div>
+                        <div class="v2-map-column">
+                            <h4>Residual role</h4>
+                            <div class="v2-cluster-list" id="v2-residual-bundle"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="v2-task-panel">
+                    <div class="v2-map-header">
+                        <div class="v2-section-label">Task-level view</div>
+                        <h3 class="chart-title">Live Task Breakdown</h3>
+                        <p class="chart-subtitle" id="v2-task-note">This view reorders the selected occupation&apos;s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.</p>
+                    </div>
+                    <div class="v2-task-summary">
+                        <p class="v2-task-summary-copy" id="v2-task-summary-copy">Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.</p>
+                        <div class="v2-task-stats">
+                            <div class="v2-task-stat">
+                                <span>Tasks shown</span>
+                                <strong id="v2-task-total">-</strong>
+                            </div>
+                            <div class="v2-task-stat">
+                                <span>Direct evidence coverage</span>
+                                <strong id="v2-task-direct">-</strong>
+                            </div>
+                            <div class="v2-task-stat" hidden aria-hidden="true">
+                                <span>Cluster fallback rows</span>
+                                <strong id="v2-task-fallback">-</strong>
+                            </div>
+                            <div class="v2-task-stat" hidden aria-hidden="true">
+                                <span>Ordering</span>
+                                <strong id="v2-task-ordering">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v2-task-list" id="v2-task-breakdown"></div>
+                    <div class="v2-task-actions">
+                        <button type="button" class="v2-task-toggle" id="v2-task-toggle" hidden aria-expanded="false">Show all tasks</button>
+                    </div>
+                </section>
+
+                <section class="v2-labor-panel">
+                        <div class="v2-map-header">
+                            <div class="v2-section-label">Labor context</div>
+                            <h3 class="chart-title">Labor Market Context</h3>
+                            <p class="chart-subtitle" id="v2-unemployment-note">Choose a mapped occupation to load BLS context.</p>
+                        </div>
+                        <div class="v2-labor-grid">
+                            <div class="v2-labor-metric">
+                                <span>U.S. employment</span>
+                                <strong id="v2-employment">-</strong>
+                            </div>
+                            <div class="v2-labor-metric">
+                                <span>Annual openings</span>
+                                <strong id="v2-openings">-</strong>
+                            </div>
+                            <div class="v2-labor-metric">
+                                <span>Median wage</span>
+                                <strong id="v2-wage">-</strong>
+                            </div>
+                            <div class="v2-labor-metric">
+                                <span>2034 growth</span>
+                                <strong id="v2-growth">-</strong>
+                            </div>
+                            <div class="v2-labor-metric v2-labor-metric--primary">
+                                <span>Latest BLS unemployment</span>
+                                <strong id="v2-unemployment-latest">-</strong>
+                                <div style="font-size: 0.8rem; margin-top: 8px;" id="v2-unemployment-series-label">-</div>
+                            </div>
+                        </div>
+                        <div class="v2-labor-chart">
+                            <canvas id="v2-unemployment-chart" aria-label="BLS unemployment chart"></canvas>
+                            <div id="v2-unemployment-empty" style="display:none; color: var(--text-secondary); font-size: 0.95rem; padding: 16px 0;">
+                                No official monthly BLS unemployment series is mapped for this occupation yet.
+                            </div>
+                        </div>
+                </section>
+
+                <details class="v2-details-panel">
+                    <summary class="v2-details-summary">
+                        <span>Show model details</span>
+                        <span class="v2-details-helper">Evidence, occupation mapping, recomposition, and methodology notes</span>
+                    </summary>
+                    <div class="v2-briefing-rail v2-briefing-rail--details">
                         <div class="v2-rail-card">
                             <div class="v2-section-label">Evidence posture</div>
                             <div class="v2-evidence-rows">
@@ -4811,124 +5040,8 @@
                             <div class="v2-section-label">How to read this</div>
                             <p>The briefing separates role-structure change from labor-market context. The outlook is driven by O*NET task structure and Anthropic task evidence, while BLS data appears below as context for the selected occupation.</p>
                         </div>
-                    </aside>
-                </div>
-
-                <div class="v2-map-panel">
-                    <div class="v2-map-header">
-                        <div class="v2-section-label">Task-derived map</div>
-                        <h3 class="chart-title">Role Transformation Map</h3>
-                        <p class="chart-subtitle" id="v2-map-subtitle">This map is derived from the live task rows below. It ranks the occupation&apos;s mapped tasks by current share, exposed share, and retained share after your inputs are applied.</p>
                     </div>
-                    <div class="v2-map-grid">
-                        <div class="v2-map-column">
-                            <h4>Current role</h4>
-                            <div class="v2-cluster-list" id="v2-current-bundle"></div>
-                        </div>
-                        <div class="v2-map-column">
-                            <h4>Exposed tasks</h4>
-                            <div class="v2-cluster-list" id="v2-exposed-bundle"></div>
-                        </div>
-                        <div class="v2-map-column">
-                            <h4>Residual role</h4>
-                            <div class="v2-cluster-list" id="v2-residual-bundle"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <section class="v2-task-panel">
-                    <div class="v2-map-header">
-                        <div class="v2-section-label">Task-level view</div>
-                        <h3 class="chart-title">Live Task Breakdown</h3>
-                        <p class="chart-subtitle" id="v2-task-note">This view reorders the selected occupation&apos;s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.</p>
-                    </div>
-                    <div class="v2-task-summary">
-                        <p class="v2-task-summary-copy" id="v2-task-summary-copy">Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.</p>
-                        <div class="v2-task-stats">
-                            <div class="v2-task-stat">
-                                <span>Tasks shown</span>
-                                <strong id="v2-task-total">-</strong>
-                            </div>
-                            <div class="v2-task-stat">
-                                <span>Direct Anthropic rows</span>
-                                <strong id="v2-task-direct">-</strong>
-                            </div>
-                            <div class="v2-task-stat">
-                                <span>Cluster fallback rows</span>
-                                <strong id="v2-task-fallback">-</strong>
-                            </div>
-                            <div class="v2-task-stat">
-                                <span>Ordering</span>
-                                <strong id="v2-task-ordering">-</strong>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="v2-task-list" id="v2-task-breakdown"></div>
-                    <div class="v2-task-actions">
-                        <button type="button" class="v2-task-toggle" id="v2-task-toggle" hidden aria-expanded="false">Show all tasks</button>
-                    </div>
-                </section>
-
-                <div class="v2-secondary-layout">
-                    <section class="v2-narrative-panel">
-                        <div class="v2-section-label">Why this result</div>
-                        <div class="v2-narrative-grid">
-                            <div class="v2-narrative-item">
-                                <h4>Why This Role Changes</h4>
-                                <p class="v2-body-copy" id="v2-what-changing">-</p>
-                            </div>
-                            <div class="v2-narrative-item">
-                                <h4>What Is Under Pressure</h4>
-                                <p class="v2-body-copy" id="v2-what-absorbed">-</p>
-                            </div>
-                            <div class="v2-narrative-item">
-                                <h4>What Stays Core</h4>
-                                <p class="v2-body-copy" id="v2-what-remains">-</p>
-                            </div>
-                            <div class="v2-narrative-item">
-                                <h4>How Your Answers Shape The Result</h4>
-                                <p class="v2-body-copy" id="v2-who-benefits">-</p>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="v2-labor-panel">
-                        <div class="v2-map-header">
-                            <div class="v2-section-label">Labor context</div>
-                            <h3 class="chart-title">Labor Market Context</h3>
-                            <p class="chart-subtitle" id="v2-unemployment-note">Choose a mapped occupation to load BLS context.</p>
-                        </div>
-                        <div class="v2-labor-grid">
-                            <div class="v2-labor-metric">
-                                <span>U.S. employment</span>
-                                <strong id="v2-employment">-</strong>
-                            </div>
-                            <div class="v2-labor-metric">
-                                <span>Annual openings</span>
-                                <strong id="v2-openings">-</strong>
-                            </div>
-                            <div class="v2-labor-metric">
-                                <span>Median wage</span>
-                                <strong id="v2-wage">-</strong>
-                            </div>
-                            <div class="v2-labor-metric">
-                                <span>2034 growth</span>
-                                <strong id="v2-growth">-</strong>
-                            </div>
-                            <div class="v2-labor-metric v2-labor-metric--primary">
-                                <span>Latest BLS unemployment</span>
-                                <strong id="v2-unemployment-latest">-</strong>
-                                <div style="font-size: 0.8rem; margin-top: 8px;" id="v2-unemployment-series-label">-</div>
-                            </div>
-                        </div>
-                        <div class="v2-labor-chart">
-                            <canvas id="v2-unemployment-chart" aria-label="BLS unemployment chart"></canvas>
-                            <div id="v2-unemployment-empty" style="display:none; color: var(--text-secondary); font-size: 0.95rem; padding: 16px 0;">
-                                No official monthly BLS unemployment series is mapped for this occupation yet.
-                            </div>
-                        </div>
-                    </section>
-                </div>
+                </details>
             </div>
 
             <div class="pinnable-section" id="pinnable-section" hidden>
@@ -5232,6 +5345,7 @@
             Q19: 'Relative Performance in Current Role'
         };
         const QUESTION_IDS = Object.keys(QUESTION_LABELS);
+        const CORE_REFINEMENT_QUESTIONS = [1, 5, 7, 11, 13, 16];
         const DOMAIN_PENALTY_BIAS = 1.20; // Slightly reduced baseline misalignment to tighten domain spread
 
         // METR-based capability model parameters
@@ -7211,6 +7325,58 @@
             }
         }
 
+        function initializeRefinementLayout() {
+            const coreGrid = document.getElementById('v2-core-refinement-grid');
+            const advancedDetails = document.getElementById('v2-advanced-refinement');
+            const advancedBody = document.getElementById('v2-advanced-refinement-body');
+            const advancedHelper = document.getElementById('v2-advanced-helper');
+
+            if (!coreGrid || !advancedDetails || !advancedBody) {
+                return;
+            }
+
+            const questionnaireCard = coreGrid.closest('.card');
+            if (!questionnaireCard) {
+                return;
+            }
+
+            const categories = Array.from(questionnaireCard.querySelectorAll('.category'));
+            if (!categories.length) {
+                return;
+            }
+
+            const coreQuestionNodes = CORE_REFINEMENT_QUESTIONS
+                .map((questionNum) => questionnaireCard.querySelector(`input[name="q${questionNum}"]`)?.closest('.question'))
+                .filter(Boolean);
+
+            coreQuestionNodes.forEach((questionNode) => {
+                coreGrid.appendChild(questionNode);
+            });
+
+            categories.forEach((category) => {
+                const remainingQuestions = category.querySelectorAll('.question');
+                if (!remainingQuestions.length) {
+                    category.remove();
+                    return;
+                }
+
+                const count = remainingQuestions.length;
+                const countLabel = category.querySelector('.category-count');
+                if (countLabel) {
+                    countLabel.textContent = `${count} question${count === 1 ? '' : 's'}`;
+                }
+                advancedBody.appendChild(category);
+            });
+
+            const advancedQuestionCount = advancedBody.querySelectorAll('.question').length;
+            if (advancedHelper) {
+                advancedHelper.textContent = `${advancedQuestionCount} more question${advancedQuestionCount === 1 ? '' : 's'}`;
+            }
+            if (!advancedQuestionCount) {
+                advancedDetails.hidden = true;
+            }
+        }
+
         // Tests will be run after DOM is ready (see DOMContentLoaded handler below)
         document.querySelectorAll('.preset-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -9124,15 +9290,17 @@ self.onmessage = function(e) {
 
             const allRows = Array.isArray(taskBreakdown?.tasks) ? taskBreakdown.tasks : [];
             const rows = v2TaskBreakdownExpanded ? allRows : allRows.slice(0, 10);
+            const directCount = Number(taskBreakdown?.direct_evidence_tasks) || 0;
+            const fallbackCount = Number(taskBreakdown?.cluster_fallback_tasks) || 0;
 
             safeSetText('v2-task-total', allRows.length ? `${rows.length} of ${taskBreakdown.total_tasks_considered}` : '-');
-            safeSetText('v2-task-direct', taskBreakdown ? String(taskBreakdown.direct_evidence_tasks || 0) : '-');
+            safeSetText('v2-task-direct', taskBreakdown ? formatCoverageMetric(directCount, fallbackCount) : '-');
             safeSetText('v2-task-fallback', taskBreakdown ? String(taskBreakdown.cluster_fallback_tasks || 0) : '-');
             safeSetText('v2-task-ordering', allRows.length ? (v2TaskBreakdownExpanded ? 'All tasks' : 'Top exposed share') : '-');
             safeSetText(
                 'v2-task-summary-copy',
                 assignment
-                    ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped O*NET tasks. This list live-updates as your selected occupation, task-family inputs, and questionnaire answers change task shares and exposure estimates inside that occupation anchor.`
+                    ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped O*NET tasks. This list live-updates as your selected occupation, task-family inputs, and questionnaire answers change task shares and exposure estimates inside that occupation anchor. Use “Show model details” if you want the underlying evidence and fallback notes.`
                     : 'Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.'
             );
 
@@ -9181,7 +9349,7 @@ self.onmessage = function(e) {
         function resetV2Results(message, detail) {
             v2TaskBreakdownExpanded = false;
             safeSetText('v2-role-state-label', message || 'Select a role to begin');
-            safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
+            safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.');
             safeSetText('v2-outlook-summary-copy', detail || 'This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.');
             safeSetText('v2-role-state-card', '-');
             safeSetText('v2-score-role-outlook', '-');
@@ -9283,7 +9451,7 @@ self.onmessage = function(e) {
             const roleCategory = selectedRole;
 
             if (!roleCategory) {
-                resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
+                resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.');
                 return null;
             }
 
@@ -9548,6 +9716,8 @@ self.onmessage = function(e) {
 
             const activate = (el) => el && el.classList.add('active');
             const showBlock = (el) => el && el.classList.remove('hidden-block');
+
+            initializeRefinementLayout();
 
             function syncSeniority(val) {
                 const radio = document.querySelector(`input[name="seniority"][value="${val}"]`);

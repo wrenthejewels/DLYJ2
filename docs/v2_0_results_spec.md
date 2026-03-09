@@ -29,15 +29,18 @@ It should not lead with:
 
 ## Page Structure
 
-The recommended page order is:
+The default public page order is now:
 
 1. role summary header
-2. five headline result cards
-3. primary transformation map
-4. likely role evolution narrative
-5. recomposition panel in the evidence rail
+2. one primary verdict surface
+3. short narrative explanation
+4. primary transformation map
+5. live task breakdown
 6. labor-market context panel
-7. evidence and caveats
+7. collapsed `Show model details` section
+8. optional refinement intake remains above the result, but only the short core refinement set should be visible by default
+
+The page should show the verdict and the role-specific task change first. Internal diagnostics should remain available, but not at equal visual weight.
 
 ## Header
 
@@ -51,9 +54,20 @@ Example summary patterns:
 - `The most exposed parts of your work are routine analysis and drafting, but the residual bundle remains viable.`
 - `This role appears vulnerable to fragmentation if routine tasks are absorbed quickly.`
 
-## Headline Cards
+## Headline Surface
 
-These five cards are the locked default headline outputs for `2.0`.
+The engine still computes five core outputs for `2.0`, but the page should not duplicate them in multiple visual formats.
+
+Default public treatment:
+- one dominant `Role Outlook` verdict
+- one short summary paragraph
+- four compact supporting notes:
+  - `Top exposed work`
+  - `Mode of change`
+  - `Residual role strength`
+  - `Personalization fit`
+
+Duplicate score-card grids should remain hidden or be removed from the default page surface.
 
 ### 1. Role Outlook
 
@@ -218,7 +232,7 @@ Recommended template:
 
 ### Recomposition Panel
 
-This should remain a secondary explanatory layer, not a headline score.
+This should remain a secondary explanatory layer, not a headline score, and it should live inside the collapsed `Show model details` surface by default.
 
 Show:
 - `Workflow compression`
@@ -255,6 +269,8 @@ This section should explicitly tell the user:
 - where the model used task-level evidence
 - where coverage is partial
 
+It should be collapsed by default on the main page.
+
 The default source explanation should be:
 - `O*NET` for occupation and task structure
 - `Anthropic Economic Index 2026-01-15` for primary task exposure and augmentation/automation evidence
@@ -268,6 +284,8 @@ It should also display source-confidence language such as:
 - `Personalization signal strength`
 - `Task coverage`
 - `Residual bundle estimate uses structural inference`
+
+These are descriptive readouts for interested users, not primary outputs.
 
 ## Recommended Result Object
 

@@ -908,3 +908,44 @@ Suggested update format:
   - `Top exposed work` remains cluster-based, so a future pass may still be needed if the headline label feels too generic relative to the task map
 - next recommended step:
   - improve task-family mapping and direct Anthropic coverage for occupations where the task-derived map still looks noisy, starting with software and other authoring-heavy roles
+
+## Session Update - 2026-03-09-L
+
+- completed:
+  - simplified the default `2.0` page hierarchy so the main surface now prioritizes:
+    - one verdict block
+    - short narrative explanation
+    - task-derived map
+    - live task breakdown
+    - labor-market context
+  - hid the duplicate score-card grid from the default results surface
+  - moved the narrative section above the map so the explanation follows the verdict instead of the diagnostics
+  - moved evidence posture, occupation assignment, recomposition, and methodology copy behind a collapsed `Show model details` section
+  - reduced the visible task-panel stats to user-facing signals (`Tasks shown`, `Direct evidence coverage`) and hid fallback bookkeeping from the default view
+  - relabeled the optional advanced intake explicitly as optional (`Refine result (optional)`, `Optional task mix and role fit`, `Optional questionnaire`)
+- changed decisions:
+  - the live page is now intentionally diagnosis-first and audit-second
+  - default users should not encounter the model’s internal scaffolding at equal visual weight with the verdict
+- new blockers:
+  - the engine still computes more intermediate outputs than the default page now shows, so future UI work should keep resisting the urge to promote diagnostics back into the primary surface
+  - the advanced intake is still long once opened; a later pass should reduce the question count rather than only hiding it by default
+- next recommended step:
+  - shrink the optional questionnaire itself into a shorter default refinement set and keep the full research-style instrument only behind an advanced path
+
+## Session Update - 2026-03-09-M
+
+- completed:
+  - reduced the visible refinement flow to a shorter default set while keeping the full engine input contract intact
+  - the live main page now shows:
+    - task-mix / role-fit direct inputs
+    - six default core refinement questions (`Q1`, `Q5`, `Q7`, `Q11`, `Q13`, `Q16`)
+    - an `Advanced refinement` disclosure containing the remaining questionnaire items
+  - implemented the regrouping in `app.js` and mirrored it in `main2/index.html` so the preview route matches the live root page
+- changed decisions:
+  - the full 19-question instrument remains supported by the engine, but it is no longer the default visible path on the main page
+  - the default refinement path is now explicitly optimized for speed and legibility rather than exposing the full research instrument up front
+- new blockers:
+  - the core refinement set is still hand-selected rather than learned from calibration or feature-importance analysis
+  - future questionnaire revisions should validate that the shortened visible set preserves enough signal for the launch occupations
+- next recommended step:
+  - test whether the shortened core refinement set materially preserves output quality across the reviewed calibration occupations, then prune or rotate questions based on that evidence

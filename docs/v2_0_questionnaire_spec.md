@@ -42,6 +42,23 @@ The recommended `2.0` intake has six sections.
 5. adoption context
 6. personalization fit
 
+Public-surface rule:
+- category, occupation, and hierarchy are the default visible intake
+- task-mix inputs and the full questionnaire should be treated as optional refinement layers on the main page
+- the engine should still support the richer intake, but the default user path should not require all advanced fields before showing a result
+
+Current live default refinement set:
+- `Q1` Observed AI capability
+- `Q5` Task decomposability
+- `Q7` Context dependency
+- `Q11` Human judgment and relationship load
+- `Q13` Organization AI adoption readiness
+- `Q16` Workflow integration readiness
+
+Current live advanced refinement set:
+- remaining questionnaire items (`Q2-Q4`, `Q6`, `Q8-Q10`, `Q12`, `Q14-Q15`, `Q17-Q19`)
+- these remain active in the engine, but are now hidden behind `Advanced refinement` on the main page
+
 ## Section 1: Role Anchoring
 
 Purpose:

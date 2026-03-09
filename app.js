@@ -33,6 +33,7 @@ const QUESTION_LABELS = {
     Q19: 'Relative Performance in Current Role'
 };
 const QUESTION_IDS = Object.keys(QUESTION_LABELS);
+const CORE_REFINEMENT_QUESTIONS = [1, 5, 7, 11, 13, 16];
 
 // ─── 3. Utility functions ────────────────────────────────────────────────────
 
@@ -100,6 +101,58 @@ function resetQuestionsToNeutral() {
         if (radio) {
             radio.checked = true;
         }
+    }
+}
+
+function initializeRefinementLayout() {
+    const coreGrid = document.getElementById('v2-core-refinement-grid');
+    const advancedDetails = document.getElementById('v2-advanced-refinement');
+    const advancedBody = document.getElementById('v2-advanced-refinement-body');
+    const advancedHelper = document.getElementById('v2-advanced-helper');
+
+    if (!coreGrid || !advancedDetails || !advancedBody) {
+        return;
+    }
+
+    const questionnaireCard = coreGrid.closest('.card');
+    if (!questionnaireCard) {
+        return;
+    }
+
+    const categories = Array.from(questionnaireCard.querySelectorAll('.category'));
+    if (!categories.length) {
+        return;
+    }
+
+    const coreQuestionNodes = CORE_REFINEMENT_QUESTIONS
+        .map((questionNum) => questionnaireCard.querySelector(`input[name="q${questionNum}"]`)?.closest('.question'))
+        .filter(Boolean);
+
+    coreQuestionNodes.forEach((questionNode) => {
+        coreGrid.appendChild(questionNode);
+    });
+
+    categories.forEach((category) => {
+        const remainingQuestions = category.querySelectorAll('.question');
+        if (!remainingQuestions.length) {
+            category.remove();
+            return;
+        }
+
+        const count = remainingQuestions.length;
+        const countLabel = category.querySelector('.category-count');
+        if (countLabel) {
+            countLabel.textContent = `${count} question${count === 1 ? '' : 's'}`;
+        }
+        advancedBody.appendChild(category);
+    });
+
+    const advancedQuestionCount = advancedBody.querySelectorAll('.question').length;
+    if (advancedHelper) {
+        advancedHelper.textContent = `${advancedQuestionCount} more question${advancedQuestionCount === 1 ? '' : 's'}`;
+    }
+    if (!advancedQuestionCount) {
+        advancedDetails.hidden = true;
     }
 }
 
@@ -645,15 +698,17 @@ function renderV2TaskBreakdown(taskBreakdown, assignment) {
 
     const allRows = Array.isArray(taskBreakdown?.tasks) ? taskBreakdown.tasks : [];
     const rows = v2TaskBreakdownExpanded ? allRows : allRows.slice(0, 10);
+    const directCount = Number(taskBreakdown?.direct_evidence_tasks) || 0;
+    const fallbackCount = Number(taskBreakdown?.cluster_fallback_tasks) || 0;
 
     safeSetText('v2-task-total', allRows.length ? `${rows.length} of ${taskBreakdown.total_tasks_considered}` : '-');
-    safeSetText('v2-task-direct', taskBreakdown ? String(taskBreakdown.direct_evidence_tasks || 0) : '-');
+    safeSetText('v2-task-direct', taskBreakdown ? formatCoverageMetric(directCount, fallbackCount) : '-');
     safeSetText('v2-task-fallback', taskBreakdown ? String(taskBreakdown.cluster_fallback_tasks || 0) : '-');
     safeSetText('v2-task-ordering', allRows.length ? (v2TaskBreakdownExpanded ? 'All tasks' : 'Top exposed share') : '-');
     safeSetText(
         'v2-task-summary-copy',
         assignment
-            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped O*NET tasks. This list live-updates as your selected occupation, task-family inputs, and questionnaire answers change task shares and exposure estimates inside that occupation anchor.`
+            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped O*NET tasks. This list live-updates as your selected occupation, task-family inputs, and questionnaire answers change task shares and exposure estimates inside that occupation anchor. Use “Show model details” if you want the underlying evidence and fallback notes.`
             : 'Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.'
     );
 
@@ -704,7 +759,7 @@ function getDirectV2Inputs() {
 function resetV2Results(message, detail) {
     v2TaskBreakdownExpanded = false;
     safeSetText('v2-role-state-label', message || 'Select a role to begin');
-    safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
+    safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.');
     safeSetText('v2-outlook-summary-copy', detail || 'This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.');
     safeSetText('v2-role-state-card', '-');
     safeSetText('v2-score-role-outlook', '-');
@@ -739,7 +794,7 @@ async function updateV2Results(options = {}) {
     const roleCategory = selectedRole;
 
     if (!roleCategory) {
-        resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
+        resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.');
         return null;
     }
 
@@ -900,6 +955,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const activate = (el) => el && el.classList.add('active');
     const showBlock = (el) => el && el.classList.remove('hidden-block');
     const occupationSearchLookup = new Map();
+
+    initializeRefinementLayout();
 
     function tryShowResults() {
         if (roleSelect?.value && hierarchySelect?.value && (selectedOccupationId || roleSelect?.value === 'custom')) {

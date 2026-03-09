@@ -2791,9 +2791,7 @@
         }
 
         .v2-briefing-layout {
-            display: grid;
-            grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
-            gap: 20px;
+            display: block;
             margin-bottom: 20px;
         }
 
@@ -2818,10 +2816,7 @@
         }
 
         .v2-outlook-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
-            gap: 20px;
-            align-items: stretch;
+            display: block;
         }
 
         .v2-outlook-kicker {
@@ -2911,6 +2906,10 @@
             gap: 20px;
         }
 
+        .v2-briefing-rail--details {
+            margin-top: 18px;
+        }
+
         .v2-rail-card {
             padding: 20px;
             background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
@@ -2956,6 +2955,12 @@
             padding: 24px;
         }
 
+        .v2-narrative-panel--primary,
+        .v2-labor-panel,
+        .v2-details-panel {
+            margin-top: 20px;
+        }
+
         .v2-map-header {
             margin-bottom: 20px;
         }
@@ -2963,6 +2968,37 @@
         .v2-task-panel {
             margin-top: 20px;
             background: linear-gradient(180deg, #fffef9 0%, #f6fbff 100%);
+        }
+
+        .v2-details-panel {
+            border-radius: 24px;
+            border: 1px solid #e6e0d4;
+            background: #fffdfa;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.05);
+            padding: 0 24px 24px;
+        }
+
+        .v2-details-summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: baseline;
+            padding: 20px 0 18px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #193459;
+        }
+
+        .v2-details-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .v2-details-helper {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #7a736b;
         }
 
         .v2-task-summary {
@@ -3290,6 +3326,61 @@
 
         .v2-input-card {
             margin-bottom: 18px;
+        }
+
+        .v2-refinement-intro {
+            margin: 8px 0 18px;
+            font-size: 0.92rem;
+            line-height: 1.65;
+            color: #5f584f;
+        }
+
+        .v2-core-refinement {
+            border-radius: 18px;
+            border: 1px solid #e9e1d5;
+            background: rgba(255, 255, 255, 0.78);
+            padding: 18px;
+            margin-bottom: 18px;
+        }
+
+        .v2-core-refinement-header {
+            margin-bottom: 14px;
+        }
+
+        .v2-advanced-refinement {
+            border-radius: 18px;
+            border: 1px solid #e9e1d5;
+            background: rgba(255, 253, 250, 0.86);
+            padding: 0 18px 18px;
+        }
+
+        .v2-advanced-summary {
+            list-style: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: baseline;
+            padding: 18px 0 16px;
+            font-size: 0.92rem;
+            font-weight: 600;
+            color: #193459;
+        }
+
+        .v2-advanced-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .v2-advanced-helper {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #7a736b;
+        }
+
+        .v2-advanced-body {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .v2-input-grid {
