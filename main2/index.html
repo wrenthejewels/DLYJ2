@@ -2756,18 +2756,22 @@
             min-width: 0;
         }
 
-        .v2-results-kicker {
-            font-size: 0.8rem;
-            letter-spacing: 0.14em;
+        .v2-results-kicker,
+        .v2-section-label {
+            font-size: 0.78rem;
+            letter-spacing: 0.16em;
             text-transform: uppercase;
             color: #8c857d;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .v2-results-copy h3 {
-            font-size: 1.9rem;
+            font-size: 2.2rem;
+            line-height: 1.05;
             color: #1f1c18;
             margin: 0 0 10px 0;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 0.03em;
         }
 
         .v2-results-copy p {
@@ -2779,10 +2783,15 @@
         }
 
         .v2-occupation-picker {
-            flex: 0 0 300px;
+            flex: 0 0 320px;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            padding: 18px;
+            border-radius: 18px;
+            border: 1px solid #e5dccf;
+            background: linear-gradient(180deg, #fff8ef 0%, #f7f1e7 100%);
+            box-shadow: 0 18px 45px rgba(31, 28, 24, 0.08);
         }
 
         .v2-occupation-picker label {
@@ -2792,18 +2801,154 @@
             color: #8c857d;
         }
 
-        .v2-results-grid {
-            margin-top: 0;
+        .v2-briefing-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.8fr);
+            gap: 20px;
             margin-bottom: 20px;
         }
 
-        .v2-map-panel {
-            border-radius: 20px;
+        .v2-outlook-panel,
+        .v2-map-panel,
+        .v2-rail-card,
+        .v2-labor-panel,
+        .v2-narrative-panel {
+            border-radius: 24px;
             border: 1px solid #e6e0d4;
             background: #fffdfa;
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.05);
+        }
+
+        .v2-outlook-panel {
+            padding: 28px;
+            background:
+                radial-gradient(circle at top left, rgba(42, 82, 152, 0.16), transparent 34%),
+                radial-gradient(circle at bottom right, rgba(219, 163, 93, 0.16), transparent 28%),
+                linear-gradient(160deg, #fff9f1 0%, #fffdfa 58%, #f6fbff 100%);
+        }
+
+        .v2-outlook-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .v2-outlook-kicker {
+            font-size: 0.78rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #6f665c;
+            margin-bottom: 12px;
+        }
+
+        .v2-outlook-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4.2rem;
+            line-height: 0.92;
+            letter-spacing: 0.02em;
+            color: #193459;
+            margin-bottom: 14px;
+        }
+
+        .v2-outlook-summary {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #4f4a42;
+            max-width: 62ch;
+        }
+
+        .v2-outlook-notes {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .v2-outlook-note {
+            border-radius: 16px;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(35, 48, 69, 0.1);
+        }
+
+        .v2-outlook-note span,
+        .v2-score-card span,
+        .v2-evidence-row span,
+        .v2-labor-metric span {
+            display: block;
+            font-size: 0.74rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #857d72;
+            margin-bottom: 8px;
+        }
+
+        .v2-outlook-note strong,
+        .v2-score-card strong,
+        .v2-evidence-row strong,
+        .v2-labor-metric strong {
+            display: block;
+            font-size: 1rem;
+            line-height: 1.35;
+            color: #1f1c18;
+        }
+
+        .v2-score-stack {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .v2-score-card {
+            border-radius: 18px;
+            padding: 16px;
+            background: #ffffff;
+            border: 1px solid #e7e0d2;
+            min-height: 124px;
+        }
+
+        .v2-score-card strong {
+            font-size: 1.35rem;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 0.03em;
+            color: #193459;
+        }
+
+        .v2-briefing-rail {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .v2-rail-card {
+            padding: 20px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
+        }
+
+        .v2-rail-card p {
+            font-size: 0.95rem;
+            line-height: 1.65;
+            color: #554f47;
+        }
+
+        .v2-evidence-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .v2-evidence-row {
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: #ffffff;
+            border: 1px solid #ece4d7;
+        }
+
+        .v2-map-panel,
+        .v2-labor-panel,
+        .v2-narrative-panel {
             padding: 24px;
-            margin-bottom: 20px;
         }
 
         .v2-map-header {
@@ -2818,7 +2963,7 @@
 
         .v2-map-column {
             border: 1px solid #ece5d8;
-            border-radius: 16px;
+            border-radius: 18px;
             background: #ffffff;
             padding: 16px;
         }
@@ -2881,11 +3026,35 @@
             color: #6d665e;
         }
 
+        .v2-secondary-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+            gap: 20px;
+            align-items: start;
+        }
+
+        .v2-narrative-panel {
+            background: linear-gradient(180deg, #fffefb 0%, #f7f3ec 100%);
+        }
+
         .v2-narrative-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-            margin-bottom: 20px;
+            gap: 16px;
+        }
+
+        .v2-narrative-item {
+            border-radius: 18px;
+            padding: 18px;
+            background: #ffffff;
+            border: 1px solid #e9e1d5;
+        }
+
+        .v2-narrative-item h4 {
+            font-size: 0.82rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #8c857d;
         }
 
         .v2-body-copy {
@@ -2895,38 +3064,42 @@
             margin-top: 10px;
         }
 
-        .v2-evidence-panel {
+        .v2-labor-panel {
+            background: linear-gradient(180deg, #f7fbff 0%, #fffdfa 100%);
+        }
+
+        .v2-labor-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 16px;
-            margin-bottom: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
         }
 
-        .v2-evidence-item {
-            border-radius: 16px;
-            border: 1px solid #e6e0d4;
-            background: #ffffff;
+        .v2-labor-metric {
+            border-radius: 18px;
             padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            background: #ffffff;
+            border: 1px solid #dfe7f2;
         }
 
-        .v2-evidence-item--wide {
-            grid-column: span 1;
+        .v2-labor-metric--primary {
+            grid-column: span 2;
+            background: linear-gradient(135deg, #21406f 0%, #2a5298 100%);
+            border-color: transparent;
         }
 
-        .v2-evidence-label {
-            font-size: 0.76rem;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #8c857d;
+        .v2-labor-metric--primary span,
+        .v2-labor-metric--primary strong,
+        .v2-labor-metric--primary #v2-unemployment-series-label {
+            color: #ffffff;
         }
 
-        .v2-evidence-value {
-            font-size: 0.96rem;
-            color: #1f1c18;
-            line-height: 1.5;
+        .v2-labor-chart {
+            min-height: 280px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #dfe7f2;
+            padding: 14px;
         }
 
         .v2-input-card {
@@ -2979,12 +3152,6 @@
         }
 
         @media (max-width: 1100px) {
-            .v2-results-header,
-            .v2-narrative-grid,
-            .v2-evidence-panel {
-                grid-template-columns: 1fr;
-            }
-
             .v2-results-header {
                 display: flex;
                 flex-direction: column;
@@ -2999,15 +3166,35 @@
             .v2-map-grid {
                 grid-template-columns: 1fr;
             }
-        }
 
-        @media (max-width: 768px) {
-            .v2-results-grid {
+            .v2-briefing-layout,
+            .v2-secondary-layout,
+            .v2-outlook-grid,
+            .v2-score-stack,
+            .v2-narrative-grid {
                 grid-template-columns: 1fr;
             }
 
+            .v2-outlook-notes {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
             .v2-input-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .v2-labor-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .v2-labor-metric--primary {
+                grid-column: span 1;
+            }
+
+            .v2-outlook-value {
+                font-size: 3.3rem;
             }
         }
 
@@ -3376,15 +3563,15 @@
     <header class="site-header centered-header">
         <div class="header-inner">
             <div class="header-brand centered-brand">
-                <a href="/main2" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <a href="/" style="text-decoration: none; color: inherit; cursor: pointer;">
                     <span class="publication-title">Don't Lose Your Job</span>
                 </a>
             </div>
             <nav class="nav">
-                <a href="/main2" class="nav-link active">Model</a>
+                <a href="/" class="nav-link active">Model</a>
                 <a href="/guide2" class="nav-link">Guide</a>
                 <a href="/method2" class="nav-link">Methodology</a>
-                <a href="/" class="nav-link">Model (old)</a>
+                <a href="/main-old" class="nav-link">Model (old)</a>
                 <a href="/guide" class="nav-link">Guide (old)</a>
                 <a href="/method" class="nav-link">Methodology (old)</a>
             </nav>
@@ -4268,7 +4455,7 @@
             <div class="v2-results-panel">
                 <div class="v2-results-header">
                     <div class="v2-results-copy">
-                        <div class="v2-results-kicker">V2.0 Transformation View</div>
+                        <div class="v2-results-kicker">V2.0 Empirical Role Briefing</div>
                         <h3 id="v2-role-state-label">Select a role to begin</h3>
                         <p id="v2-role-summary">Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.</p>
                     </div>
@@ -4280,33 +4467,84 @@
                     </div>
                 </div>
 
-                <div class="results v2-results-grid">
-                    <div class="result-card result-card--primary">
-                        <h4>Role Outlook</h4>
-                        <div class="result-value" id="v2-role-state-card">-</div>
-                    </div>
-                    <div class="result-card">
-                        <h4>Top Exposed Work</h4>
-                        <div class="result-value" id="v2-top-cluster">-</div>
-                    </div>
-                    <div class="result-card">
-                        <h4>Mode Of Change</h4>
-                        <div class="result-value" id="v2-balance">-</div>
-                    </div>
-                    <div class="result-card">
-                        <h4>Residual Role Strength</h4>
-                        <div class="result-value" id="v2-viability">-</div>
-                    </div>
-                    <div class="result-card">
-                        <h4>Personalization Fit</h4>
-                        <div class="result-value" id="v2-adaptation">-</div>
-                    </div>
+                <div class="v2-briefing-layout">
+                    <section class="v2-outlook-panel">
+                        <div class="v2-section-label">At a glance</div>
+                        <div class="v2-outlook-grid">
+                            <div>
+                                <div class="v2-outlook-kicker">Primary outlook</div>
+                                <div class="v2-outlook-value" id="v2-role-state-card">-</div>
+                                <p class="v2-outlook-summary" id="v2-outlook-summary-copy">This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.</p>
+                                <div class="v2-outlook-notes">
+                                    <div class="v2-outlook-note">
+                                        <span>Top exposed work</span>
+                                        <strong id="v2-top-cluster">-</strong>
+                                    </div>
+                                    <div class="v2-outlook-note">
+                                        <span>Mode of change</span>
+                                        <strong id="v2-balance">-</strong>
+                                    </div>
+                                    <div class="v2-outlook-note">
+                                        <span>Residual role strength</span>
+                                        <strong id="v2-viability">-</strong>
+                                    </div>
+                                    <div class="v2-outlook-note">
+                                        <span>Personalization fit</span>
+                                        <strong id="v2-adaptation">-</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="v2-score-stack">
+                                <div class="v2-score-card">
+                                    <span>Role outlook</span>
+                                    <strong id="v2-score-role-outlook">-</strong>
+                                </div>
+                                <div class="v2-score-card">
+                                    <span>Transformation mode</span>
+                                    <strong id="v2-score-mode">-</strong>
+                                </div>
+                                <div class="v2-score-card">
+                                    <span>Retained bundle</span>
+                                    <strong id="v2-score-residual">-</strong>
+                                </div>
+                                <div class="v2-score-card">
+                                    <span>Questionnaire fit</span>
+                                    <strong id="v2-score-fit">-</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <aside class="v2-briefing-rail">
+                        <div class="v2-rail-card">
+                            <div class="v2-section-label">Evidence posture</div>
+                            <div class="v2-evidence-rows">
+                                <div class="v2-evidence-row">
+                                    <span>Task evidence confidence</span>
+                                    <strong id="v2-task-confidence">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Personalization confidence</span>
+                                    <strong id="v2-prior-confidence">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Evidence notes</span>
+                                    <strong id="v2-evidence-notes">-</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v2-rail-card">
+                            <div class="v2-section-label">How to read this</div>
+                            <p>The briefing separates role-structure change from labor-market context. The outlook is driven by O*NET task structure and Anthropic task evidence, while BLS data appears below as context for the selected occupation.</p>
+                        </div>
+                    </aside>
                 </div>
 
                 <div class="v2-map-panel">
                     <div class="v2-map-header">
+                        <div class="v2-section-label">Transformation map</div>
                         <h3 class="chart-title">Role Transformation Map</h3>
-                        <p class="chart-subtitle" id="v2-map-subtitle">This view shows what in the role is exposed, what is likely to be absorbed, and what remains.</p>
+                        <p class="chart-subtitle" id="v2-map-subtitle">This view shows what in the role is exposed, how the change splits between augmentation and automation, and what remains core.</p>
                     </div>
                     <div class="v2-map-grid">
                         <div class="v2-map-column">
@@ -4324,74 +4562,65 @@
                     </div>
                 </div>
 
-                <div class="v2-narrative-grid">
-                    <div class="result-card">
-                        <h4>Why This Role Changes</h4>
-                        <p class="v2-body-copy" id="v2-what-changing">-</p>
-                    </div>
-                    <div class="result-card">
-                        <h4>What Is Under Pressure</h4>
-                        <p class="v2-body-copy" id="v2-what-absorbed">-</p>
-                    </div>
-                    <div class="result-card">
-                        <h4>What Stays Core</h4>
-                        <p class="v2-body-copy" id="v2-what-remains">-</p>
-                    </div>
-                    <div class="result-card">
-                        <h4>How Your Answers Shape The Result</h4>
-                        <p class="v2-body-copy" id="v2-who-benefits">-</p>
-                    </div>
-                </div>
+                <div class="v2-secondary-layout">
+                    <section class="v2-narrative-panel">
+                        <div class="v2-section-label">Why this result</div>
+                        <div class="v2-narrative-grid">
+                            <div class="v2-narrative-item">
+                                <h4>Why This Role Changes</h4>
+                                <p class="v2-body-copy" id="v2-what-changing">-</p>
+                            </div>
+                            <div class="v2-narrative-item">
+                                <h4>What Is Under Pressure</h4>
+                                <p class="v2-body-copy" id="v2-what-absorbed">-</p>
+                            </div>
+                            <div class="v2-narrative-item">
+                                <h4>What Stays Core</h4>
+                                <p class="v2-body-copy" id="v2-what-remains">-</p>
+                            </div>
+                            <div class="v2-narrative-item">
+                                <h4>How Your Answers Shape The Result</h4>
+                                <p class="v2-body-copy" id="v2-who-benefits">-</p>
+                            </div>
+                        </div>
+                    </section>
 
-                <div class="v2-evidence-panel">
-                    <div class="v2-evidence-item">
-                        <span class="v2-evidence-label">Task Evidence Confidence</span>
-                        <span class="v2-evidence-value" id="v2-task-confidence">-</span>
-                    </div>
-                    <div class="v2-evidence-item">
-                        <span class="v2-evidence-label">Personalization Confidence</span>
-                        <span class="v2-evidence-value" id="v2-prior-confidence">-</span>
-                    </div>
-                    <div class="v2-evidence-item v2-evidence-item--wide">
-                        <span class="v2-evidence-label">Evidence Notes</span>
-                        <span class="v2-evidence-value" id="v2-evidence-notes">-</span>
-                    </div>
-                </div>
-
-                <div class="v2-map-panel">
-                    <div class="v2-map-header">
-                        <h3 class="chart-title">Labor Market Context</h3>
-                        <p class="chart-subtitle" id="v2-unemployment-note">Choose a mapped occupation to load BLS context.</p>
-                    </div>
-                    <div class="results v2-results-grid" style="margin-bottom: 20px;">
-                        <div class="result-card">
-                            <h4>U.S. Employment</h4>
-                            <div class="result-value" id="v2-employment">-</div>
+                    <section class="v2-labor-panel">
+                        <div class="v2-map-header">
+                            <div class="v2-section-label">Labor context</div>
+                            <h3 class="chart-title">Labor Market Context</h3>
+                            <p class="chart-subtitle" id="v2-unemployment-note">Choose a mapped occupation to load BLS context.</p>
                         </div>
-                        <div class="result-card">
-                            <h4>Annual Openings</h4>
-                            <div class="result-value" id="v2-openings">-</div>
+                        <div class="v2-labor-grid">
+                            <div class="v2-labor-metric">
+                                <span>U.S. employment</span>
+                                <strong id="v2-employment">-</strong>
+                            </div>
+                            <div class="v2-labor-metric">
+                                <span>Annual openings</span>
+                                <strong id="v2-openings">-</strong>
+                            </div>
+                            <div class="v2-labor-metric">
+                                <span>Median wage</span>
+                                <strong id="v2-wage">-</strong>
+                            </div>
+                            <div class="v2-labor-metric">
+                                <span>2034 growth</span>
+                                <strong id="v2-growth">-</strong>
+                            </div>
+                            <div class="v2-labor-metric v2-labor-metric--primary">
+                                <span>Latest BLS unemployment</span>
+                                <strong id="v2-unemployment-latest">-</strong>
+                                <div style="font-size: 0.8rem; margin-top: 8px;" id="v2-unemployment-series-label">-</div>
+                            </div>
                         </div>
-                        <div class="result-card">
-                            <h4>Median Wage</h4>
-                            <div class="result-value" id="v2-wage">-</div>
+                        <div class="v2-labor-chart">
+                            <canvas id="v2-unemployment-chart" aria-label="BLS unemployment chart"></canvas>
+                            <div id="v2-unemployment-empty" style="display:none; color: var(--text-secondary); font-size: 0.95rem; padding: 16px 0;">
+                                No official monthly BLS unemployment series is mapped for this occupation yet.
+                            </div>
                         </div>
-                        <div class="result-card">
-                            <h4>2034 Growth</h4>
-                            <div class="result-value" id="v2-growth">-</div>
-                        </div>
-                        <div class="result-card result-card--primary">
-                            <h4>Latest BLS Unemployment</h4>
-                            <div class="result-value" id="v2-unemployment-latest">-</div>
-                            <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 8px;" id="v2-unemployment-series-label">-</div>
-                        </div>
-                    </div>
-                    <div class="chart-container" style="min-height: 280px;">
-                        <canvas id="v2-unemployment-chart" aria-label="BLS unemployment chart"></canvas>
-                        <div id="v2-unemployment-empty" style="display:none; color: var(--text-secondary); font-size: 0.95rem; padding: 16px 0;">
-                            No official monthly BLS unemployment series is mapped for this occupation yet.
-                        </div>
-                    </div>
+                    </section>
                 </div>
             </div>
 
@@ -8127,7 +8356,8 @@ self.onmessage = function(e) {
             }
 
             if (!v2EnginePromise) {
-                v2EnginePromise = window.DLYJV2.create({ basePath: '..' });
+                const basePath = window.location.pathname.startsWith('/main2') ? '..' : '';
+                v2EnginePromise = window.DLYJV2.create({ basePath });
             }
 
             return v2EnginePromise;
@@ -8370,11 +8600,16 @@ self.onmessage = function(e) {
         function resetV2Results(message, detail) {
             safeSetText('v2-role-state-label', message || 'Select a role to begin');
             safeSetText('v2-role-summary', detail || 'Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.');
+            safeSetText('v2-outlook-summary-copy', detail || 'This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.');
             safeSetText('v2-role-state-card', '-');
+            safeSetText('v2-score-role-outlook', '-');
             safeSetText('v2-top-cluster', '-');
             safeSetText('v2-balance', '-');
+            safeSetText('v2-score-mode', '-');
             safeSetText('v2-viability', '-');
+            safeSetText('v2-score-residual', '-');
             safeSetText('v2-adaptation', '-');
+            safeSetText('v2-score-fit', '-');
             safeSetText('v2-what-changing', '-');
             safeSetText('v2-what-absorbed', '-');
             safeSetText('v2-what-remains', '-');
@@ -8519,11 +8754,16 @@ self.onmessage = function(e) {
 
             safeSetText('v2-role-state-label', `${result.selected_occupation_title} · ${result.role_outlook_label}`);
             safeSetText('v2-role-summary', result.role_summary || 'The transformation view is driven by task exposure, mode of change, residual role strength, and labor-market context.');
+            safeSetText('v2-outlook-summary-copy', result.role_summary || 'The transformation view is driven by task exposure, mode of change, residual role strength, and labor-market context.');
             safeSetText('v2-role-state-card', result.role_outlook_label || '-');
+            safeSetText('v2-score-role-outlook', result.role_outlook_label || '-');
             safeSetText('v2-top-cluster', topExposedLabel);
             safeSetText('v2-balance', formatV2Label(result.mode_of_change));
+            safeSetText('v2-score-mode', formatV2Label(result.mode_of_change));
             safeSetText('v2-viability', formatV2Label(result.residual_role_strength));
+            safeSetText('v2-score-residual', formatV2Label(result.residual_role_strength));
             safeSetText('v2-adaptation', formatV2Label(result.personalization_fit));
+            safeSetText('v2-score-fit', formatV2Label(result.personalization_fit));
             safeSetText('v2-what-changing', result.narrative_summary?.why_this_role_changes || '-');
             safeSetText('v2-what-absorbed', result.narrative_summary?.what_is_under_pressure || '-');
             safeSetText('v2-what-remains', result.narrative_summary?.what_stays_core || '-');

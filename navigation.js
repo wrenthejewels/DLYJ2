@@ -7,6 +7,7 @@
     // Configuration for page routes
     const routes = {
         '/': 'index.html',
+        '/main-old': 'main-old/index.html',
         '/guide': 'guide/index.html',
         '/method': 'method/index.html',
         '/main2': 'main2/index.html',
