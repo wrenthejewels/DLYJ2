@@ -35,8 +35,9 @@ The recommended page order is:
 2. five headline result cards
 3. primary transformation map
 4. likely role evolution narrative
-5. labor-market context panel
-6. evidence and caveats
+5. recomposition panel in the evidence rail
+6. labor-market context panel
+7. evidence and caveats
 
 ## Header
 
@@ -215,6 +216,21 @@ Recommended template:
 3. `What stays core`
 4. `How your answers shape the result`
 
+### Recomposition Panel
+
+This should remain a secondary explanatory layer, not a headline score.
+
+Show:
+- `Workflow compression`
+- `Substitution potential`
+- `Recomposition gap`
+- short interpretive note
+
+Interpretation:
+- workflow compression = technically compressible work implied by the current task bundle
+- substitution potential = share of that compression that currently looks more likely to convert into fewer labor hours
+- recomposition gap = exposed work that still looks more likely to be reorganized, absorbed, or redesigned than directly removed
+
 ### Labor Market Context Panel
 
 This section provides market context, not a second model.
@@ -311,6 +327,14 @@ type V2Result = {
   automation_share: number
   residual_role_strength: ViabilityTier
   personalization_fit: ViabilityTier
+  recomposition_summary: {
+    workflow_compression: number
+    organizational_conversion: number
+    substitution_potential: number
+    substitution_gap: number
+    summary_label: string
+    summary_note: string
+  }
   transformation_map: TransformationMap
   narrative_summary: {
     why_this_role_changes: string
@@ -348,7 +372,16 @@ type V2Result = {
   diagnostics: {
     occupation_prior_source: string | null
     occupation_prior_exposure: number
+    occupation_prior_augmentation: number
+    occupation_prior_automation: number
     occupation_prior_adaptive_capacity: number
+    bundle_prior_concentration: number
+    mean_cluster_prior_reliability: number
+    mean_task_direct_reliability: number
+    workflow_compression: number
+    organizational_conversion: number
+    substitution_potential: number
+    substitution_gap: number
     adoption_pressure: number
     task_support_signal: number
     fragility: number
@@ -372,7 +405,20 @@ The current live engine also makes these implementation choices:
 - the user-selected `value-defining task family` receives extra weight in exposure, elevation, and top-exposed selection
 - direct task evidence is shrunk toward cluster estimates using task-count-weighted reliability, so sparse task rows do not overpower the occupation anchor
 - direct AI/tool support and adoption context now modify augmentation, automation, and absorbed-share calculations
+- the live result now includes a secondary recomposition layer with workflow compression, organizational conversion, substitution potential, and recomposition gap
 - labor-market context remains separate from the headline role labels
+
+### Deferred recomposition roadmap
+
+The following ideas are intentionally not part of the live `2.0` result yet:
+
+- time-varying capability-frontier modeling
+- dependency-graph penalties beyond the current lightweight structural proxy
+- demand rebound decomposition and service-elasticity channels
+- labor-demand equations or employment forecasts
+- calibrated role-state transition models
+
+These remain valid future work, but they require additional data and calibration beyond the current public stack.
 
 ## Mapping To Current Data Layer
 

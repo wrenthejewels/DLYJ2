@@ -338,13 +338,15 @@ The results-page structure and headline output contract are now documented in:
 2. task bundle reconstruction
 3. task exposure scoring
 4. augmentation vs automation split
-5. bundle decoupling / residual role estimation
-6. personalization-fit scoring
+5. workflow compression and recomposition gap
+6. bundle decoupling / residual role estimation
+7. personalization-fit scoring
 
 ### Result
 
 - transformation-first summary
 - task-level explanation
+- recomposition panel
 - residual role narrative
 - personalization-fit summary
 - labor-market context panel
@@ -387,16 +389,30 @@ Remaining work:
 Implement:
 - exposure scoring
 - automation vs augmentation balance
+- workflow compression
+- organizational conversion / substitution gap
 - residual bundle viability
 - personalization fit
 
 Status:
-- first runtime scaffold now exists in `v2_engine.js`
+- runtime scaffold now exists in `v2_engine.js`, including a secondary recomposition layer
 
 Remaining work:
 - improve scoring quality
-- add direct task-family and residual-bundle inputs from the UI
-- wire the current homepage flow to the engine output
+- calibrate the new recomposition metrics against reviewed occupations
+- reduce fallback-heavy bundle mappings before adding more structural terms
+- keep demand rebound and labor-demand logic in the roadmap until stronger data exists
+
+### Workstream 8: Recomposition research backlog
+
+Defer these until the current role-briefing model is better calibrated:
+
+- dependency-graph penalties beyond the current lightweight proxy
+- time-varying AI capability frontier
+- demand rebound decomposition
+- labor-demand equations and employment forecasting
+- calibrated role-state transition models
+- occupation-specific elasticity estimation
 
 ### Workstream 4: Occupation prior improvement
 
@@ -795,3 +811,18 @@ Suggested update format:
   - task-cluster mapping confidence remains a major source of model error for some occupations
 - next recommended step:
   - review and repair the disagreement-heavy occupations first, then build a small expert-labeled calibration set to estimate or stress-test the current coefficients
+
+## Session Update - 2026-03-09-I
+
+- completed:
+  - added a secondary recomposition layer to the live `2.0` result
+  - exposed workflow compression, substitution potential, and recomposition gap as soft public metrics rather than headline outputs
+  - documented the recomposition layer in the `v2_0` specs
+- changed decisions:
+  - recomposition is now part of the live explanatory model, but it remains secondary to the five-card role briefing
+  - demand rebound, labor-demand equations, and time-varying frontier logic remain research-roadmap items rather than launch behavior
+- new blockers:
+  - the recomposition coefficients are still hand-tuned and need validation against reviewed occupations
+  - current data is still insufficient for credible demand-elasticity or employment forecasting
+- next recommended step:
+  - review the disagreement-heavy occupations, then calibrate the recomposition layer before expanding into demand-rebound modeling

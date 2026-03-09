@@ -113,6 +113,35 @@
         return clamp(confidence * countWeight, 0.05, 0.98);
     }
 
+    function buildRecompositionSummary(metrics) {
+        var workflowCompression = clamp(toNumber(metrics.workflow_compression, 0), 0, 1);
+        var organizationalConversion = clamp(toNumber(metrics.organizational_conversion, 0), 0, 1);
+        var substitutionPotential = clamp(toNumber(metrics.substitution_potential, 0), 0, 1);
+        var substitutionGap = clamp(toNumber(metrics.substitution_gap, 0), 0, 1);
+        var summaryLabel = 'Mixed recomposition pressure';
+        var summaryNote = 'The current bundle shows meaningful technical compression, but the role still carries enough coordination, augmentation, or retained-value work that not all exposed work cleanly converts into fewer labor hours.';
+
+        if (workflowCompression < 0.24) {
+            summaryLabel = 'Limited recomposition pressure';
+            summaryNote = 'Some tasks are exposed, but the current bundle does not compress enough to imply large workflow savings or immediate organizational substitution.';
+        } else if (organizationalConversion >= 0.58 && substitutionPotential >= 0.22) {
+            summaryLabel = 'Compression more likely to convert into substitution';
+            summaryNote = 'The current adoption and workflow signals make it more plausible that technical compression converts into fewer labor hours instead of remaining inside a redesigned role.';
+        } else if (substitutionGap >= 0.12) {
+            summaryLabel = 'Exposure more likely to reorganize than remove work';
+            summaryNote = 'A meaningful share of exposed work still looks more likely to be absorbed, redistributed, or redesigned inside the role than converted directly into labor reduction.';
+        }
+
+        return {
+            workflow_compression: Number(workflowCompression.toFixed(3)),
+            organizational_conversion: Number(organizationalConversion.toFixed(3)),
+            substitution_potential: Number(substitutionPotential.toFixed(3)),
+            substitution_gap: Number(substitutionGap.toFixed(3)),
+            summary_label: summaryLabel,
+            summary_note: summaryNote
+        };
+    }
+
     function normalizeAnswer(rawValue) {
         var value = Number(rawValue);
         if (!isFinite(value)) {
@@ -449,6 +478,12 @@
             whatIsUnderPressure += ' Adoption context is also relatively supportive of turning technical exposure into workflow change.';
         }
 
+        if (result.recomposition_summary && result.recomposition_summary.substitution_gap >= 0.12) {
+            whatIsUnderPressure += ' Even so, a meaningful share of that exposed work still looks more likely to be reorganized than converted directly into labor substitution.';
+        } else if (result.recomposition_summary && result.recomposition_summary.organizational_conversion >= 0.58) {
+            whatIsUnderPressure += ' In this case, the recomposition read leans more toward real labor substitution than internal reorganization alone.';
+        }
+
         var whatStaysCore;
         if (result.residual_role_strength === 'strong') {
             whatStaysCore = 'The remaining bundle still looks coherent, with enough context-heavy, judgment-heavy, or coordinating work to hold the role together.';
@@ -556,6 +591,7 @@
             var exposedTaskShare = 0;
             var automationMass = 0;
             var augmentationMass = 0;
+            var workflowCompressionRaw = 0;
             var criticalExposedShare = 0;
             var criticalRetainedShare = 0;
             var criticalAbsorbedShare = 0;
@@ -607,6 +643,11 @@
 
                 var likelyMode = augmentation >= automation ? 'augmentation' : 'automation';
                 var clusterShare = toNumber(cluster.share_prior, 0);
+                var compressionContribution = clusterShare * exposure * clamp(
+                    automation + ((1 - automation) * augmentation * 0.35),
+                    0,
+                    1
+                );
                 var absorbedShare = clusterShare * exposure * automation * (0.74 + (signals.adoptionPressure * 0.16));
                 var retainedShare = Math.max(0, clusterShare - absorbedShare);
                 var elevationBoost = ELEVATION_CLUSTERS[cluster.task_cluster_id]
@@ -618,6 +659,7 @@
                 exposedTaskShare += clusterShare * exposure;
                 automationMass += clusterShare * exposure * automation;
                 augmentationMass += clusterShare * exposure * augmentation;
+                workflowCompressionRaw += compressionContribution;
                 transformedShares[cluster.task_cluster_id] = transformedShare;
                 if (isRoleCritical) {
                     criticalExposedShare += clusterShare * exposure;
@@ -682,6 +724,25 @@
             exposedTaskShare = clamp(exposedTaskShare, 0, 1);
             var automationShare = automationMass + augmentationMass > 0 ? clamp(automationMass / (automationMass + augmentationMass), 0, 1) : 0.5;
             var augmentationShare = 1 - automationShare;
+            var workflowCompression = clamp(workflowCompressionRaw * (1 - (signals.couplingProtection * 0.25)), 0, 1);
+            var organizationalConversion = clamp(
+                (signals.adoptionPressure * 0.28) +
+                (automationShare * 0.18) +
+                (signals.fragility * 0.18) +
+                ((1 - signals.couplingProtection) * 0.16) +
+                ((1 - signals.roleDistinctiveness) * 0.12) +
+                ((1 - signals.taskSupportSignal) * 0.08),
+                0,
+                1
+            );
+            var substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
+            var substitutionGap = clamp(workflowCompression - substitutionPotential, 0, 1);
+            var recompositionSummary = buildRecompositionSummary({
+                workflow_compression: workflowCompression,
+                organizational_conversion: organizationalConversion,
+                substitution_potential: substitutionPotential,
+                substitution_gap: substitutionGap
+            });
             var selector = store.selectorByOcc[occupationId] || {};
 
             var strategicResidualShare = sum(retainedClusters.map(function (cluster) {
@@ -944,6 +1005,7 @@
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
                     'Headline outputs are driven by O*NET task structure plus Anthropic task-level transformation evidence.',
                     'Cluster priors are shrunk toward occupation-level priors using evidence confidence, and direct task evidence is shrunk toward cluster estimates using task-count-weighted reliability.',
+                    'Recomposition layer: workflow compression=' + Number(recompositionSummary.workflow_compression.toFixed(2)) + ', organizational conversion=' + Number(recompositionSummary.organizational_conversion.toFixed(2)) + ', substitution gap=' + Number(recompositionSummary.substitution_gap.toFixed(2)) + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + '.') : 'No explicit role-defining task input selected.',
                     'Current AI/tool support signal=' + Number(signals.taskSupportSignal.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
                     'Labor-market data is shown as context and does not drive the main role labels.',
@@ -980,6 +1042,7 @@
                 automation_share: Number(automationShare.toFixed(3)),
                 residual_role_strength: viabilityTier,
                 personalization_fit: personalizationTier,
+                recomposition_summary: recompositionSummary,
                 transformation_map: {
                     current_bundle: currentBundle,
                     exposed_clusters: exposedClusters,
@@ -1025,6 +1088,10 @@
                     bundle_prior_concentration: Number(bundlePriorConcentration.toFixed(3)),
                     mean_cluster_prior_reliability: Number(average(clusterPriorReliabilities).toFixed(3)),
                     mean_task_direct_reliability: Number(average(taskDirectReliabilities).toFixed(3)),
+                    workflow_compression: Number(workflowCompression.toFixed(3)),
+                    organizational_conversion: Number(organizationalConversion.toFixed(3)),
+                    substitution_potential: Number(substitutionPotential.toFixed(3)),
+                    substitution_gap: Number(substitutionGap.toFixed(3)),
                     adoption_pressure: Number(signals.adoptionPressure.toFixed(3)),
                     task_support_signal: Number(signals.taskSupportSignal.toFixed(3)),
                     fragility: Number(signals.fragility.toFixed(3)),

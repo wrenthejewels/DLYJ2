@@ -135,6 +135,7 @@ These should map onto your task clusters:
 Maps to:
 - `transformation_map.current_bundle`
 - `top_exposed_work`
+- `recomposition_summary.workflow_compression`
 
 ### T2. Which tasks define the role's value
 
@@ -147,6 +148,7 @@ Purpose:
 Maps to:
 - residual bundle viability
 - role outlook
+- `recomposition_summary.substitution_gap`
 
 ### T3. Which tasks are already partially supported by AI/tools
 
@@ -159,6 +161,7 @@ Purpose:
 Maps to:
 - mode of change
 - exposed task share
+- `recomposition_summary.organizational_conversion`
 
 ## Section 3: Exposure Conditions
 
@@ -177,6 +180,7 @@ Keep, but reinterpret as:
 Maps to:
 - exposure intensity
 - transformation pressure
+- workflow compression
 
 #### Current Q2: Data Availability
 
@@ -185,6 +189,7 @@ Keep, but narrow the interpretation to:
 
 Maps to:
 - exposure intensity
+- workflow compression
 
 #### Current Q3: Benchmark Clarity
 
@@ -193,6 +198,7 @@ Keep.
 Maps to:
 - automation likelihood
 - QA cost / reviewability
+- workflow compression
 
 #### Current Q4: Task Digitization
 
@@ -201,6 +207,7 @@ Keep.
 Maps to:
 - exposure intensity
 - automation likelihood
+- workflow compression
 
 #### Current Q5: Task Decomposability
 
@@ -209,6 +216,7 @@ Keep.
 Maps to:
 - exposure intensity
 - decouplability
+- workflow compression
 
 #### Current Q6: Task Standardization
 
@@ -217,6 +225,7 @@ Keep.
 Maps to:
 - exposure intensity
 - automation likelihood
+- workflow compression
 
 #### Current Q8: Feedback Loop Speed
 
@@ -225,6 +234,7 @@ Keep.
 Maps to:
 - reviewability
 - automation likelihood
+- workflow compression
 
 ## Section 4: Coupling And Residual Bundle
 
@@ -242,6 +252,7 @@ Keep.
 Maps to:
 - decouplability
 - residual bundle viability
+- `recomposition_summary.substitution_gap`
 
 #### Current Q9: Tacit Knowledge
 
@@ -250,6 +261,7 @@ Keep.
 Maps to:
 - decouplability
 - residual viability
+- `recomposition_summary.substitution_gap`
 
 #### Current Q10: Task Reallocation Risk
 
@@ -264,6 +276,8 @@ Current wording is still useful, but the model meaning should become:
 Maps to:
 - residual viability
 - role fragmentation risk
+- organizational conversion
+- `recomposition_summary.substitution_gap`
 
 #### Current Q11: Human Judgment & Relationships
 
@@ -273,6 +287,7 @@ Maps to:
 - retained task strength
 - augmentation vs automation balance
 - residual viability
+- lower organizational conversion
 
 #### Current Q12: Physical Presence
 
@@ -281,6 +296,7 @@ Keep as a protective / non-digitizable factor.
 Maps to:
 - retained task strength
 - exposure discounting
+- lower organizational conversion
 
 ### Recommended new question
 
@@ -291,6 +307,7 @@ This is a new direct `2.0` question and should not be inferred only indirectly.
 Maps to:
 - residual role viability
 - likely role state
+- `recomposition_summary.substitution_gap`
 
 This is one of the clearest places where `2.0` should improve on `1.0`.
 
@@ -310,6 +327,7 @@ Keep.
 Maps to:
 - labor-market interpretation
 - mode-of-change context
+- organizational conversion
 
 #### Current Q14: Labor Cost Pressure
 
@@ -318,6 +336,7 @@ Keep.
 Maps to:
 - automation pressure
 - mode-of-change context
+- organizational conversion
 
 #### Current Q15: Labor Market Tightness
 
@@ -326,6 +345,7 @@ Keep.
 Maps to:
 - substitution pressure
 - retained-role fit pressure
+- organizational conversion
 
 #### Current Q16: IT Infrastructure
 
@@ -334,6 +354,7 @@ Keep.
 Maps to:
 - adoption speed
 - automation feasibility
+- organizational conversion
 
 ## Section 6: Personalization Fit
 
@@ -510,6 +531,11 @@ The current `2.0` UI now implements the visible intake refactor:
   - current AI/tool support
   - residual role distinctiveness
 - those direct task-family inputs now feed the live engine through a pseudo-count bundle update rather than a flat post-hoc renormalization
+- the live engine now also derives a secondary recomposition layer from the current intake:
+  - workflow compression
+  - organizational conversion
+  - substitution potential
+  - recomposition gap
 - internal compatibility is still preserved through `Q1-Q19` IDs
 
 What remains incomplete:
@@ -517,6 +543,7 @@ What remains incomplete:
 - prefill logic still depends on legacy role presets and hierarchy assumptions
 - the scoring layer now uses the direct `2.0` inputs materially, but it still relies on the existing question-to-signal translation rather than a fully re-derived `2.0` weighting system
 - occupation cleanup is still needed for the largest benchmark-disagreement roles, where better questionnaire inputs cannot fully offset weak priors or weak bundle mapping
+- the current questionnaire still does not collect the direct demand-elasticity inputs that would be needed for credible demand rebound or labor-demand forecasting
 
 ## Minimum New Fields Needed For First Real V2
 
@@ -546,6 +573,13 @@ The questionnaire should not be designed around:
 - `METR` timing logic
 - `OECD / PIAAC` launch-time scoring requirements
 - `AIOE` or `ILO` benchmark inputs as direct public scoring drivers
+
+The questionnaire also should not be stretched into:
+- direct labor-demand forecasting
+- price or quantity elasticity estimation
+- time-varying frontier estimation
+
+Those require new data, not just different question wording.
 
 ## Next Dependency
 

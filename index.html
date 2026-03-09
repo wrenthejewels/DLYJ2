@@ -4785,6 +4785,28 @@
                             <p class="v2-assignment-copy" id="v2-assignment-copy">Choose a mapped occupation to see how your role is assigned to the underlying O*NET, Anthropic, and BLS occupation data.</p>
                         </div>
                         <div class="v2-rail-card">
+                            <div class="v2-section-label">Recomposition</div>
+                            <div class="v2-evidence-rows">
+                                <div class="v2-evidence-row">
+                                    <span>Current read</span>
+                                    <strong id="v2-recomposition-label">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Workflow compression</span>
+                                    <strong id="v2-recomposition-compression">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Substitution potential</span>
+                                    <strong id="v2-recomposition-substitution">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Recomposition gap</span>
+                                    <strong id="v2-recomposition-gap">-</strong>
+                                </div>
+                            </div>
+                            <p class="v2-assignment-copy" id="v2-recomposition-note">This panel separates technically compressible work from the share that currently looks more likely to convert into fewer labor hours.</p>
+                        </div>
+                        <div class="v2-rail-card">
                             <div class="v2-section-label">How to read this</div>
                             <p>The briefing separates role-structure change from labor-market context. The outlook is driven by O*NET task structure and Anthropic task evidence, while BLS data appears below as context for the selected occupation.</p>
                         </div>
@@ -8911,6 +8933,18 @@ self.onmessage = function(e) {
             );
         }
 
+        function renderV2RecompositionSummary(summary) {
+            safeSetText('v2-recomposition-label', summary ? summary.summary_label || '-' : '-');
+            safeSetText('v2-recomposition-compression', summary ? formatConfidence(summary.workflow_compression) : '-');
+            safeSetText('v2-recomposition-substitution', summary ? formatConfidence(summary.substitution_potential) : '-');
+            safeSetText('v2-recomposition-gap', summary ? formatConfidence(summary.substitution_gap) : '-');
+            safeSetText(
+                'v2-recomposition-note',
+                summary?.summary_note
+                    || 'This panel separates technically compressible work from the share that currently looks more likely to convert into fewer labor hours.'
+            );
+        }
+
         function createV2TaskBreakdownItem(task) {
             const item = document.createElement('div');
             item.className = `v2-task-item${task?.is_role_critical ? ' v2-task-item--critical' : ''}`;
@@ -9238,6 +9272,7 @@ self.onmessage = function(e) {
                 'v2-task-note',
                 `${result.selected_occupation_title} uses its mapped O*NET task list as the baseline. The bars below show current role share in blue and exposed share in amber, and they update live as your questionnaire changes the task-weighting and exposure math.`
             );
+            renderV2RecompositionSummary(result.recomposition_summary);
             renderV2OccupationAssignment(result.occupation_assignment);
             renderV2LaborMarketContext(result.labor_market_context, result.selected_occupation_title);
 
