@@ -3024,6 +3024,30 @@
             gap: 12px;
         }
 
+        .v2-task-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+
+        .v2-task-toggle {
+            border: 1px solid #d7cdbd;
+            background: #fffdfa;
+            color: #193459;
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .v2-task-toggle:hover {
+            background: #f5efe4;
+            border-color: #c8baa4;
+            transform: translateY(-1px);
+        }
+
         .v2-task-item {
             border-radius: 18px;
             padding: 16px 18px;
@@ -4815,6 +4839,9 @@
                         </div>
                     </div>
                     <div class="v2-task-list" id="v2-task-breakdown"></div>
+                    <div class="v2-task-actions">
+                        <button type="button" class="v2-task-toggle" id="v2-task-toggle" hidden aria-expanded="false">Show all tasks</button>
+                    </div>
                 </section>
 
                 <div class="v2-secondary-layout">
@@ -5135,6 +5162,7 @@
         let v2EnginePromise = null;
         let selectedOccupationId = null;
         let lastV2Result = null;
+        let v2TaskBreakdownExpanded = false;
 
         const REEMPLOYMENT_BLURB_TEMPLATE =
             "We estimate a {PCT}% re-employment chance, driven by your adaptability, task structure, market tightness, and the blue-curve level when you're displaced. This metric is harder to model compared to the feasibility and job loss metrics, given other macroeconomic forces.";
@@ -8938,16 +8966,18 @@ self.onmessage = function(e) {
 
         function renderV2TaskBreakdown(taskBreakdown, assignment) {
             const container = document.getElementById('v2-task-breakdown');
+            const toggle = document.getElementById('v2-task-toggle');
             if (!container) return;
 
             container.innerHTML = '';
 
-            const rows = Array.isArray(taskBreakdown?.tasks) ? taskBreakdown.tasks.slice(0, 10) : [];
+            const allRows = Array.isArray(taskBreakdown?.tasks) ? taskBreakdown.tasks : [];
+            const rows = v2TaskBreakdownExpanded ? allRows : allRows.slice(0, 10);
 
-            safeSetText('v2-task-total', rows.length ? `${rows.length} of ${taskBreakdown.total_tasks_considered}` : '-');
+            safeSetText('v2-task-total', allRows.length ? `${rows.length} of ${taskBreakdown.total_tasks_considered}` : '-');
             safeSetText('v2-task-direct', taskBreakdown ? String(taskBreakdown.direct_evidence_tasks || 0) : '-');
             safeSetText('v2-task-fallback', taskBreakdown ? String(taskBreakdown.cluster_fallback_tasks || 0) : '-');
-            safeSetText('v2-task-ordering', rows.length ? 'Top exposed share' : '-');
+            safeSetText('v2-task-ordering', allRows.length ? (v2TaskBreakdownExpanded ? 'All tasks' : 'Top exposed share') : '-');
             safeSetText(
                 'v2-task-summary-copy',
                 assignment
@@ -8955,7 +8985,17 @@ self.onmessage = function(e) {
                     : 'Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.'
             );
 
+            if (toggle) {
+                const canExpand = allRows.length > 10;
+                toggle.hidden = !canExpand;
+                toggle.textContent = v2TaskBreakdownExpanded ? 'Show top 10 tasks' : `Show all ${allRows.length} tasks`;
+                toggle.setAttribute('aria-expanded', v2TaskBreakdownExpanded ? 'true' : 'false');
+            }
+
             if (!rows.length) {
+                if (toggle) {
+                    toggle.hidden = true;
+                }
                 const empty = document.createElement('div');
                 empty.className = 'v2-task-item';
                 empty.textContent = 'No mapped task-level rows are available for this occupation yet.';
@@ -8988,6 +9028,7 @@ self.onmessage = function(e) {
         }
 
         function resetV2Results(message, detail) {
+            v2TaskBreakdownExpanded = false;
             safeSetText('v2-role-state-label', message || 'Select a role to begin');
             safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
             safeSetText('v2-outlook-summary-copy', detail || 'This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.');
@@ -9325,6 +9366,7 @@ self.onmessage = function(e) {
             const outputsGuideCard = document.getElementById('outputs-guide-card');
             const occupationMatchSelect = document.getElementById('occupation-match-select');
             const v2DirectInputs = document.querySelectorAll('.v2-direct-input');
+            const v2TaskToggle = document.getElementById('v2-task-toggle');
 
             function setReemploymentReveal(state) {
                 reemploymentRevealed = !!state;
@@ -9347,6 +9389,11 @@ self.onmessage = function(e) {
                     e.preventDefault();
                     goToGuide();
                 }
+            });
+
+            v2TaskToggle?.addEventListener('click', () => {
+                v2TaskBreakdownExpanded = !v2TaskBreakdownExpanded;
+                renderV2TaskBreakdown(lastV2Result?.task_breakdown || null, lastV2Result?.occupation_assignment || null);
             });
 
             const sequenceItems = Array.from(document.querySelectorAll('.sequence-item'))

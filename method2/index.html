@@ -288,6 +288,7 @@
                 <section>
                     <h2>Model Scope</h2>
                     <p>The live main model is occupation-anchored and transformation-first. It answers five questions: what work is exposed, whether exposed work looks more like augmentation or automation, whether the retained bundle still forms a coherent role, how well the user's profile fits the retained role, and what labor-market context surrounds that occupation.</p>
+                    <p>The public result now also exposes a task-level breakdown. That task view is not a separate model: it is a projection of the selected occupation's O*NET task list through the same occupation anchor, task-cluster weights, questionnaire signals, and Anthropic evidence stack used by the headline outputs.</p>
                     <p>The current scoring stack uses O*NET occupation structure, Anthropic Economic Index task priors, derived occupation priors, and BLS labor-market context. The live headline outputs do not use the archived hazard/timing math.</p>
                 </section>
 
@@ -298,7 +299,7 @@
                         <span class="callout-label">Input tuple</span>
                         <div class="equation-display">$$x = (\text{occupationId},\ \text{roleCategory},\ \text{answers}_{1:19},\ \text{seniorityLevel},\ \text{dominantTaskClusters},\ \text{roleCriticalClusters},\ \text{aiToolSupportLevel},\ \text{residualRoleDistinctiveness})$$</div>
                     </div>
-                    <p>The engine then loads normalized occupation task clusters, task-level transformation priors, occupation exposure priors, adaptation priors, labor-market context, and mapped unemployment time series.</p>
+                    <p>The engine then loads normalized occupation task clusters, occupation tasks, task-cluster membership rows, task-level transformation evidence, cluster priors, occupation exposure priors, adaptation priors, labor-market context, and mapped unemployment time series.</p>
                 </section>
 
                 <section>
@@ -310,6 +311,22 @@
                         <div class="equation-display">$$\tilde{s}_i = s_i^{(0)} + o_i,\qquad s_i = \frac{\tilde{s}_i}{\sum_j \tilde{s}_j}$$</div>
                     </div>
                     <p>This produces the personalized current bundle shown in the transformation map. In the current release, these are still lightweight tilts on the occupation prior rather than a fully user-specified role reconstruction.</p>
+                </section>
+
+                <section>
+                    <h2>Occupation Assignment And Task Projection</h2>
+                    <p>The engine always scores a concrete mapped occupation. The selected category narrows the candidate set, occupation search can resolve directly to a mapped launch occupation, and the final role briefing is anchored to that occupation's O*NET/SOC identity.</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Anchor confidence</span>
+                        <div class="equation-display">$$C_{\text{anchor}} = \operatorname{avg}(\text{occupationPriorConfidence},\ \text{selectorWeight})$$</div>
+                    </div>
+                    <p>Once the occupation is fixed, the task panel is generated from its O*NET task list. Let task <em>t</em> belong to cluster $c(t)$. The current implementation constructs a within-cluster task weight from O*NET importance, O*NET frequency, observed Anthropic usage when available, and a small core-task boost:</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Task weighting inside a cluster</span>
+                        <div class="equation-display">$$w_t^{\text{raw}} = \max\!\left(0.04,\ 0.58I_t + 0.27F_t + 0.15U_t + 0.08\mathbf{1}[t \in \text{core tasks}]\right)\cdot m_t$$</div>
+                        <div class="equation-display">$$s_t = s_{c(t)} \cdot \frac{w_t^{\text{raw}}}{\sum_{j \in c(t)} w_j^{\text{raw}}}$$</div>
+                    </div>
+                    <p>Here $I_t$ is normalized task importance, $F_t$ is normalized task frequency, $U_t$ is observed Anthropic usage share when present, and $m_t$ is the task-cluster membership confidence weight. This means questionnaire-driven cluster weights flow through to the task view automatically.</p>
                 </section>
 
                 <section>
@@ -358,6 +375,41 @@
                         <div class="equation-display">$$t_i = \text{retained}_i + \text{elev}_i$$</div>
                     </div>
                     <p>Here $\mathcal{E}$ is the fixed set of elevation-capable clusters: coordination, QA/review, decision support, oversight/strategy, relationship management, and client interaction. A user-selected role-defining cluster receives extra weight in exposure and elevation so the model is not driven by time share alone.</p>
+                </section>
+
+                <section>
+                    <h2>Task-Level Exposure Projection</h2>
+                    <p>The task panel reuses the cluster-level transformation math rather than introducing a second scoring system. For each task <em>t</em>, the engine first takes the cluster-level result for $c(t)$ and then blends in direct Anthropic task evidence when available.</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Task-level exposure and mode</span>
+                        <div class="equation-display">$$e_t = 
+\begin{cases}
+\operatorname{avg}(e_{c(t)}, e_t^{\text{direct}}), & \text{if direct task evidence exists} \\
+e_{c(t)}, & \text{otherwise}
+\end{cases}$$</div>
+                        <div class="equation-display">$$a_t = 
+\begin{cases}
+\operatorname{avg}(a_{c(t)}, a_t^{\text{direct}}), & \text{if direct task evidence exists} \\
+a_{c(t)}, & \text{otherwise}
+\end{cases}$$</div>
+                        <div class="equation-display">$$u_t = 
+\begin{cases}
+\operatorname{avg}(u_{c(t)}, u_t^{\text{direct}}), & \text{if direct task evidence exists} \\
+u_{c(t)}, & \text{otherwise}
+\end{cases}$$</div>
+                    </div>
+                    <div class="equation-callout">
+                        <span class="callout-label">Task transformation</span>
+                        <div class="equation-display">$$\text{absorbed}_t = s_t \cdot e_t \cdot u_t \cdot (0.74 + 0.16P_{\text{adopt}})$$</div>
+                        <div class="equation-display">$$\text{retained}_t = \max(0,\ s_t - \text{absorbed}_t)$$</div>
+                        <div class="equation-display">$$\text{elev}_t =
+\begin{cases}
+\text{absorbed}_t \cdot (0.22 + 0.18s + 0.12r + 0.08k_{c(t)}), & c(t) \in \mathcal{E} \\
+0, & c(t) \notin \mathcal{E}
+\end{cases}$$</div>
+                        <div class="equation-display">$$t_t = \text{retained}_t + \text{elev}_t$$</div>
+                    </div>
+                    <p>In the interface, the task list is sorted by exposed share $s_t e_t$ by default. The user can expand from the top ten rows to the full mapped task list without changing the underlying calculations.</p>
                 </section>
 
                 <section>
@@ -457,7 +509,12 @@ r, & |\mathcal{K}| = 0
                         <div class="equation-display">$$C_{\text{personal}} = \operatorname{avg}(r,\ 1-G_{\text{fragile}},\ C,\ T,\ C_{\text{task}})$$</div>
                         <div class="equation-display">$$C_{\text{labor}} = \text{laborMarketConfidence}$$</div>
                     </div>
-                    <p>These values are used in the evidence panel and notes. They summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
+                    <p>The evidence payload also tracks task-row coverage directly:</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Task coverage counts</span>
+                        <div class="equation-display">$$N_{\text{direct}} = \#\{t : \text{direct Anthropic task evidence exists}\},\qquad N_{\text{fallback}} = \#\{t : \text{cluster fallback is used}\}$$</div>
+                    </div>
+                    <p>These values are used in the evidence panel, the occupation-assignment card, and the task breakdown summary. They summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
                 </section>
 
                 <section>
@@ -474,6 +531,7 @@ r, & |\mathcal{K}| = 0
                     <h2>Current Limitations</h2>
                     <ul class="detail-list">
                         <li><strong>Direct task inputs are still coarse.</strong> They matter more than before, but they still tilt the occupation bundle rather than fully replacing it with user-supplied time shares.</li>
+                        <li><strong>Task-level rows are partly projected from cluster math.</strong> When direct Anthropic task evidence is missing, the task panel inherits cluster-level exposure and mode estimates rather than estimating each task independently from a fully separate model.</li>
                         <li><strong>Adoption context is still a modifier, not a separate labor-demand model.</strong> It changes realized pressure inside the transformation engine, but it does not become an independent forecast system.</li>
                         <li><strong>Occupation quality remains critical.</strong> The largest benchmark-disagreement roles still need better occupation-prior and task-bundle cleanup.</li>
                         <li><strong>Confidence is descriptive.</strong> The model exposes coverage and alignment confidence, not a formal uncertainty distribution over every output.</li>
