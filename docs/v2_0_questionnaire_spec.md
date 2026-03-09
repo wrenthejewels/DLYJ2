@@ -587,3 +587,15 @@ Those require new data, not just different question wording.
 With occupation cleanup and the reviewed calibration set now in place, the next recommended step is:
 - reduce the remaining dependence on legacy prefill assumptions while keeping the reviewed calibration cases stable
 - improve direct source coverage for still stub-dependent clusters before widening the questionnaire-to-signal model further
+
+## Implementation Status
+
+As of 2026-03-09, the questionnaire is fully implemented in the live `2.0` page:
+
+- the questionnaire HTML lives in `index.html` within the setup-wizard section
+- the questionnaire JS logic lives in `app.js` (reading answers, presets, and prefill)
+- the questionnaire-to-signal mapping lives in `v2_engine.js` (`deriveQuestionnaireSignals`)
+- all v1-specific questionnaire-to-hazard code has been removed from the main page
+- the main page codebase is now split: `index.html` (HTML), `styles.css` (CSS), `app.js` (v2 JS)
+- seniority is read directly from the hierarchy-select dropdown rather than hidden radio buttons
+- `app.js` has zero dependency on v1 state or model configuration

@@ -94,28 +94,35 @@ It is a new primary model and should stand on its own without the old timing lay
 
 ## Current Repo State
 
-### 1.0 product surface still live
+### 2.0 is now the live product surface
 
-The current public app and docs remain `1.0` on the existing routes:
-- `index.html`
-- `method/index.html`
-- `guide/index.html`
+The live homepage at `index.html` is now the `2.0` role-transformation model.
 
-These pages remain framed around:
-- displacement timelines
-- METR
-- blue/green hazard curves
-- risk by year
-- re-employment likelihood
+The codebase was split from a single 10K-line monolith into separate files:
+- `index.html` — clean HTML structure only (~1,100 lines)
+- `styles.css` — all presentation (~3,700 lines)
+- `app.js` — v2-only application logic (~1,100 lines)
+- `v2_engine.js` — v2 scoring engine (unchanged)
+- `presets.js` — role/seniority presets (unchanged)
+- `navigation.js` — client-side routing (unchanged)
 
-### 2.0 preview surface now split onto parallel pages
+All v1/legacy METR model code, hazard calculations, chart rendering, Monte Carlo confidence bands, model tuning UI, test suites, benchmark loading, re-employment calculations, and timing outputs have been removed from the main page.
 
-The in-progress `2.0` product surface now lives separately at:
+### 1.0 archived at /main-old
+
+The full original `1.0 + 2.0` monolith is preserved at:
+- `main-old/index.html`
+
+This archive retains the complete v1 METR capability model, blue/green hazard curves, and all legacy timing outputs for reference.
+
+### Parallel preview pages (legacy)
+
+The earlier parallel preview pages still exist at:
 - `main2/index.html`
 - `guide2/index.html`
 - `method2/index.html`
 
-This allows the team to keep iterating on the new transformation-first experience without replacing the live `1.0` hazard-model output before cutover.
+These are pre-split copies and may be removed or redirected in a future cleanup.
 
 ### 2.0 data foundation now exists
 
@@ -181,15 +188,16 @@ to backing occupations in the `2.0` launch set.
 
 ### Product pages
 
-Live `1.0` pages:
-- `index.html`
-- `method/index.html`
-- `guide/index.html`
-
-Parallel `2.0` preview pages:
-- `main2/index.html`
-- `method2/index.html`
+Live `2.0` pages:
+- `index.html` — v2-only HTML shell
+- `styles.css` — extracted CSS
+- `app.js` — v2-only application JS
+- `v2_engine.js` — v2 scoring engine
 - `guide2/index.html`
+- `method2/index.html`
+
+Archived `1.0` page:
+- `main-old/index.html` — full original monolith with v1 METR model
 
 ### 2.0 planning / docs
 
@@ -279,10 +287,9 @@ These exist, but some are still heuristic rather than final research-grade input
 
 ### Product / UX
 
-- `2.0` preview pages now exist separately, but `2.0` has not replaced the live `1.0` routes
-- the live homepage still shows the `1.0` cards and hazard output
-- the live homepage still shows the `1.0` charts
-- the live broad category selection has not yet been rewired to occupation candidates
+- the live homepage is now `2.0` with no v1 timing outputs
+- the main page codebase has been split into `index.html` + `styles.css` + `app.js`
+- the METR capability curve has not yet been rewired into the v2 model (deferred to a future session)
 
 ### Model logic
 
@@ -304,11 +311,8 @@ These exist, but some are still heuristic rather than final research-grade input
 
 ### Documentation
 
-- the live public docs at `guide/index.html` and `method/index.html` still explain the `1.0` hazard model
-- the `2.0` documentation now lives on the parallel preview pages:
-  - `guide2/index.html`
-  - `method2/index.html`
-- the preview docs still need a full rewrite before cutover
+- the `2.0` documentation lives at `guide2/index.html` and `method2/index.html`
+- these docs still need a full rewrite to match the current five-factor model and the new file structure
 
 ## Major Open Questions
 
@@ -475,13 +479,13 @@ so the public explanation matches the `2.0` ontology.
 
 `2.0` is ready when:
 
-1. the homepage experience is transformation-first
-2. the result distinguishes exposure from displacement
-3. the result distinguishes augmentation from automation
-4. the result shows what remains after exposed tasks are absorbed
-5. the result expresses whether the residual bundle is still viable
-6. the result includes worker-specific fit with the retained role
-7. the public `2.0` main page does not depend on timing or hazard outputs
+1. ~~the homepage experience is transformation-first~~ ✓ (done — v2 is now the live homepage)
+2. ~~the result distinguishes exposure from displacement~~ ✓
+3. ~~the result distinguishes augmentation from automation~~ ✓
+4. ~~the result shows what remains after exposed tasks are absorbed~~ ✓
+5. ~~the result expresses whether the residual bundle is still viable~~ ✓
+6. ~~the result includes worker-specific fit with the retained role~~ ✓
+7. ~~the public `2.0` main page does not depend on timing or hazard outputs~~ ✓ (done — all v1 code removed from main page)
 8. public docs describe the actual `2.0` model rather than the current `1.0` model
 
 ## Current Source Strategy
@@ -862,3 +866,24 @@ Suggested update format:
   - lawyers and other legal/document-heavy roles still need better direct Anthropic coverage before the calibration set can support stronger exposure priors there
 - next recommended step:
   - expand direct Anthropic coverage for the remaining stub-dependent legal/document-heavy clusters, then widen the reviewed calibration set beyond the current launch baseline
+
+## Session Update - 2026-03-09-J
+
+- completed:
+  - split the 10K-line `index.html` monolith into separate files: `index.html` (HTML only), `styles.css` (all CSS), `app.js` (v2-only JS)
+  - removed all v1/legacy code from the main page: METR capability model, hazard calculations, Monte Carlo confidence bands, chart rendering, model tuning UI, test suites, benchmark loading, re-employment calculations, task bucket editor, industry friction and reliability sliders
+  - removed legacy nav links (Model old, Guide old, Methodology old) — main nav now shows only Model, Guide, Methodology
+  - archived the full original monolith at `main-old/index.html`
+  - reduced `index.html` from ~10K lines / 438KB to ~1,100 lines / 69KB
+  - removed ~2,200 lines of v1 model code, tests, and tuning UI
+  - updated v2 release plan, questionnaire spec, and results spec to reflect the new file structure
+- changed decisions:
+  - the METR capability curve will be rewired into the v2 model in a future session rather than carried as dead code on the main page
+  - `app.js` reads seniority directly from the hierarchy-select dropdown instead of hidden radio buttons
+  - `app.js` has zero dependency on v1 state (`currentParams`, `modelConfig`, `MODEL_DEFAULTS`, etc.)
+- new blockers:
+  - the METR time-varying capability dimension is not yet wired into v2 (deferred)
+  - guide2 and method2 docs still need a full rewrite
+  - CSS still contains some v1-specific selectors that could be pruned in a future cleanup
+- next recommended step:
+  - rewrite guide2 and method2 to match the current five-factor model and new file structure

@@ -509,3 +509,15 @@ The first UI implementation can use placeholder or heuristic values so long as:
 With the reviewed calibration harness now live, the next recommended step is:
 - expand direct Anthropic task coverage for still stub-dependent clusters, especially legal/document-heavy work
 - use the reviewed calibration set to stress-test future coefficient changes instead of tuning by feel
+
+## Implementation Status
+
+As of 2026-03-09, the results page is fully implemented in the live `2.0` page:
+
+- the results HTML lives in `index.html` within the `#results-column` section
+- the results rendering logic lives in `app.js` (all `renderV2*` and `updateV2Results` functions)
+- the results computation lives in `v2_engine.js` (`computeResult`)
+- the main page codebase is now split: `index.html` (HTML), `styles.css` (CSS), `app.js` (v2 JS)
+- all v1 result cards (hazard years, risk by 2030/2031, re-employment, legacy chart) have been removed from the main page
+- the full v1 archive is preserved at `main-old/index.html`
+- the METR time-varying capability curve is not yet wired into v2 results (deferred)
