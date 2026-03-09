@@ -536,6 +536,12 @@ The current `2.0` UI now implements the visible intake refactor:
   - organizational conversion
   - substitution potential
   - recomposition gap
+- the live evidence rail now uses user-facing descriptive labels:
+  - evidence strength
+  - occupation anchor strength
+  - personalization signal strength
+  - task coverage
+- the public transformation map is now derived from the live task breakdown rows, so questionnaire changes visibly reorder occupation-specific tasks instead of only shifting a generic family list
 - internal compatibility is still preserved through `Q1-Q19` IDs
 
 What remains incomplete:

@@ -887,3 +887,24 @@ Suggested update format:
   - CSS still contains some v1-specific selectors that could be pruned in a future cleanup
 - next recommended step:
   - rewrite guide2 and method2 to match the current five-factor model and new file structure
+
+## Session Update - 2026-03-09-K
+
+- completed:
+  - replaced the vague evidence-rail labels on the live `2.0` page with user-facing definitions:
+    - `Evidence strength`
+    - `Personalization signal`
+    - `Occupation anchor strength`
+    - `Task coverage`
+  - removed the raw free-text evidence-note dump from the main evidence rail and replaced it with structured explanatory copy
+  - added `Organizational conversion` to the public recomposition panel and rewrote the recomposition note so all four metrics are explicitly defined
+  - changed the visible `Role Transformation Map` to derive from ranked task rows in the live task breakdown rather than directly rendering the raw shared cluster bundle
+  - updated `method2/index.html`, `docs/v2_0_results_spec.md`, and `docs/v2_0_questionnaire_spec.md` so the recorded `2.0` behavior matches the live output
+- changed decisions:
+  - the cluster bundle remains an internal analytical surface, but the public map now prioritizes occupation-specific mapped task rows because that view is materially clearer for users
+  - descriptive evidence and recomposition metrics should be shown as banded readouts plus short definitions, not as unexplained percentages
+- new blockers:
+  - the task-derived map is clearer, but some occupations still inherit noisy task-family assignments from keyword inference and fallback coverage
+  - `Top exposed work` remains cluster-based, so a future pass may still be needed if the headline label feels too generic relative to the task map
+- next recommended step:
+  - improve task-family mapping and direct Anthropic coverage for occupations where the task-derived map still looks noisy, starting with software and other authoring-heavy roles

@@ -289,6 +289,7 @@
                     <h2>Model Scope</h2>
                     <p>The live main model is occupation-anchored and transformation-first. It answers five questions: what work is exposed, whether exposed work looks more like augmentation or automation, whether the retained bundle still forms a coherent role, how well the user's profile fits the retained role, and what labor-market context surrounds that occupation.</p>
                     <p>The public result now also exposes a task-level breakdown. That task view is not a separate model: it is a projection of the selected occupation's O*NET task list through the same occupation anchor, task-cluster weights, questionnaire signals, and Anthropic evidence stack used by the headline outputs.</p>
+                    <p>The public <code>Role Transformation Map</code> is now derived from those live task rows rather than from the raw shared cluster bundle alone. The map ranks the mapped tasks by current share, exposed share, and retained share so the displayed rows are occupation-specific.</p>
                     <p>The current scoring stack uses O*NET occupation structure, Anthropic Economic Index task priors, derived occupation priors, and BLS labor-market context. The live headline outputs do not use the archived hazard/timing math.</p>
                 </section>
 
@@ -318,9 +319,10 @@
                     <h2>Occupation Assignment And Task Projection</h2>
                     <p>The engine always scores a concrete mapped occupation. The selected category narrows the candidate set, occupation search can resolve directly to a mapped launch occupation, and the final role briefing is anchored to that occupation's O*NET/SOC identity.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Anchor confidence</span>
+                        <span class="callout-label">Occupation anchor strength</span>
                         <div class="equation-display">$$C_{\text{anchor}} = \operatorname{avg}(\text{occupationPriorConfidence},\ \text{selectorWeight})$$</div>
                     </div>
+                    <p>In the interface this is labeled <strong>Occupation anchor strength</strong>. It is a descriptive anchor score, not a semantic search confidence or a posterior probability over occupation identity.</p>
                     <p>Once the occupation is fixed, the task panel is generated from its O*NET task list. Let task <em>t</em> belong to cluster $c(t)$. The current implementation constructs a within-cluster task weight from O*NET importance, O*NET frequency, observed Anthropic usage when available, and a small core-task boost:</p>
                     <div class="equation-callout">
                         <span class="callout-label">Task weighting inside a cluster</span>
@@ -415,6 +417,30 @@ u_{c(t)}, & \text{otherwise}
                         <div class="equation-display">$$t_t = \text{retained}_t + \text{elev}_t$$</div>
                     </div>
                     <p>Here $c_t$ is task-level evidence confidence and $n_t$ is the parsed Anthropic task count when available. In the interface, the task list is sorted by exposed share $s_t e_t$ by default. The user can expand from the top ten rows to the full mapped task list without changing the underlying calculations.</p>
+                    <p>The public map is then derived from this same task table:</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Task-derived public map</span>
+                        <div class="equation-display">$$\text{Current map rows} = \operatorname{TopK}_t(s_t)$$</div>
+                        <div class="equation-display">$$\text{Exposed map rows} = \operatorname{TopK}_t(s_t e_t)$$</div>
+                        <div class="equation-display">$$\text{Residual map rows} = \operatorname{TopK}_t(t_t)$$</div>
+                    </div>
+                    <p>This means the visible map now shows the occupation's own mapped tasks rather than a fixed generic family list.</p>
+                </section>
+
+                <section>
+                    <h2>Recomposition Layer</h2>
+                    <p>The live result also includes a secondary recomposition read. This is a descriptive structural layer, not a separate labor-demand forecast.</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Workflow compression</span>
+                        <div class="equation-display">$$W_{\text{raw}} = \sum_i s_i e_i \cdot \operatorname{clamp}\!\left(u_i + (1-u_i)a_i \cdot 0.42,\ 0,\ 1\right)$$</div>
+                        <div class="equation-display">$$W = \operatorname{clamp}\!\left(W_{\text{raw}} \cdot (1 - 0.20C),\,0,\,1\right)$$</div>
+                    </div>
+                    <div class="equation-callout">
+                        <span class="callout-label">Organizational conversion and gap</span>
+                        <div class="equation-display">$$O = \operatorname{clamp}\!\left(0.24P_{\text{adopt}} + 0.16\pi_{\text{auto}} + 0.14G_{\text{fragile}} + 0.15(1-C) + 0.10(1-r) + 0.05(1-T) + 0.16S_{\text{exposed}},\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$S_{\text{sub}} = W \cdot O,\qquad G_{\text{recomp}} = W - S_{\text{sub}}$$</div>
+                    </div>
+                    <p>In the interface these are shown as <strong>Workflow compression</strong>, <strong>Organizational conversion</strong>, <strong>Substitution potential</strong>, and <strong>Recomposition gap</strong>. They are displayed as banded descriptive values, not as precise estimates of employment loss.</p>
                 </section>
 
                 <section>
@@ -506,21 +532,28 @@ r, & |\mathcal{K}| = 0
 
                 <section>
                     <h2>Confidence and Evidence Summary</h2>
-                    <p>The model emits multiple confidence fields instead of one monolithic uncertainty score.</p>
+                    <p>The model emits multiple descriptive evidence signals instead of one monolithic uncertainty score.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Confidence fields</span>
+                        <span class="callout-label">Evidence and signal fields</span>
                         <div class="equation-display">$$C_{\text{task}} = \operatorname{avg}_i(\text{clusterEvidenceConfidence}_i)$$</div>
                         <div class="equation-display">$$C_{\text{anchor}} = \operatorname{avg}(\text{occupationPriorConfidence},\ \text{selectorWeight})$$</div>
                         <div class="equation-display">$$C_{\text{personal}} = \operatorname{avg}(r,\ 1-G_{\text{fragile}},\ C,\ T,\ C_{\text{task}})$$</div>
                         <div class="equation-display">$$C_{\text{labor}} = \text{laborMarketConfidence}$$</div>
                     </div>
+                    <p>In the interface these appear as:</p>
+                    <ul class="detail-list">
+                        <li><strong>Evidence strength</strong> = $C_{\text{task}}$</li>
+                        <li><strong>Occupation anchor strength</strong> = $C_{\text{anchor}}$</li>
+                        <li><strong>Personalization signal strength</strong> = $C_{\text{personal}}$</li>
+                    </ul>
                     <p>The evidence payload also tracks task-row coverage directly:</p>
                     <div class="equation-callout">
                         <span class="callout-label">Task coverage counts</span>
                         <div class="equation-display">$$N_{\text{direct}} = \#\{t : \text{direct Anthropic task evidence exists}\},\qquad N_{\text{fallback}} = \#\{t : \text{cluster fallback is used}\}$$</div>
+                        <div class="equation-display">$$R_{\text{direct}} = \frac{N_{\text{direct}}}{N_{\text{direct}} + N_{\text{fallback}}}$$</div>
                         <div class="equation-display">$$\bar{\rho} = \operatorname{avg}_i(\rho_i),\qquad \bar{\lambda} = \operatorname{avg}_{t \in \text{direct rows}}(\lambda_t)$$</div>
                     </div>
-                    <p>These values are used in the evidence panel, the occupation-assignment card, and the task breakdown summary. They summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
+                    <p><strong>Task coverage</strong> in the UI is the direct coverage ratio $R_{\text{direct}}$ plus the raw direct/fallback counts. These values summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
                 </section>
 
                 <section>

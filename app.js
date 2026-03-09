@@ -124,6 +124,41 @@ function formatConfidence(value) {
     return `${Math.round(numeric * 100)}%`;
 }
 
+function toMetricBand(value, thresholds = [0.35, 0.65], labels = ['Low', 'Moderate', 'Strong']) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return '-';
+    }
+
+    if (numeric >= thresholds[1]) {
+        return labels[2];
+    }
+    if (numeric >= thresholds[0]) {
+        return labels[1];
+    }
+    return labels[0];
+}
+
+function formatLabeledMetric(value, thresholds = [0.35, 0.65], labels = ['Low', 'Moderate', 'Strong']) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return '-';
+    }
+
+    return `${toMetricBand(numeric, thresholds, labels)} · ${formatConfidence(numeric)}`;
+}
+
+function formatCoverageMetric(directCount, fallbackCount) {
+    const direct = Math.max(0, Number(directCount) || 0);
+    const fallback = Math.max(0, Number(fallbackCount) || 0);
+    const total = direct + fallback;
+    if (!total) {
+        return '-';
+    }
+
+    return `${Math.round((direct / total) * 100)}% direct · ${direct}/${total} tasks`;
+}
+
 function formatCompactNumber(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) {
@@ -355,7 +390,8 @@ function createClusterListItem(cluster, options = {}) {
 
     const label = document.createElement('span');
     label.className = 'v2-cluster-label';
-    label.textContent = cluster?.label || 'Unknown cluster';
+    label.textContent = cluster?.label || 'Unknown row';
+    label.title = cluster?.full_label || cluster?.label || 'Unknown row';
 
     const shareEl = document.createElement('span');
     shareEl.className = 'v2-cluster-share';
@@ -376,18 +412,86 @@ function createClusterListItem(cluster, options = {}) {
     meta.className = 'v2-cluster-meta';
 
     const parts = [];
+    if (cluster?.secondary_label) {
+        parts.push(cluster.secondary_label);
+    }
     if (cluster?.likely_mode) {
         parts.push(formatV2Label(cluster.likely_mode));
     }
     if (Number.isFinite(confidence)) {
-        parts.push(`${Math.round(confidence * 100)}% confidence`);
+        parts.push(`${Math.round(confidence * 100)}% evidence`);
     }
-    meta.textContent = parts.join(' · ') || 'Role-weighted cluster';
+    if (cluster?.evidence_badge) {
+        parts.push(cluster.evidence_badge);
+    }
+    meta.textContent = parts.join(' · ') || 'Role-weighted row';
 
     item.appendChild(topline);
     item.appendChild(bar);
     item.appendChild(meta);
     return item;
+}
+
+function buildTaskDrivenMapRows(taskBreakdown, shareKey) {
+    const rows = Array.isArray(taskBreakdown?.tasks) ? taskBreakdown.tasks.slice() : [];
+    if (!rows.length) {
+        return [];
+    }
+
+    const ranked = rows
+        .filter((task) => (Number(task?.[shareKey]) || 0) >= 0.012)
+        .sort((left, right) => {
+            const rightValue = Number(right?.[shareKey]) || 0;
+            const leftValue = Number(left?.[shareKey]) || 0;
+            if (rightValue !== leftValue) {
+                return rightValue - leftValue;
+            }
+            return (Number(right?.share_of_role) || 0) - (Number(left?.share_of_role) || 0);
+        });
+
+    const selected = (ranked.length ? ranked : rows.slice().sort((left, right) => {
+        const rightValue = Number(right?.[shareKey]) || 0;
+        const leftValue = Number(left?.[shareKey]) || 0;
+        return rightValue - leftValue;
+    })).slice(0, 5);
+
+    return selected.map((task) => ({
+        label: task?.task_statement || 'Unknown task',
+        full_label: task?.task_statement || 'Unknown task',
+        secondary_label: task?.task_cluster_label || 'Mapped task family',
+        likely_mode: task?.likely_mode || null,
+        evidence_confidence: Number(task?.evidence_confidence) || 0,
+        evidence_badge: task?.has_direct_evidence ? 'Direct evidence' : 'Fallback estimate',
+        share_of_role: Number(task?.share_of_role) || 0,
+        exposed_share: Number(task?.exposed_share) || 0,
+        residual_relevance: Number(task?.retained_share) || 0
+    }));
+}
+
+function buildTaskDrivenTransformationMap(taskBreakdown) {
+    return {
+        current_bundle: buildTaskDrivenMapRows(taskBreakdown, 'share_of_role'),
+        exposed_clusters: buildTaskDrivenMapRows(taskBreakdown, 'exposed_share'),
+        retained_clusters: buildTaskDrivenMapRows(taskBreakdown, 'retained_share')
+    };
+}
+
+function renderV2EvidenceSummary(summary) {
+    const directRows = Number(summary?.source_coverage?.direct_task_evidence_rows) || 0;
+    const fallbackRows = Number(summary?.source_coverage?.fallback_task_rows) || 0;
+    const totalRows = directRows + fallbackRows;
+    const coverageNote = totalRows
+        ? `${Math.round((directRows / totalRows) * 100)}% of the mapped task rows use direct Anthropic task evidence; the remaining ${fallbackRows} rows fall back to task-family estimates.`
+        : 'Task-row coverage appears once a mapped occupation is loaded.';
+
+    safeSetText('v2-task-confidence', summary ? formatLabeledMetric(summary.task_evidence_confidence) : '-');
+    safeSetText('v2-prior-confidence', summary ? formatLabeledMetric(summary.personalization_confidence) : '-');
+    safeSetText(
+        'v2-evidence-notes',
+        summary
+            ? `Evidence strength is the average source strength across the role-specific task families used in this result after sparse task rows are shrunk toward broader priors. ${coverageNote} Personalization signal strength combines role distinctiveness, lower fragility, coupling protection, current AI-tool support, and evidence strength.`
+            : 'Choose a mapped occupation to see how evidence strength and personalization signal are scored.'
+    );
 }
 
 function renderV2ClusterList(containerId, clusters, options = {}) {
@@ -418,18 +522,23 @@ function createV2TaskChip(text, tone = '') {
 }
 
 function renderV2OccupationAssignment(assignment) {
+    const directCount = Number(assignment?.direct_task_evidence_count) || 0;
+    const fallbackCount = Number(assignment?.fallback_task_count) || 0;
+    const totalCount = directCount + fallbackCount;
+    const directCoveragePct = totalCount ? Math.round((directCount / totalCount) * 100) : 0;
+
     safeSetText('v2-assignment-category', assignment ? assignment.role_category_label || '-' : '-');
     safeSetText('v2-assignment-anchor', assignment ? assignment.selected_occupation_title || '-' : '-');
     safeSetText(
         'v2-assignment-match',
         assignment
-            ? `${Math.round((assignment.anchor_confidence || 0) * 100)}% anchor confidence${assignment.category_candidate_rank ? ` · candidate ${assignment.category_candidate_rank} of ${assignment.category_candidate_count}` : ''}`
+            ? formatLabeledMetric(assignment.anchor_confidence)
             : '-'
     );
     safeSetText(
         'v2-assignment-coverage',
         assignment
-            ? `${assignment.direct_task_evidence_count || 0} direct task rows · ${assignment.fallback_task_count || 0} fallback rows`
+            ? formatCoverageMetric(directCount, fallbackCount)
             : '-'
     );
 
@@ -437,8 +546,11 @@ function renderV2OccupationAssignment(assignment) {
     if (assignment?.onet_soc_code) {
         parts.push(`${assignment.selected_occupation_title} is anchored to O*NET/SOC ${assignment.onet_soc_code}.`);
     }
-    if (assignment?.assignment_method) {
-        parts.push(assignment.assignment_method);
+    if (assignment) {
+        parts.push(`Occupation anchor strength combines the occupation-prior confidence with the launch selector anchor${assignment.category_candidate_rank ? `; this occupation is candidate ${assignment.category_candidate_rank} of ${assignment.category_candidate_count} inside the selected category` : ''}.`);
+    }
+    if (assignment && totalCount) {
+        parts.push(`Task coverage means ${directCoveragePct}% of the ${totalCount} mapped O*NET tasks have direct Anthropic task evidence; the remaining ${fallbackCount} rows use task-family fallback estimates.`);
     }
     if (assignment?.questionnaire_effect) {
         parts.push(assignment.questionnaire_effect);
@@ -457,13 +569,15 @@ function renderV2OccupationAssignment(assignment) {
 
 function renderV2RecompositionSummary(summary) {
     safeSetText('v2-recomposition-label', summary ? summary.summary_label || '-' : '-');
-    safeSetText('v2-recomposition-compression', summary ? formatConfidence(summary.workflow_compression) : '-');
-    safeSetText('v2-recomposition-substitution', summary ? formatConfidence(summary.substitution_potential) : '-');
-    safeSetText('v2-recomposition-gap', summary ? formatConfidence(summary.substitution_gap) : '-');
+    safeSetText('v2-recomposition-compression', summary ? formatLabeledMetric(summary.workflow_compression, [0.25, 0.5], ['Low', 'Moderate', 'High']) : '-');
+    safeSetText('v2-recomposition-conversion', summary ? formatLabeledMetric(summary.organizational_conversion, [0.25, 0.5], ['Low', 'Moderate', 'High']) : '-');
+    safeSetText('v2-recomposition-substitution', summary ? formatLabeledMetric(summary.substitution_potential, [0.2, 0.4], ['Low', 'Moderate', 'High']) : '-');
+    safeSetText('v2-recomposition-gap', summary ? formatLabeledMetric(summary.substitution_gap, [0.12, 0.25], ['Low', 'Moderate', 'High']) : '-');
     safeSetText(
         'v2-recomposition-note',
         summary?.summary_note
-            || 'This panel separates technically compressible work from the share that currently looks more likely to convert into fewer labor hours.'
+            ? `Workflow compression is the technically compressible share of the role. Organizational conversion is the current read on how much of that compression looks likely to convert into fewer labor hours. Substitution potential is compression multiplied by conversion. Recomposition gap is exposed work that still looks more likely to be reorganized than removed. ${summary.summary_note}`
+            : 'This panel separates technically compressible work from the share that currently looks more likely to convert into fewer labor hours.'
     );
 }
 
@@ -607,9 +721,10 @@ function resetV2Results(message, detail) {
     safeSetText('v2-who-benefits', '-');
     safeSetText('v2-task-confidence', '-');
     safeSetText('v2-prior-confidence', '-');
-    safeSetText('v2-evidence-notes', '-');
-    safeSetText('v2-map-subtitle', 'This view shows what in the role is exposed, how the change is split between augmentation and automation, and what remains.');
+    safeSetText('v2-evidence-notes', 'Choose a mapped occupation to see how evidence strength, personalization signal, occupation anchoring, and task coverage are scored.');
+    safeSetText('v2-map-subtitle', 'This map is derived from the live task rows below. It ranks the occupation’s mapped tasks by current share, exposed share, and retained share after your inputs are applied.');
     safeSetText('v2-task-note', 'This view reorders the selected occupation\'s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.');
+    safeSetText('v2-recomposition-conversion', '-');
     renderV2LaborMarketContext(null, '');
     renderV2OccupationAssignment(null);
     renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped occupation to populate the current bundle.' });
@@ -710,17 +825,10 @@ async function updateV2Results(options = {}) {
     safeSetText('v2-what-absorbed', result.narrative_summary?.what_is_under_pressure || '-');
     safeSetText('v2-what-remains', result.narrative_summary?.what_stays_core || '-');
     safeSetText('v2-who-benefits', result.narrative_summary?.personalization_fit_summary || '-');
-    safeSetText('v2-task-confidence', formatConfidence(result.evidence_summary?.task_evidence_confidence));
-    safeSetText('v2-prior-confidence', formatConfidence(result.evidence_summary?.personalization_confidence));
-    safeSetText(
-        'v2-evidence-notes',
-        Array.isArray(result.evidence_summary?.notes) && result.evidence_summary.notes.length
-            ? result.evidence_summary.notes.join(' ')
-            : '-'
-    );
+    renderV2EvidenceSummary(result.evidence_summary);
     safeSetText(
         'v2-map-subtitle',
-        `${result.selected_occupation_title} shows ${Math.round((result.exposed_task_share || 0) * 100)}% exposed task share, with a ${formatV2Label(result.mode_of_change).toLowerCase()} pattern and a ${formatV2Label(result.residual_role_strength).toLowerCase()} retained bundle.`
+        `${result.selected_occupation_title} shows ${Math.round((result.exposed_task_share || 0) * 100)}% exposed task share. The three columns below are derived from the live mapped task rows: current share, exposed share, and retained share after personalization.`
     );
     safeSetText(
         'v2-task-note',
@@ -729,16 +837,16 @@ async function updateV2Results(options = {}) {
     renderV2RecompositionSummary(result.recomposition_summary);
     renderV2OccupationAssignment(result.occupation_assignment);
     renderV2LaborMarketContext(result.labor_market_context, result.selected_occupation_title);
-
-    renderV2ClusterList('v2-current-bundle', result.transformation_map?.current_bundle, {
+    const taskDrivenMap = buildTaskDrivenTransformationMap(result.task_breakdown);
+    renderV2ClusterList('v2-current-bundle', taskDrivenMap.current_bundle, {
         shareKey: 'share_of_role',
         emptyText: 'No current task bundle available.'
     });
-    renderV2ClusterList('v2-exposed-bundle', result.transformation_map?.exposed_clusters, {
-        shareKey: 'share_of_role',
+    renderV2ClusterList('v2-exposed-bundle', taskDrivenMap.exposed_clusters, {
+        shareKey: 'exposed_share',
         emptyText: 'No exposed clusters exceeded the display threshold.'
     });
-    renderV2ClusterList('v2-residual-bundle', result.transformation_map?.retained_clusters, {
+    renderV2ClusterList('v2-residual-bundle', taskDrivenMap.retained_clusters, {
         shareKey: 'residual_relevance',
         emptyText: 'No residual bundle clusters exceeded the display threshold.'
     });

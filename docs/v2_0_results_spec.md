@@ -159,16 +159,14 @@ That chart should not remain the main visual in `2.0`.
 The recommended primary chart is a `Role Transformation Map`.
 
 Minimum MVP version:
-- left column: current task bundle
-- middle column: exposed tasks segmented by likely mode
-  - augmentation
-  - partial automation
-  - high automation
-- right column: residual bundle / transformed role
+- left column: highest-share current task rows
+- middle column: highest exposed-share task rows
+- right column: highest retained-share task rows
 
 Recommended data encoding:
 - stacked bars or block columns
-- task-cluster labels visible
+- task statements visible
+- task-family tag visible on each row
 - exposed segments highlighted
 - retained segments muted but legible
 
@@ -188,20 +186,22 @@ The chart should include:
 
 The subtitle should explain:
 - this is a structural role-change map, not a direct layoff forecast
+- the displayed rows are derived from the live mapped O*NET task list, not from a generic shared family list alone
 
 ## Supporting Sections
 
 ### Exposed vs Retained Task Section
 
 This section should list:
-- top exposed task clusters
-- top retained task clusters
-- top elevated task clusters
+- top exposed task rows
+- top retained task rows
+- top current-share task rows
 
-For each exposed task cluster, show:
-- cluster label
+For each displayed task row, show:
+- task statement
+- task-family label
 - share of role
-- exposure level
+- exposed share or retained share, depending on column
 - likely mode
 - short evidence note
 
@@ -222,12 +222,14 @@ This should remain a secondary explanatory layer, not a headline score.
 
 Show:
 - `Workflow compression`
+- `Organizational conversion`
 - `Substitution potential`
 - `Recomposition gap`
 - short interpretive note
 
 Interpretation:
 - workflow compression = technically compressible work implied by the current task bundle
+- organizational conversion = how much of that compression currently looks likely to convert into fewer labor hours
 - substitution potential = share of that compression that currently looks more likely to convert into fewer labor hours
 - recomposition gap = exposed work that still looks more likely to be reorganized, absorbed, or redesigned than directly removed
 
@@ -261,8 +263,10 @@ The default source explanation should be:
 - a derived launch prior only where occupation-level aggregation is needed
 
 It should also display source-confidence language such as:
-- `Task evidence strong`
-- `Occupation prior partial`
+- `Evidence strength`
+- `Occupation anchor strength`
+- `Personalization signal strength`
+- `Task coverage`
 - `Residual bundle estimate uses structural inference`
 
 ## Recommended Result Object
@@ -395,6 +399,10 @@ type V2Result = {
   }
 }
 ```
+
+Public UI note:
+- the live `2.0` page now derives the visible transformation-map rows from `task_breakdown.tasks`, ranking mapped task rows by current share, exposed share, and retained share
+- the internal `transformation_map` cluster arrays remain available as analytical bundle surfaces, but they are no longer the primary public map view
 
 ### Live scoring notes
 
