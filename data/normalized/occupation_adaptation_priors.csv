@@ -1,4 +1,4 @@
-"occupation_id","adaptive_capacity_score","transferability_score","learning_intensity_score","transition_option_count","job_zone","source_mix","confidence","notes"
+﻿"occupation_id","adaptive_capacity_score","transferability_score","learning_intensity_score","transition_option_count","job_zone","source_mix","confidence","notes"
 "occ_11_1021_00","0.670","0.667","0.644","14","4","src_onet_30_1|src_anthropic_ei_2026_01_15|src_bls_oews_2024|src_bls_proj_2024_2034|src_bls_cps_occupation_unemployment_2026_03","0.61","derived_launch_aggregate|knowledge_share=0.48|people_share=0.49|routine_share=0.00"
 "occ_13_1041_00","0.546","0.551","0.561","13","4","src_onet_30_1|src_anthropic_ei_2026_01_15|src_bls_oews_2024|src_bls_proj_2024_2034|src_bls_cps_occupation_unemployment_2026_03","0.65","derived_launch_aggregate|knowledge_share=0.24|people_share=0.44|routine_share=0.32"
 "occ_13_1071_00","0.594","0.573","0.555","13","4","src_onet_30_1|src_anthropic_ei_2026_01_15|src_bls_oews_2024|src_bls_proj_2024_2034|src_bls_cps_occupation_unemployment_2026_03","0.71","derived_launch_aggregate|knowledge_share=0.17|people_share=0.51|routine_share=0.10"

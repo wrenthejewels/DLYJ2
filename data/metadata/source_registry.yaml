@@ -109,6 +109,17 @@ sources:
     granularity: occupation_level
     status: active
     notes: 'Derived occupation prior built from O*NET structure, Anthropic task evidence, and BLS labor context for launch.'
+  - source_id: src_manual_cluster_review_2026_03
+    name: Manual task-cluster review overrides
+    category: occupation_structure
+    version_label: '2026-03-09 targeted review'
+    release_date: '2026-03-09'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_and_task
+    status: active_targeted_override
+    notes: 'Targeted manual task-cluster overrides for disagreement-heavy occupations where keyword inference was too coarse for launch-quality bundles.'
   - source_id: src_aioe_2023
     name: AI Occupational Exposure
     category: occupation_prior

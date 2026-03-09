@@ -55,6 +55,58 @@
         cluster_execution_routine: 0.05
     };
 
+    var SCORING_CONFIG = {
+        criticalityBoost: 0.08,
+        adoptionRealizationBase: 0.92,
+        adoptionRealizationScale: 0.16,
+        exposureBase: 0.68,
+        exposureReadinessScale: 0.62,
+        exposureCouplingPenalty: 0.42,
+        augmentationBase: 0.72,
+        augmentationSignalScale: 0.48,
+        augmentationToolScale: 0.32,
+        augmentationHumanBase: 0.16,
+        augmentationHumanToolScale: 0.12,
+        automationBase: 0.68,
+        automationSignalScale: 0.68,
+        automationAdoptionScale: 0.18,
+        automationCouplingPenalty: 0.42,
+        automationToolPenalty: 0.18,
+        compressionAugmentationSavings: 0.42,
+        absorbedAutomationBase: 0.74,
+        absorbedAutomationAdoptionScale: 0.16,
+        elevationBase: 0.22,
+        elevationSeniorityScale: 0.18,
+        elevationDistinctivenessScale: 0.12,
+        elevationCriticalScale: 0.08,
+        recompositionCouplingPenalty: 0.20,
+        organizationalConversionWeights: {
+            adoptionPressure: 0.24,
+            automationShare: 0.16,
+            fragility: 0.14,
+            lowCoupling: 0.15,
+            lowDistinctiveness: 0.10,
+            lowToolSupport: 0.05,
+            exposedTaskShare: 0.16
+        },
+        roleState: {
+            highDisplacementResidualMax: 0.34,
+            highDisplacementAutomationMin: 0.58,
+            highDisplacementExposureMin: 0.58,
+            fragmentsResidualMax: 0.42,
+            fragmentsExposureMin: 0.55,
+            moreSeniorStrategicResidualMin: 0.22,
+            moreSeniorAutomationMax: 0.50,
+            moreSeniorSeniorityMin: 0.50,
+            moreSeniorCompressionMax: 0.16,
+            moreSeniorGapMin: 0.02,
+            mostlyAugmentedResidualMin: 0.62,
+            mostlyAugmentedAugmentationMin: 0.55,
+            mostlyAugmentedCompressionMax: 0.18,
+            routineResidualMin: 0.48
+        }
+    };
+
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
     }
@@ -612,31 +664,31 @@
                 var baseAug = shrinkTowardPrior(prior.augmentation_likelihood, occupationAugmentation, priorReliability, 0.45);
                 var baseAuto = shrinkTowardPrior(rawAuto, occupationAutomation, priorReliability, 0.25);
                 var isRoleCritical = !!roleCriticalSet[cluster.task_cluster_id];
-                var criticalityBoost = isRoleCritical ? 0.08 : 0;
-                var adoptionRealization = 0.92 + (signals.adoptionPressure * 0.16);
+                var criticalityBoost = isRoleCritical ? SCORING_CONFIG.criticalityBoost : 0;
+                var adoptionRealization = SCORING_CONFIG.adoptionRealizationBase + (signals.adoptionPressure * SCORING_CONFIG.adoptionRealizationScale);
                 var taskSupport = signals.taskSupportSignal;
                 clusterPriorReliabilities.push(priorReliability);
 
                 var exposure = clamp(
-                    baseExposure * (0.68 + (signals.exposureReadiness * 0.62)) *
+                    baseExposure * (SCORING_CONFIG.exposureBase + (signals.exposureReadiness * SCORING_CONFIG.exposureReadinessScale)) *
                     adoptionRealization *
                     (1 + criticalityBoost) *
-                    (1 - (humanAdvantage * signals.couplingProtection * 0.42)),
+                    (1 - (humanAdvantage * signals.couplingProtection * SCORING_CONFIG.exposureCouplingPenalty)),
                     0,
                     1
                 );
 
                 var augmentation = clamp(
-                    baseAug * (0.72 + (signals.augmentationSignal * 0.48) + (taskSupport * 0.32)) *
-                    (1 + humanAdvantage * (0.16 + taskSupport * 0.12)) *
+                    baseAug * (SCORING_CONFIG.augmentationBase + (signals.augmentationSignal * SCORING_CONFIG.augmentationSignalScale) + (taskSupport * SCORING_CONFIG.augmentationToolScale)) *
+                    (1 + humanAdvantage * (SCORING_CONFIG.augmentationHumanBase + taskSupport * SCORING_CONFIG.augmentationHumanToolScale)) *
                     adoptionRealization,
                     0,
                     1
                 );
 
                 var automation = clamp(
-                    baseAuto * (0.68 + (signals.automationSignal * 0.68) + (signals.adoptionPressure * 0.18)) *
-                    (1 - (humanAdvantage * ((signals.couplingProtection * 0.42) + (taskSupport * 0.18)))),
+                    baseAuto * (SCORING_CONFIG.automationBase + (signals.automationSignal * SCORING_CONFIG.automationSignalScale) + (signals.adoptionPressure * SCORING_CONFIG.automationAdoptionScale)) *
+                    (1 - (humanAdvantage * ((signals.couplingProtection * SCORING_CONFIG.automationCouplingPenalty) + (taskSupport * SCORING_CONFIG.automationToolPenalty)))),
                     0,
                     1
                 );
@@ -644,14 +696,14 @@
                 var likelyMode = augmentation >= automation ? 'augmentation' : 'automation';
                 var clusterShare = toNumber(cluster.share_prior, 0);
                 var compressionContribution = clusterShare * exposure * clamp(
-                    automation + ((1 - automation) * augmentation * 0.35),
+                    automation + ((1 - automation) * augmentation * SCORING_CONFIG.compressionAugmentationSavings),
                     0,
                     1
                 );
-                var absorbedShare = clusterShare * exposure * automation * (0.74 + (signals.adoptionPressure * 0.16));
+                var absorbedShare = clusterShare * exposure * automation * (SCORING_CONFIG.absorbedAutomationBase + (signals.adoptionPressure * SCORING_CONFIG.absorbedAutomationAdoptionScale));
                 var retainedShare = Math.max(0, clusterShare - absorbedShare);
                 var elevationBoost = ELEVATION_CLUSTERS[cluster.task_cluster_id]
-                    ? absorbedShare * (0.22 + signals.seniority * 0.18 + signals.roleDistinctiveness * 0.12 + (isRoleCritical ? 0.08 : 0))
+                    ? absorbedShare * (SCORING_CONFIG.elevationBase + signals.seniority * SCORING_CONFIG.elevationSeniorityScale + signals.roleDistinctiveness * SCORING_CONFIG.elevationDistinctivenessScale + (isRoleCritical ? SCORING_CONFIG.elevationCriticalScale : 0))
                     : 0;
                 var transformedShare = retainedShare + elevationBoost;
 
@@ -724,14 +776,16 @@
             exposedTaskShare = clamp(exposedTaskShare, 0, 1);
             var automationShare = automationMass + augmentationMass > 0 ? clamp(automationMass / (automationMass + augmentationMass), 0, 1) : 0.5;
             var augmentationShare = 1 - automationShare;
-            var workflowCompression = clamp(workflowCompressionRaw * (1 - (signals.couplingProtection * 0.25)), 0, 1);
+            var workflowCompression = clamp(workflowCompressionRaw * (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)), 0, 1);
+            var conversionWeights = SCORING_CONFIG.organizationalConversionWeights;
             var organizationalConversion = clamp(
-                (signals.adoptionPressure * 0.28) +
-                (automationShare * 0.18) +
-                (signals.fragility * 0.18) +
-                ((1 - signals.couplingProtection) * 0.16) +
-                ((1 - signals.roleDistinctiveness) * 0.12) +
-                ((1 - signals.taskSupportSignal) * 0.08),
+                (signals.adoptionPressure * conversionWeights.adoptionPressure) +
+                (automationShare * conversionWeights.automationShare) +
+                (signals.fragility * conversionWeights.fragility) +
+                ((1 - signals.couplingProtection) * conversionWeights.lowCoupling) +
+                ((1 - signals.roleDistinctiveness) * conversionWeights.lowDistinctiveness) +
+                ((1 - signals.taskSupportSignal) * conversionWeights.lowToolSupport) +
+                (exposedTaskShare * conversionWeights.exposedTaskShare),
                 0,
                 1
             );
@@ -784,15 +838,24 @@
             );
 
             var roleState;
-            if (residualViabilityScore < 0.34 && automationShare >= 0.58 && exposedTaskShare >= 0.58) {
+            if (residualViabilityScore < SCORING_CONFIG.roleState.highDisplacementResidualMax &&
+                automationShare >= SCORING_CONFIG.roleState.highDisplacementAutomationMin &&
+                exposedTaskShare >= SCORING_CONFIG.roleState.highDisplacementExposureMin) {
                 roleState = 'high_displacement_risk';
-            } else if (residualViabilityScore < 0.42 && exposedTaskShare >= 0.55) {
+            } else if (residualViabilityScore < SCORING_CONFIG.roleState.fragmentsResidualMax &&
+                exposedTaskShare >= SCORING_CONFIG.roleState.fragmentsExposureMin) {
                 roleState = 'role_fragments';
-            } else if (strategicResidualShare >= 0.34 && automationShare < 0.48 && signals.seniority >= 0.50) {
+            } else if (strategicResidualShare >= SCORING_CONFIG.roleState.moreSeniorStrategicResidualMin &&
+                automationShare < SCORING_CONFIG.roleState.moreSeniorAutomationMax &&
+                signals.seniority >= SCORING_CONFIG.roleState.moreSeniorSeniorityMin &&
+                workflowCompression <= SCORING_CONFIG.roleState.moreSeniorCompressionMax &&
+                substitutionGap >= SCORING_CONFIG.roleState.moreSeniorGapMin) {
                 roleState = 'role_becomes_more_senior';
-            } else if (residualViabilityScore >= 0.62 && augmentationShare >= 0.55) {
+            } else if (residualViabilityScore >= SCORING_CONFIG.roleState.mostlyAugmentedResidualMin &&
+                augmentationShare >= SCORING_CONFIG.roleState.mostlyAugmentedAugmentationMin &&
+                workflowCompression <= SCORING_CONFIG.roleState.mostlyAugmentedCompressionMax) {
                 roleState = 'mostly_augmented';
-            } else if (residualViabilityScore >= 0.48) {
+            } else if (residualViabilityScore >= SCORING_CONFIG.roleState.routineResidualMin) {
                 roleState = 'routine_tasks_absorbed';
             } else {
                 roleState = 'role_narrows_but_remains_viable';
@@ -888,10 +951,10 @@
                     var taskAutomation = evidence
                         ? shrinkTowardPrior(evidence.automation_score, clusterResult.automation_likelihood, estimateTaskEvidenceReliability(evidence), clusterResult.automation_likelihood)
                         : clusterResult.automation_likelihood;
-                    var taskAbsorbedShare = taskShare * taskExposure * taskAutomation * (0.74 + (signals.adoptionPressure * 0.16));
+                    var taskAbsorbedShare = taskShare * taskExposure * taskAutomation * (SCORING_CONFIG.absorbedAutomationBase + (signals.adoptionPressure * SCORING_CONFIG.absorbedAutomationAdoptionScale));
                     var taskRetainedShare = Math.max(0, taskShare - taskAbsorbedShare);
                     var taskElevationBoost = ELEVATION_CLUSTERS[clusterId]
-                        ? taskAbsorbedShare * (0.22 + signals.seniority * 0.18 + signals.roleDistinctiveness * 0.12 + (clusterResult.is_role_critical ? 0.08 : 0))
+                        ? taskAbsorbedShare * (SCORING_CONFIG.elevationBase + signals.seniority * SCORING_CONFIG.elevationSeniorityScale + signals.roleDistinctiveness * SCORING_CONFIG.elevationDistinctivenessScale + (clusterResult.is_role_critical ? SCORING_CONFIG.elevationCriticalScale : 0))
                         : 0;
                     var transformedTaskShare = taskRetainedShare + taskElevationBoost;
                     var hasDirectEvidence = !!(evidence && evidence.source_id && String(evidence.source_id).indexOf('src_internal_stub') !== 0);

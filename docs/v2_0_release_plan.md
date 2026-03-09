@@ -826,3 +826,39 @@ Suggested update format:
   - current data is still insufficient for credible demand-elasticity or employment forecasting
 - next recommended step:
   - review the disagreement-heavy occupations, then calibrate the recomposition layer before expanding into demand-rebound modeling
+
+## Session Update - 2026-03-10-B
+
+- completed:
+  - added targeted manual task-cluster overrides for the five highest-priority disagreement-heavy occupations:
+    - Management Analysts
+    - Market Research Analysts and Marketing Specialists
+    - Human Resources Specialists
+    - Accountants and Auditors
+    - Lawyers
+  - updated the cluster-inference pipeline so reviewed tasks bypass keyword inference and carry explicit manual-review confidence
+  - regenerated the normalized task-cluster tables, Anthropic task evidence aggregation, occupation priors, and benchmark diagnostics
+- changed decisions:
+  - reviewed occupation bundles should now be corrected through explicit task-cluster overrides rather than coefficient tuning around noisy keyword mappings
+- new blockers:
+  - several reviewed occupations still show large benchmark deltas even after bundle cleanup, which suggests the next problem is coefficient calibration or source-coverage limits rather than cluster assignment alone
+  - lawyers remain partially stub-dependent because some reviewed legal clusters still lack direct Anthropic task evidence
+- next recommended step:
+  - build a small reviewed calibration set and tune the recomposition coefficients against it, starting with workflow compression, organizational conversion, and substitution gap
+
+## Session Update - 2026-03-10-C
+
+- completed:
+  - added a reviewed calibration set in `data/metadata/v2_reviewed_calibration_set.csv`
+  - added `scripts/evaluate_v2_calibration.js` to score live engine outputs against that reviewed baseline
+  - generated `docs/data/v2_calibration_report.md`
+  - moved the main recomposition and role-state coefficients into explicit runtime config in `v2_engine.js`
+  - tuned the live recomposition and role-state thresholds against the reviewed baseline
+- changed decisions:
+  - future coefficient changes should be checked against the reviewed calibration harness rather than tuned by inspection alone
+  - the current reviewed calibration set is a launch baseline, not a substitute for external validation or causal benchmarking
+- new blockers:
+  - the reviewed calibration set can only validate occupations and cluster mixes already covered by the current launch bundle
+  - lawyers and other legal/document-heavy roles still need better direct Anthropic coverage before the calibration set can support stronger exposure priors there
+- next recommended step:
+  - expand direct Anthropic coverage for the remaining stub-dependent legal/document-heavy clusters, then widen the reviewed calibration set beyond the current launch baseline

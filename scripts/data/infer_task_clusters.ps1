@@ -20,6 +20,8 @@ $occupations = Import-Csv (Join-Path $OutputDir 'occupations.csv')
 $occupationTasks = Import-Csv (Join-Path $OutputDir 'occupation_tasks.csv')
 $roleProfiles = Import-Csv (Join-Path $metadataDir 'role_family_cluster_profiles.csv')
 $keywords = Import-Csv (Join-Path $metadataDir 'task_cluster_keywords.csv')
+$manualOverridePath = Join-Path $metadataDir 'task_cluster_manual_overrides.csv'
+$manualOverrides = if (Test-Path $manualOverridePath) { Import-Csv $manualOverridePath } else { @() }
 
 $occupationById = @{}
 foreach ($row in $occupations) { $occupationById[$row.occupation_id] = $row }
@@ -36,6 +38,14 @@ foreach ($row in $keywords) {
     $keywordsByCluster[$row.task_cluster_id] += $row
 }
 
+$manualOverrideByKey = @{}
+foreach ($row in $manualOverrides) {
+    if ([string]::IsNullOrWhiteSpace($row.occupation_id) -or [string]::IsNullOrWhiteSpace($row.onet_task_id) -or [string]::IsNullOrWhiteSpace($row.task_cluster_id)) {
+        continue
+    }
+    $manualOverrideByKey["$($row.occupation_id)|$($row.onet_task_id)"] = $row
+}
+
 $memberships = New-Object System.Collections.Generic.List[object]
 $clusterWeights = @{}
 foreach ($task in $occupationTasks) {
@@ -43,49 +53,69 @@ foreach ($task in $occupationTasks) {
     if (-not $occupation) { continue }
 
     $roleFamily = $occupation.role_family
-    $scores = @{}
-    foreach ($clusterId in $keywordsByCluster.Keys) {
-        $scores[$clusterId] = if ($roleClusterBias[$roleFamily].ContainsKey($clusterId)) { [double]$roleClusterBias[$roleFamily][$clusterId] * 0.35 } else { 0.0 }
-        $normalizedTask = Normalize-Text $task.task_statement
-        foreach ($keywordRow in $keywordsByCluster[$clusterId]) {
-            if ($normalizedTask -like "*$(Normalize-Text $keywordRow.keyword)*") {
-                $scores[$clusterId] += [double]$keywordRow.weight
+    $override = $manualOverrideByKey["$($task.occupation_id)|$($task.onet_task_id)"]
+    $selectedClusterId = $null
+    $confidence = 0.0
+    $mappingMethod = 'keyword_inference'
+    $taskNotes = 'onet_keyword_inference'
+    $usedManualReview = $false
+
+    if ($override) {
+        $selectedClusterId = $override.task_cluster_id
+        $confidence = if ($override.mapping_confidence) { [double]$override.mapping_confidence } else { 0.92 }
+        $mappingMethod = if ($override.mapping_method) { $override.mapping_method } else { 'manual_review' }
+        $taskNotes = if ($override.notes) { $override.notes } else { 'manual_task_cluster_override' }
+        $usedManualReview = $true
+    } else {
+        $scores = @{}
+        foreach ($clusterId in $keywordsByCluster.Keys) {
+            $scores[$clusterId] = if ($roleClusterBias[$roleFamily].ContainsKey($clusterId)) { [double]$roleClusterBias[$roleFamily][$clusterId] * 0.35 } else { 0.0 }
+            $normalizedTask = Normalize-Text $task.task_statement
+            foreach ($keywordRow in $keywordsByCluster[$clusterId]) {
+                if ($normalizedTask -like "*$(Normalize-Text $keywordRow.keyword)*") {
+                    $scores[$clusterId] += [double]$keywordRow.weight
+                }
             }
         }
-    }
 
-    $best = $scores.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1
-    if (-not $best) { continue }
+        $best = $scores.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1
+        if (-not $best) { continue }
+        $selectedClusterId = $best.Key
+        $confidence = [Math]::Min(0.85, 0.35 + ($best.Value * 0.12))
+    }
 
     $importance = [double]$task.importance
     $frequency = [double]$task.frequency
     $taskWeight = [Math]::Max(0.05, $importance * [Math]::Max(0.20, $frequency))
-    $confidence = [Math]::Min(0.85, 0.35 + ($best.Value * 0.12))
 
     $memberships.Add([PSCustomObject]@{
         occupation_id = $task.occupation_id
         onet_task_id = $task.onet_task_id
-        task_cluster_id = $best.Key
+        task_cluster_id = $selectedClusterId
         membership_weight = '1.00'
-        mapping_method = 'keyword_inference'
+        mapping_method = $mappingMethod
         mapping_confidence = ('{0:N2}' -f $confidence)
-        notes = 'onet_keyword_inference'
+        notes = $taskNotes
     })
 
-    $clusterKey = "$($task.occupation_id)|$($best.Key)"
+    $clusterKey = "$($task.occupation_id)|$selectedClusterId"
     if (-not $clusterWeights.ContainsKey($clusterKey)) {
         $clusterWeights[$clusterKey] = [PSCustomObject]@{
             occupation_id = $task.occupation_id
-            task_cluster_id = $best.Key
+            task_cluster_id = $selectedClusterId
             total_weight = 0.0
             weighted_importance = 0.0
             weighted_confidence = 0.0
+            has_manual_review = $false
         }
     }
     $aggregate = $clusterWeights[$clusterKey]
     $aggregate.total_weight += $taskWeight
     $aggregate.weighted_importance += ($importance * $taskWeight)
     $aggregate.weighted_confidence += ($confidence * $taskWeight)
+    if ($usedManualReview) {
+        $aggregate.has_manual_review = $true
+    }
 }
 
 $totalByOccupation = @{}
@@ -102,8 +132,8 @@ $occupationTaskClusters = foreach ($aggregate in $clusterWeights.Values) {
         share_prior = ('{0:N4}' -f ($aggregate.total_weight / $total))
         importance_prior = ('{0:N2}' -f ($aggregate.weighted_importance / [Math]::Max(0.01, $aggregate.total_weight)))
         evidence_confidence = ('{0:N2}' -f ($aggregate.weighted_confidence / [Math]::Max(0.01, $aggregate.total_weight)))
-        source_mix = 'src_onet_30_1|src_internal_stub_2026_03'
-        notes = 'onet_keyword_inference'
+        source_mix = if ($aggregate.has_manual_review) { 'src_onet_30_1|src_manual_cluster_review_2026_03' } else { 'src_onet_30_1' }
+        notes = if ($aggregate.has_manual_review) { 'manual_cluster_review' } else { 'onet_keyword_inference' }
     }
 }
 

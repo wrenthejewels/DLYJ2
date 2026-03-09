@@ -544,6 +544,7 @@ What remains incomplete:
 - the scoring layer now uses the direct `2.0` inputs materially, but it still relies on the existing question-to-signal translation rather than a fully re-derived `2.0` weighting system
 - occupation cleanup is still needed for the largest benchmark-disagreement roles, where better questionnaire inputs cannot fully offset weak priors or weak bundle mapping
 - the current questionnaire still does not collect the direct demand-elasticity inputs that would be needed for credible demand rebound or labor-demand forecasting
+- a reviewed calibration set now exists for the current intake shape, so future questionnaire changes should be checked against that baseline instead of tuned ad hoc
 
 ## Minimum New Fields Needed For First Real V2
 
@@ -583,6 +584,6 @@ Those require new data, not just different question wording.
 
 ## Next Dependency
 
-With the visible questionnaire refactor and direct-input scoring pass now implemented, the next recommended step is:
-- improve occupation-prior coverage and targeted bundle cleanup for benchmark-disagreement roles, while reducing the remaining dependence on legacy prefill assumptions
-- after the occupation cleanup pass, build a small labeled calibration set so the questionnaire-to-signal coefficients can be estimated or stress-tested instead of remaining hand-tuned
+With occupation cleanup and the reviewed calibration set now in place, the next recommended step is:
+- reduce the remaining dependence on legacy prefill assumptions while keeping the reviewed calibration cases stable
+- improve direct source coverage for still stub-dependent clusters before widening the questionnaire-to-signal model further

@@ -420,6 +420,16 @@ The following ideas are intentionally not part of the live `2.0` result yet:
 
 These remain valid future work, but they require additional data and calibration beyond the current public stack.
 
+### Calibration status
+
+The live engine now has a reviewed calibration harness:
+
+- calibration cases live in `data/metadata/v2_reviewed_calibration_set.csv`
+- the evaluation harness lives in `scripts/evaluate_v2_calibration.js`
+- the generated report lives in `docs/data/v2_calibration_report.md`
+
+This is a reviewed launch-baseline calibration set, not a final research benchmark or causal validation layer.
+
 ## Mapping To Current Data Layer
 
 The current normalized files already support much of this structure.
@@ -496,11 +506,6 @@ The first UI implementation can use placeholder or heuristic values so long as:
 
 ## Next Dependency
 
-With confidence-weighted shrinkage and the task-level breakdown now live, the next recommended step is:
-- improve occupation-prior coverage and benchmark-disagreement mappings so the rendered result is more reliable for the weakest launch occupations, especially:
-  - Management Analysts
-  - Market Research Analysts
-  - Human Resources Specialists
-  - Accountants and Auditors
-  - Lawyers
-- build a small labeled calibration set so the current hand-tuned coefficients can be estimated or stress-tested instead of remaining purely manual
+With the reviewed calibration harness now live, the next recommended step is:
+- expand direct Anthropic task coverage for still stub-dependent clusters, especially legal/document-heavy work
+- use the reviewed calibration set to stress-test future coefficient changes instead of tuning by feel
