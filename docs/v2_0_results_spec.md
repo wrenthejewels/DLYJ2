@@ -239,6 +239,8 @@ Show:
 - `Organizational conversion`
 - `Substitution potential`
 - `Recomposition gap`
+- uncertainty range on each readout
+- one structural-confidence label
 - short interpretive note
 
 Interpretation:
@@ -246,6 +248,16 @@ Interpretation:
 - organizational conversion = how much of that compression currently looks likely to convert into fewer labor hours
 - substitution potential = share of that compression that currently looks more likely to convert into fewer labor hours
 - recomposition gap = exposed work that still looks more likely to be reorganized, absorbed, or redesigned than directly removed
+
+Implementation notes:
+- workflow compression now subtracts a lightweight task-family dependency penalty before the final coupling adjustment
+- recomposition now uses explicit task-family frictions:
+  - exception burden
+  - accountability load
+  - judgment requirement
+  - document intensity
+  - tacit/context dependence
+- the visible recomposition readouts should show ranges, not only point values
 
 ### Labor Market Context Panel
 
@@ -354,6 +366,20 @@ type V2Result = {
     organizational_conversion: number
     substitution_potential: number
     substitution_gap: number
+    workflow_compression_band: { low: number, high: number }
+    organizational_conversion_band: { low: number, high: number }
+    substitution_potential_band: { low: number, high: number }
+    substitution_gap_band: { low: number, high: number }
+    confidence_score: number
+    confidence_label: 'Low' | 'Medium' | 'High'
+    dependency_penalty: number
+    binding_dependencies: Array<{
+      source_cluster_id: string
+      source_label: string
+      target_cluster_id: string
+      target_label: string
+      penalty: number
+    }>
     summary_label: string
     summary_note: string
   }
@@ -369,6 +395,13 @@ type V2Result = {
     occupation_anchor_confidence: number
     personalization_confidence: number
     labor_context_confidence: number
+    friction_dimensions: {
+      exception_burden: number
+      accountability_load: number
+      judgment_requirement: number
+      document_intensity: number
+      tacit_context_dependence: number
+    }
     notes: string[]
   }
   labor_market_context: {
@@ -404,9 +437,16 @@ type V2Result = {
     organizational_conversion: number
     substitution_potential: number
     substitution_gap: number
+    recomposition_confidence: number
+    dependency_penalty: number
     adoption_pressure: number
     task_support_signal: number
     fragility: number
+    exception_burden: number
+    accountability_load: number
+    judgment_requirement: number
+    document_intensity: number
+    tacit_context_dependence: number
     critical_exposed_share: number
     critical_retained_share: number
     critical_absorbed_share: number
@@ -432,6 +472,9 @@ The current live engine also makes these implementation choices:
 - direct task evidence is shrunk toward cluster estimates using task-count-weighted reliability, so sparse task rows do not overpower the occupation anchor
 - direct AI/tool support and adoption context now modify augmentation, automation, and absorbed-share calculations
 - the live result now includes a secondary recomposition layer with workflow compression, organizational conversion, substitution potential, and recomposition gap
+- task-family frictions are now modeled explicitly instead of being hidden only inside broad blended protection signals
+- workflow compression now includes a lightweight reviewed dependency penalty between task families
+- recomposition readouts now carry confidence bands derived from evidence strength, anchor strength, personalization signal, direct task coverage, and dependency bottlenecks
 - labor-market context remains separate from the headline role labels
 
 ### Deferred recomposition roadmap
@@ -439,7 +482,7 @@ The current live engine also makes these implementation choices:
 The following ideas are intentionally not part of the live `2.0` result yet:
 
 - time-varying capability-frontier modeling
-- dependency-graph penalties beyond the current lightweight structural proxy
+- full task-level dependency-graph penalties beyond the current lightweight structural proxy
 - demand rebound decomposition and service-elasticity channels
 - labor-demand equations or employment forecasts
 - calibrated role-state transition models

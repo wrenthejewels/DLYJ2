@@ -431,16 +431,29 @@ u_{c(t)}, & \text{otherwise}
                     <h2>Recomposition Layer</h2>
                     <p>The live result also includes a secondary recomposition read. This is a descriptive structural layer, not a separate labor-demand forecast.</p>
                     <div class="equation-callout">
+                        <span class="callout-label">Explicit task-family frictions</span>
+                        <div class="equation-display">$$F_i = \{x_i,\ a_i,\ j_i,\ d_i,\ t_i\}$$</div>
+                        <div class="equation-display">$$x_i=\text{exception burden},\quad a_i=\text{accountability load},\quad j_i=\text{judgment requirement},\quad d_i=\text{document intensity},\quad t_i=\text{tacit/context dependence}$$</div>
+                    </div>
+                    <p>These friction dimensions are derived from the questionnaire and blended with reviewed task-family profiles before the engine scores exposure, augmentation, automation, and recomposition.</p>
+                    <div class="equation-callout">
                         <span class="callout-label">Workflow compression</span>
-                        <div class="equation-display">$$W_{\text{raw}} = \sum_i s_i e_i \cdot \operatorname{clamp}\!\left(u_i + (1-u_i)a_i \cdot 0.42,\ 0,\ 1\right)$$</div>
-                        <div class="equation-display">$$W = \operatorname{clamp}\!\left(W_{\text{raw}} \cdot (1 - 0.20C),\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$W_{\text{raw}} = \sum_i s_i e_i \cdot \operatorname{clamp}\!\left(u_i + (1-u_i)g_i \cdot 0.42,\ 0,\ 1\right)$$</div>
+                        <div class="equation-display">$$P_{\text{dep}} = 1.10 \sum_{(i,j)\in\mathcal{E}} d_{ij}\cdot \min(s_i,s_j)\cdot (1-\kappa_i)(1-\kappa_j)$$</div>
+                        <div class="equation-display">$$W = \operatorname{clamp}\!\left(\max(0, W_{\text{raw}}-P_{\text{dep}}) \cdot (1 - 0.20C),\,0,\,1\right)$$</div>
                     </div>
                     <div class="equation-callout">
                         <span class="callout-label">Organizational conversion and gap</span>
-                        <div class="equation-display">$$O = \operatorname{clamp}\!\left(0.24P_{\text{adopt}} + 0.16\pi_{\text{auto}} + 0.14G_{\text{fragile}} + 0.15(1-C) + 0.10(1-r) + 0.05(1-T) + 0.16S_{\text{exposed}},\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$O = \operatorname{clamp}\!\left(0.20P_{\text{adopt}} + 0.14\pi_{\text{auto}} + 0.12G_{\text{fragile}} + 0.12(1-C) + 0.08(1-r) + 0.05(1-T) + 0.12S_{\text{exposed}} + 0.06\bar d + 0.05(1-\bar a) + 0.03(1-\bar j) + 0.03(1-\bar t),\,0,\,1\right)$$</div>
                         <div class="equation-display">$$S_{\text{sub}} = W \cdot O,\qquad G_{\text{recomp}} = W - S_{\text{sub}}$$</div>
                     </div>
-                    <p>In the interface these are shown as <strong>Workflow compression</strong>, <strong>Organizational conversion</strong>, <strong>Substitution potential</strong>, and <strong>Recomposition gap</strong>. They are displayed as banded descriptive values, not as precise estimates of employment loss.</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Uncertainty bands</span>
+                        <div class="equation-display">$$c_{\text{recomp}} = \operatorname{avg}(C_{\text{task}}, C_{\text{anchor}}, C_{\text{personal}}, R_{\text{direct}}, 1-0.45\cdot P_{\text{dep}}/W_{\text{raw}})$$</div>
+                        <div class="equation-display">$$h = \operatorname{clamp}(0.06 + 0.18(1-c_{\text{recomp}}) + 0.05(1-R_{\text{direct}}) + 0.04(1-C_{\text{anchor}}),\,0.06,\,0.24)$$</div>
+                        <div class="equation-display">$$[z^{-}, z^{+}] = [\operatorname{clamp}(z-h,0,1),\ \operatorname{clamp}(z+h,0,1)]$$</div>
+                    </div>
+                    <p>In the interface these are shown as <strong>Workflow compression</strong>, <strong>Organizational conversion</strong>, <strong>Substitution potential</strong>, and <strong>Recomposition gap</strong>. They are displayed as banded descriptive values with explicit uncertainty ranges, not as precise estimates of employment loss.</p>
                 </section>
 
                 <section>
@@ -554,6 +567,7 @@ r, & |\mathcal{K}| = 0
                         <div class="equation-display">$$\bar{\rho} = \operatorname{avg}_i(\rho_i),\qquad \bar{\lambda} = \operatorname{avg}_{t \in \text{direct rows}}(\lambda_t)$$</div>
                     </div>
                     <p><strong>Task coverage</strong> in the UI is the direct coverage ratio $R_{\text{direct}}$ plus the raw direct/fallback counts. These values summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
+                    <p>The recomposition panel now adds a separate structural confidence read. That confidence is driven by direct task coverage, occupation-anchor strength, personalization signal strength, and the size of the remaining dependency bottlenecks.</p>
                 </section>
 
                 <section>

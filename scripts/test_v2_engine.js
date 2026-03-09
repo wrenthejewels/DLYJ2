@@ -50,10 +50,31 @@ async function main() {
   assertBounded('recomposition_summary.organizational_conversion', result.recomposition_summary.organizational_conversion);
   assertBounded('recomposition_summary.substitution_potential', result.recomposition_summary.substitution_potential);
   assertBounded('recomposition_summary.substitution_gap', result.recomposition_summary.substitution_gap);
+  assertBounded('recomposition_summary.confidence_score', result.recomposition_summary.confidence_score);
+  assertBounded('recomposition_summary.dependency_penalty', result.recomposition_summary.dependency_penalty);
+
+  ['workflow_compression_band', 'organizational_conversion_band', 'substitution_potential_band', 'substitution_gap_band'].forEach((key) => {
+    if (!result.recomposition_summary[key]) {
+      throw new Error(`Expected ${key} in recomposition_summary.`);
+    }
+    assertBounded(`${key}.low`, result.recomposition_summary[key].low);
+    assertBounded(`${key}.high`, result.recomposition_summary[key].high);
+    if (result.recomposition_summary[key].low > result.recomposition_summary[key].high) {
+      throw new Error(`${key}.low cannot exceed ${key}.high.`);
+    }
+  });
 
   if (result.recomposition_summary.substitution_potential > result.recomposition_summary.workflow_compression) {
     throw new Error('substitution_potential cannot exceed workflow_compression.');
   }
+
+  if (!result.evidence_summary?.friction_dimensions) {
+    throw new Error('Expected friction_dimensions in evidence_summary.');
+  }
+
+  ['exception_burden', 'accountability_load', 'judgment_requirement', 'document_intensity', 'tacit_context_dependence'].forEach((key) => {
+    assertBounded(`evidence_summary.friction_dimensions.${key}`, result.evidence_summary.friction_dimensions[key]);
+  });
 
   console.log(JSON.stringify({
     summary: {
@@ -74,8 +95,10 @@ async function main() {
     },
     recomposition: {
       workflowCompression: result.recomposition_summary.workflow_compression,
+      workflowCompressionBand: result.recomposition_summary.workflow_compression_band,
       substitutionPotential: result.recomposition_summary.substitution_potential,
-      substitutionGap: result.recomposition_summary.substitution_gap
+      substitutionGap: result.recomposition_summary.substitution_gap,
+      confidence: result.recomposition_summary.confidence_label
     }
   }, null, 2));
 }

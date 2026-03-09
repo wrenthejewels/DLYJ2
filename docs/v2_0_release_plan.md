@@ -949,3 +949,28 @@ Suggested update format:
   - future questionnaire revisions should validate that the shortened visible set preserves enough signal for the launch occupations
 - next recommended step:
   - test whether the shortened core refinement set materially preserves output quality across the reviewed calibration occupations, then prune or rotate questions based on that evidence
+
+## Session Update - 2026-03-09-N
+
+- completed:
+  - added explicit task-family friction dimensions to the live `2.0` engine:
+    - exception burden
+    - accountability load
+    - judgment requirement
+    - document intensity
+    - tacit/context dependence
+  - blended those friction dimensions with reviewed task-family profiles so exposure, augmentation, automation, and recomposition no longer depend only on broad hidden protection signals
+  - added a lightweight reviewed dependency matrix between task families and now subtract a dependency penalty before final workflow-compression scaling
+  - added recomposition uncertainty bands and a structural confidence label derived from evidence strength, occupation anchor strength, personalization signal strength, direct task coverage, and dependency bottlenecks
+  - updated the live `2.0` UI so the recomposition panel now shows ranges instead of only point readouts
+  - updated methodology and `v2_0` specs to document the new recomposition math
+- changed decisions:
+  - recomposition remains a secondary explanatory layer, but it now uses more explicit and legible internal structure
+  - lightweight dependency penalties are now considered part of the live engine rather than only a deferred roadmap item
+  - confidence on recomposition should be shown as a range and label, not implied by a single precise percentage
+- new blockers:
+  - the dependency layer is still a reviewed task-family proxy, not a full task graph
+  - the new friction dimensions are still questionnaire- and profile-derived proxies rather than independently observed task annotations
+  - demand rebound, labor-demand equations, and time-varying capability logic are still deferred
+- next recommended step:
+  - validate the new friction and dependency terms against the reviewed calibration occupations, then decide whether any of the remaining broad blended signals can be retired or simplified

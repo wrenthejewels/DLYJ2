@@ -8880,6 +8880,16 @@ self.onmessage = function(e) {
             return `${toMetricBand(numeric, thresholds, labels)} · ${formatConfidence(numeric)}`;
         }
 
+        function formatBandMetric(value, band, thresholds = [0.35, 0.65], labels = ['Low', 'Moderate', 'Strong']) {
+            const tier = toMetricBand(value, thresholds, labels);
+            const low = Number(band?.low);
+            const high = Number(band?.high);
+            if (!Number.isFinite(low) || !Number.isFinite(high)) {
+                return tier;
+            }
+            return `${tier} · ${Math.round(low * 100)}-${Math.round(high * 100)}%`;
+        }
+
         function formatCoverageMetric(directCount, fallbackCount) {
             const direct = Math.max(0, Number(directCount) || 0);
             const fallback = Math.max(0, Number(fallbackCount) || 0);
@@ -9128,13 +9138,16 @@ self.onmessage = function(e) {
             const coverageNote = totalRows
                 ? `${Math.round((directRows / totalRows) * 100)}% of the mapped task rows use direct Anthropic task evidence; the remaining ${fallbackRows} rows fall back to task-family estimates.`
                 : 'Task-row coverage appears once a mapped occupation is loaded.';
+            const frictionNote = summary
+                ? 'The model now scores task-family friction explicitly through exception burden, accountability load, judgment requirement, document intensity, and tacit/context dependence.'
+                : '';
 
             safeSetText('v2-task-confidence', summary ? formatLabeledMetric(summary.task_evidence_confidence) : '-');
             safeSetText('v2-prior-confidence', summary ? formatLabeledMetric(summary.personalization_confidence) : '-');
             safeSetText(
                 'v2-evidence-notes',
                 summary
-                    ? `Evidence strength is the average source strength across the role-specific task families used in this result after sparse task rows are shrunk toward broader priors. ${coverageNote} Personalization signal strength combines role distinctiveness, lower fragility, coupling protection, current AI-tool support, and evidence strength.`
+                    ? `Evidence strength is the average source strength across the role-specific task families used in this result after sparse task rows are shrunk toward broader priors. ${coverageNote} ${frictionNote} Personalization signal strength combines role distinctiveness, lower fragility, coupling protection, current AI-tool support, and evidence strength.`
                     : 'Choose a mapped occupation to see how evidence strength and personalization signal are scored.'
             );
         }
@@ -9214,14 +9227,14 @@ self.onmessage = function(e) {
 
         function renderV2RecompositionSummary(summary) {
             safeSetText('v2-recomposition-label', summary ? summary.summary_label || '-' : '-');
-            safeSetText('v2-recomposition-compression', summary ? formatLabeledMetric(summary.workflow_compression, [0.25, 0.5], ['Low', 'Moderate', 'High']) : '-');
-            safeSetText('v2-recomposition-conversion', summary ? formatLabeledMetric(summary.organizational_conversion, [0.25, 0.5], ['Low', 'Moderate', 'High']) : '-');
-            safeSetText('v2-recomposition-substitution', summary ? formatLabeledMetric(summary.substitution_potential, [0.2, 0.4], ['Low', 'Moderate', 'High']) : '-');
-            safeSetText('v2-recomposition-gap', summary ? formatLabeledMetric(summary.substitution_gap, [0.12, 0.25], ['Low', 'Moderate', 'High']) : '-');
+            safeSetText('v2-recomposition-compression', summary ? formatBandMetric(summary.workflow_compression, summary.workflow_compression_band, [0.25, 0.5], ['Low', 'Moderate', 'High']) : '-');
+            safeSetText('v2-recomposition-conversion', summary ? formatBandMetric(summary.organizational_conversion, summary.organizational_conversion_band, [0.25, 0.5], ['Low', 'Moderate', 'High']) : '-');
+            safeSetText('v2-recomposition-substitution', summary ? formatBandMetric(summary.substitution_potential, summary.substitution_potential_band, [0.2, 0.4], ['Low', 'Moderate', 'High']) : '-');
+            safeSetText('v2-recomposition-gap', summary ? formatBandMetric(summary.substitution_gap, summary.substitution_gap_band, [0.12, 0.25], ['Low', 'Moderate', 'High']) : '-');
             safeSetText(
                 'v2-recomposition-note',
                 summary?.summary_note
-                    ? `Workflow compression is the technically compressible share of the role. Organizational conversion is the current read on how much of that compression looks likely to convert into fewer labor hours. Substitution potential is compression multiplied by conversion. Recomposition gap is exposed work that still looks more likely to be reorganized than removed. ${summary.summary_note}`
+                    ? `Workflow compression is the technically compressible share of the role. Organizational conversion is the current read on how much of that compression looks likely to convert into fewer labor hours. Substitution potential is compression multiplied by conversion. Recomposition gap is exposed work that still looks more likely to be reorganized than removed. These readouts now include uncertainty ranges rather than a single point estimate. ${summary.summary_note}`
                     : 'This panel separates technically compressible work from the share that currently looks more likely to convert into fewer labor hours.'
             );
         }

@@ -553,6 +553,14 @@ The current `2.0` UI now implements the visible intake refactor:
   - organizational conversion
   - substitution potential
   - recomposition gap
+- the live engine now converts the questionnaire into explicit structural frictions:
+  - exception burden
+  - accountability load
+  - judgment requirement
+  - document intensity
+  - tacit/context dependence
+- those structural frictions now feed task-family exposure, augmentation, automation, and recomposition directly instead of remaining hidden inside only the broad protection modifiers
+- the recomposition layer now emits uncertainty bands based on evidence strength, occupation anchor strength, personalization signal strength, direct task coverage, and dependency bottlenecks
 - the live evidence rail now uses user-facing descriptive labels:
   - evidence strength
   - occupation anchor strength

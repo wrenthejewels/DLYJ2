@@ -55,6 +55,34 @@
         cluster_execution_routine: 0.05
     };
 
+    var CLUSTER_FRICTION_PROFILES = {
+        cluster_drafting: { exception_burden: 0.25, accountability_load: 0.35, judgment_requirement: 0.30, document_intensity: 1.00, tacit_context_dependence: 0.20 },
+        cluster_analysis: { exception_burden: 0.45, accountability_load: 0.55, judgment_requirement: 0.55, document_intensity: 0.80, tacit_context_dependence: 0.35 },
+        cluster_research_synthesis: { exception_burden: 0.60, accountability_load: 0.45, judgment_requirement: 0.55, document_intensity: 0.75, tacit_context_dependence: 0.40 },
+        cluster_coordination: { exception_burden: 0.75, accountability_load: 0.55, judgment_requirement: 0.65, document_intensity: 0.35, tacit_context_dependence: 0.80 },
+        cluster_client_interaction: { exception_burden: 0.70, accountability_load: 0.65, judgment_requirement: 0.85, document_intensity: 0.25, tacit_context_dependence: 0.85 },
+        cluster_qa_review: { exception_burden: 0.40, accountability_load: 0.80, judgment_requirement: 0.55, document_intensity: 0.55, tacit_context_dependence: 0.35 },
+        cluster_decision_support: { exception_burden: 0.65, accountability_load: 0.85, judgment_requirement: 0.80, document_intensity: 0.55, tacit_context_dependence: 0.60 },
+        cluster_execution_routine: { exception_burden: 0.15, accountability_load: 0.35, judgment_requirement: 0.15, document_intensity: 0.35, tacit_context_dependence: 0.15 },
+        cluster_oversight_strategy: { exception_burden: 0.70, accountability_load: 0.85, judgment_requirement: 0.90, document_intensity: 0.45, tacit_context_dependence: 0.80 },
+        cluster_relationship_management: { exception_burden: 0.65, accountability_load: 0.55, judgment_requirement: 0.90, document_intensity: 0.20, tacit_context_dependence: 0.90 },
+        cluster_documentation: { exception_burden: 0.12, accountability_load: 0.35, judgment_requirement: 0.18, document_intensity: 0.95, tacit_context_dependence: 0.10 },
+        cluster_workflow_admin: { exception_burden: 0.20, accountability_load: 0.35, judgment_requirement: 0.18, document_intensity: 0.55, tacit_context_dependence: 0.12 }
+    };
+
+    var CLUSTER_DEPENDENCY_MATRIX = {
+        cluster_drafting: { cluster_qa_review: 0.18, cluster_decision_support: 0.14, cluster_coordination: 0.10, cluster_client_interaction: 0.08 },
+        cluster_analysis: { cluster_qa_review: 0.16, cluster_decision_support: 0.12, cluster_documentation: 0.06 },
+        cluster_research_synthesis: { cluster_analysis: 0.12, cluster_decision_support: 0.12, cluster_qa_review: 0.10 },
+        cluster_execution_routine: { cluster_workflow_admin: 0.12, cluster_qa_review: 0.08 },
+        cluster_documentation: { cluster_qa_review: 0.08, cluster_coordination: 0.06 },
+        cluster_workflow_admin: { cluster_coordination: 0.12, cluster_client_interaction: 0.08 },
+        cluster_decision_support: { cluster_oversight_strategy: 0.12, cluster_client_interaction: 0.08 },
+        cluster_coordination: { cluster_client_interaction: 0.12, cluster_relationship_management: 0.10, cluster_oversight_strategy: 0.12 },
+        cluster_client_interaction: { cluster_relationship_management: 0.10, cluster_decision_support: 0.08 },
+        cluster_oversight_strategy: { cluster_decision_support: 0.10, cluster_coordination: 0.10 }
+    };
+
     var SCORING_CONFIG = {
         criticalityBoost: 0.08,
         adoptionRealizationBase: 0.92,
@@ -80,14 +108,19 @@
         elevationDistinctivenessScale: 0.12,
         elevationCriticalScale: 0.08,
         recompositionCouplingPenalty: 0.20,
+        dependencyPenaltyScale: 1.10,
         organizationalConversionWeights: {
-            adoptionPressure: 0.24,
-            automationShare: 0.16,
-            fragility: 0.14,
-            lowCoupling: 0.15,
-            lowDistinctiveness: 0.10,
+            adoptionPressure: 0.20,
+            automationShare: 0.14,
+            fragility: 0.12,
+            lowCoupling: 0.12,
+            lowDistinctiveness: 0.08,
             lowToolSupport: 0.05,
-            exposedTaskShare: 0.16
+            exposedTaskShare: 0.12,
+            documentIntensity: 0.06,
+            lowAccountability: 0.05,
+            lowJudgment: 0.03,
+            lowTacit: 0.03
         },
         roleState: {
             highDisplacementResidualMax: 0.34,
@@ -131,6 +164,27 @@
         }, 0);
     }
 
+    function weightedAverage(rows, valueSelector, weightSelector) {
+        var weightedTotal = 0;
+        var totalWeight = 0;
+
+        rows.forEach(function (row) {
+            var value = typeof valueSelector === 'function' ? valueSelector(row) : row[valueSelector];
+            var weight = typeof weightSelector === 'function' ? weightSelector(row) : row[weightSelector];
+            var normalizedValue = toNumber(value, null);
+            var normalizedWeight = toNumber(weight, 0);
+
+            if (normalizedValue === null || !isFinite(normalizedValue) || !normalizedWeight) {
+                return;
+            }
+
+            weightedTotal += normalizedValue * normalizedWeight;
+            totalWeight += normalizedWeight;
+        });
+
+        return totalWeight ? (weightedTotal / totalWeight) : 0;
+    }
+
     function shrinkTowardPrior(observedValue, priorValue, reliability, fallback) {
         var observed = toNumber(observedValue, fallback);
         var prior = toNumber(priorValue, fallback);
@@ -165,13 +219,127 @@
         return clamp(confidence * countWeight, 0.05, 0.98);
     }
 
-    function buildRecompositionSummary(metrics) {
+    function deriveClusterFriction(signals, clusterId) {
+        var profile = CLUSTER_FRICTION_PROFILES[clusterId] || {
+            exception_burden: 0.40,
+            accountability_load: 0.40,
+            judgment_requirement: 0.40,
+            document_intensity: 0.40,
+            tacit_context_dependence: 0.40
+        };
+        var user = signals.frictionDimensions || {};
+
+        return {
+            exception_burden: average([toNumber(user.exception_burden, 0.5), profile.exception_burden]),
+            accountability_load: average([toNumber(user.accountability_load, 0.5), profile.accountability_load]),
+            judgment_requirement: average([toNumber(user.judgment_requirement, 0.5), profile.judgment_requirement]),
+            document_intensity: average([toNumber(user.document_intensity, 0.5), profile.document_intensity]),
+            tacit_context_dependence: average([toNumber(user.tacit_context_dependence, 0.5), profile.tacit_context_dependence])
+        };
+    }
+
+    function summarizeBundleFriction(bundleRows) {
+        return {
+            exception_burden: weightedAverage(bundleRows, function (row) {
+                return row.friction_dimensions && row.friction_dimensions.exception_burden;
+            }, 'share_of_role'),
+            accountability_load: weightedAverage(bundleRows, function (row) {
+                return row.friction_dimensions && row.friction_dimensions.accountability_load;
+            }, 'share_of_role'),
+            judgment_requirement: weightedAverage(bundleRows, function (row) {
+                return row.friction_dimensions && row.friction_dimensions.judgment_requirement;
+            }, 'share_of_role'),
+            document_intensity: weightedAverage(bundleRows, function (row) {
+                return row.friction_dimensions && row.friction_dimensions.document_intensity;
+            }, 'share_of_role'),
+            tacit_context_dependence: weightedAverage(bundleRows, function (row) {
+                return row.friction_dimensions && row.friction_dimensions.tacit_context_dependence;
+            }, 'share_of_role')
+        };
+    }
+
+    function computeDependencyPenalty(bundleRows) {
+        var rowsById = {};
+        var bindings = [];
+        var rawPenalty = 0;
+
+        bundleRows.forEach(function (row) {
+            rowsById[row.task_cluster_id] = row;
+        });
+
+        Object.keys(CLUSTER_DEPENDENCY_MATRIX).forEach(function (sourceId) {
+            var source = rowsById[sourceId];
+            if (!source) {
+                return;
+            }
+
+            Object.keys(CLUSTER_DEPENDENCY_MATRIX[sourceId]).forEach(function (targetId) {
+                var target = rowsById[targetId];
+                if (!target) {
+                    return;
+                }
+
+                var dependencyWeight = CLUSTER_DEPENDENCY_MATRIX[sourceId][targetId];
+                var sourceResidual = 1 - clamp(toNumber(source.compressibility, 0), 0, 1);
+                var targetResidual = 1 - clamp(toNumber(target.compressibility, 0), 0, 1);
+                var pairPenalty = dependencyWeight * Math.min(toNumber(source.share_of_role, 0), toNumber(target.share_of_role, 0)) * sourceResidual * targetResidual;
+
+                rawPenalty += pairPenalty;
+                bindings.push({
+                    source_cluster_id: sourceId,
+                    source_label: source.label,
+                    target_cluster_id: targetId,
+                    target_label: target.label,
+                    penalty: Number(pairPenalty.toFixed(4))
+                });
+            });
+        });
+
+        bindings.sort(function (left, right) {
+            return right.penalty - left.penalty;
+        });
+
+        return {
+            penalty: rawPenalty * SCORING_CONFIG.dependencyPenaltyScale,
+            bindings: bindings.slice(0, 3)
+        };
+    }
+
+    function buildMetricBand(value, halfWidth) {
+        var center = clamp(toNumber(value, 0), 0, 1);
+        var width = clamp(toNumber(halfWidth, 0.12), 0.04, 0.30);
+        return {
+            low: Number(clamp(center - width, 0, 1).toFixed(3)),
+            high: Number(clamp(center + width, 0, 1).toFixed(3))
+        };
+    }
+
+    function confidenceLabel(score) {
+        if (score >= 0.70) {
+            return 'High';
+        }
+        if (score >= 0.45) {
+            return 'Medium';
+        }
+        return 'Low';
+    }
+
+    function buildRecompositionSummary(metrics, context) {
         var workflowCompression = clamp(toNumber(metrics.workflow_compression, 0), 0, 1);
         var organizationalConversion = clamp(toNumber(metrics.organizational_conversion, 0), 0, 1);
         var substitutionPotential = clamp(toNumber(metrics.substitution_potential, 0), 0, 1);
         var substitutionGap = clamp(toNumber(metrics.substitution_gap, 0), 0, 1);
         var summaryLabel = 'Mixed recomposition pressure';
         var summaryNote = 'The current bundle shows meaningful technical compression, but the role still carries enough coordination, augmentation, or retained-value work that not all exposed work cleanly converts into fewer labor hours.';
+        var confidenceScore = context ? clamp(toNumber(context.confidence_score, 0.5), 0, 1) : 0.5;
+        var confidenceBandWidth = context ? clamp(toNumber(context.band_half_width, 0.12), 0.04, 0.30) : 0.12;
+        var dependencies = context && Array.isArray(context.binding_dependencies) ? context.binding_dependencies : [];
+        var dependencyNote = dependencies.length
+            ? (' The tightest remaining workflow bottlenecks are ' + dependencies.map(function (binding) {
+                return binding.source_label + ' -> ' + binding.target_label;
+            }).join(', ') + '.')
+            : '';
+        var confidenceNote = ' Current confidence is ' + confidenceLabel(confidenceScore).toLowerCase() + '; the displayed ranges widen when direct task coverage is thin or the occupation anchor is weak.';
 
         if (workflowCompression < 0.24) {
             summaryLabel = 'Limited recomposition pressure';
@@ -189,8 +357,16 @@
             organizational_conversion: Number(organizationalConversion.toFixed(3)),
             substitution_potential: Number(substitutionPotential.toFixed(3)),
             substitution_gap: Number(substitutionGap.toFixed(3)),
+            workflow_compression_band: buildMetricBand(workflowCompression, confidenceBandWidth),
+            organizational_conversion_band: buildMetricBand(organizationalConversion, confidenceBandWidth * 0.9),
+            substitution_potential_band: buildMetricBand(substitutionPotential, confidenceBandWidth * 0.85),
+            substitution_gap_band: buildMetricBand(substitutionGap, confidenceBandWidth * 0.9),
+            confidence_score: Number(confidenceScore.toFixed(3)),
+            confidence_label: confidenceLabel(confidenceScore),
+            dependency_penalty: Number((context ? toNumber(context.dependency_penalty, 0) : 0).toFixed(3)),
+            binding_dependencies: dependencies,
             summary_label: summaryLabel,
-            summary_note: summaryNote
+            summary_note: summaryNote + dependencyNote + confidenceNote
         };
     }
 
@@ -474,6 +650,13 @@
         var adoptionPressure = average([q13, q14, 1 - q15, q16]);
         var adaptationEdge = average([q17, q18, q19]);
         var fragility = average([q10, 1 - roleDistinct]);
+        var frictionDimensions = {
+            exception_burden: average([1 - q5, 1 - q6, q7, q9]),
+            accountability_load: average([q7, q10, q11]),
+            judgment_requirement: average([q7, q9, q11]),
+            document_intensity: average([q2, q3, q4, q8]),
+            tacit_context_dependence: average([q7, q9, q12])
+        };
 
         return {
             seniority: seniority,
@@ -486,6 +669,7 @@
             adaptationEdge: adaptationEdge,
             fragility: fragility,
             taskSupportSignal: clamp((options.aiToolSupportLevel !== undefined ? toNumber(options.aiToolSupportLevel, 0.5) : average([q1, q8])), 0, 1),
+            frictionDimensions: frictionDimensions,
             answers: {
                 q1: q1, q2: q2, q3: q3, q4: q4, q5: q5, q6: q6, q7: q7, q8: q8, q9: q9,
                 q10: q10, q11: q11, q12: q12, q13: q13, q14: q14, q15: q15, q16: q16,
@@ -650,12 +834,25 @@
             var roleDefiningWork = null;
             var clusterPriorReliabilities = [];
             var taskDirectReliabilities = [];
+            var dependencyPenalty = 0;
+            var bindingDependencies = [];
             var bundlePriorConcentration = taskClusters.length ? toNumber(taskClusters[0].bundle_prior_concentration, 1.35) : 1.35;
 
             taskClusters.forEach(function (cluster) {
                 var prior = taskPriorsByCluster[cluster.task_cluster_id] || {};
                 var humanAdvantage = HUMAN_ADVANTAGE_CLUSTERS[cluster.task_cluster_id] || 0.25;
                 var priorReliability = estimatePriorReliability(prior);
+                var frictionDimensions = deriveClusterFriction(signals, cluster.task_cluster_id);
+                var exposureProtection = average([
+                    frictionDimensions.exception_burden,
+                    frictionDimensions.tacit_context_dependence
+                ]);
+                var automationProtection = average([
+                    frictionDimensions.exception_burden,
+                    frictionDimensions.accountability_load,
+                    frictionDimensions.judgment_requirement,
+                    frictionDimensions.tacit_context_dependence
+                ]);
                 var rawAuto = average([
                     toNumber(prior.partial_automation_likelihood, 0.25),
                     toNumber(prior.high_automation_likelihood, 0.12)
@@ -673,7 +870,9 @@
                     baseExposure * (SCORING_CONFIG.exposureBase + (signals.exposureReadiness * SCORING_CONFIG.exposureReadinessScale)) *
                     adoptionRealization *
                     (1 + criticalityBoost) *
-                    (1 - (humanAdvantage * signals.couplingProtection * SCORING_CONFIG.exposureCouplingPenalty)),
+                    (1 + (frictionDimensions.document_intensity * 0.08)) *
+                    (1 - (humanAdvantage * signals.couplingProtection * SCORING_CONFIG.exposureCouplingPenalty)) *
+                    (1 - (exposureProtection * 0.12)),
                     0,
                     1
                 );
@@ -681,6 +880,8 @@
                 var augmentation = clamp(
                     baseAug * (SCORING_CONFIG.augmentationBase + (signals.augmentationSignal * SCORING_CONFIG.augmentationSignalScale) + (taskSupport * SCORING_CONFIG.augmentationToolScale)) *
                     (1 + humanAdvantage * (SCORING_CONFIG.augmentationHumanBase + taskSupport * SCORING_CONFIG.augmentationHumanToolScale)) *
+                    (1 + (frictionDimensions.document_intensity * 0.14) + (frictionDimensions.judgment_requirement * 0.04)) *
+                    (1 - (frictionDimensions.tacit_context_dependence * 0.10)) *
                     adoptionRealization,
                     0,
                     1
@@ -688,18 +889,21 @@
 
                 var automation = clamp(
                     baseAuto * (SCORING_CONFIG.automationBase + (signals.automationSignal * SCORING_CONFIG.automationSignalScale) + (signals.adoptionPressure * SCORING_CONFIG.automationAdoptionScale)) *
-                    (1 - (humanAdvantage * ((signals.couplingProtection * SCORING_CONFIG.automationCouplingPenalty) + (taskSupport * SCORING_CONFIG.automationToolPenalty)))),
+                    (1 + (frictionDimensions.document_intensity * 0.06)) *
+                    (1 - (humanAdvantage * ((signals.couplingProtection * SCORING_CONFIG.automationCouplingPenalty) + (taskSupport * SCORING_CONFIG.automationToolPenalty)))) *
+                    (1 - (automationProtection * 0.30)),
                     0,
                     1
                 );
 
                 var likelyMode = augmentation >= automation ? 'augmentation' : 'automation';
                 var clusterShare = toNumber(cluster.share_prior, 0);
-                var compressionContribution = clusterShare * exposure * clamp(
+                var clusterCompressibility = clamp(
                     automation + ((1 - automation) * augmentation * SCORING_CONFIG.compressionAugmentationSavings),
                     0,
                     1
                 );
+                var compressionContribution = clusterShare * exposure * clusterCompressibility;
                 var absorbedShare = clusterShare * exposure * automation * (SCORING_CONFIG.absorbedAutomationBase + (signals.adoptionPressure * SCORING_CONFIG.absorbedAutomationAdoptionScale));
                 var retainedShare = Math.max(0, clusterShare - absorbedShare);
                 var elevationBoost = ELEVATION_CLUSTERS[cluster.task_cluster_id]
@@ -737,7 +941,9 @@
                     primary_sources: parsePipeList(prior.primary_sources || cluster.source_mix || ''),
                     likely_mode: likelyMode,
                     is_role_critical: isRoleCritical,
-                    prior_reliability: priorReliability
+                    prior_reliability: priorReliability,
+                    compressibility: clusterCompressibility,
+                    friction_dimensions: frictionDimensions
                 };
 
                 currentBundle.push(clusterResult);
@@ -760,6 +966,10 @@
                 }
             });
 
+            var dependencyRead = computeDependencyPenalty(currentBundle);
+            dependencyPenalty = clamp(dependencyRead.penalty, 0, Math.max(0, workflowCompressionRaw * 0.75));
+            bindingDependencies = dependencyRead.bindings;
+
             currentBundle.sort(function (left, right) {
                 return right.share_of_role - left.share_of_role;
             });
@@ -776,7 +986,12 @@
             exposedTaskShare = clamp(exposedTaskShare, 0, 1);
             var automationShare = automationMass + augmentationMass > 0 ? clamp(automationMass / (automationMass + augmentationMass), 0, 1) : 0.5;
             var augmentationShare = 1 - automationShare;
-            var workflowCompression = clamp(workflowCompressionRaw * (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)), 0, 1);
+            var bundleFriction = summarizeBundleFriction(currentBundle);
+            var workflowCompression = clamp(
+                Math.max(0, workflowCompressionRaw - dependencyPenalty) * (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)),
+                0,
+                1
+            );
             var conversionWeights = SCORING_CONFIG.organizationalConversionWeights;
             var organizationalConversion = clamp(
                 (signals.adoptionPressure * conversionWeights.adoptionPressure) +
@@ -785,18 +1000,16 @@
                 ((1 - signals.couplingProtection) * conversionWeights.lowCoupling) +
                 ((1 - signals.roleDistinctiveness) * conversionWeights.lowDistinctiveness) +
                 ((1 - signals.taskSupportSignal) * conversionWeights.lowToolSupport) +
-                (exposedTaskShare * conversionWeights.exposedTaskShare),
+                (exposedTaskShare * conversionWeights.exposedTaskShare) +
+                (bundleFriction.document_intensity * conversionWeights.documentIntensity) +
+                ((1 - bundleFriction.accountability_load) * conversionWeights.lowAccountability) +
+                ((1 - bundleFriction.judgment_requirement) * conversionWeights.lowJudgment) +
+                ((1 - bundleFriction.tacit_context_dependence) * conversionWeights.lowTacit),
                 0,
                 1
             );
             var substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
             var substitutionGap = clamp(workflowCompression - substitutionPotential, 0, 1);
-            var recompositionSummary = buildRecompositionSummary({
-                workflow_compression: workflowCompression,
-                organizational_conversion: organizationalConversion,
-                substitution_potential: substitutionPotential,
-                substitution_gap: substitutionGap
-            });
             var selector = store.selectorByOcc[occupationId] || {};
 
             var strategicResidualShare = sum(retainedClusters.map(function (cluster) {
@@ -993,7 +1206,8 @@
                         evidence_source: evidence ? evidence.source_id : null,
                         observed_usage_share: Number((evidence ? toNumber(evidence.observed_usage_share, 0) : 0).toFixed(4)),
                         has_direct_evidence: hasDirectEvidence,
-                        is_role_critical: !!clusterResult.is_role_critical
+                        is_role_critical: !!clusterResult.is_role_critical,
+                        friction_dimensions: clusterResult.friction_dimensions
                     });
                 });
             });
@@ -1003,6 +1217,37 @@
                     return right.exposed_share - left.exposed_share;
                 }
                 return right.share_of_role - left.share_of_role;
+            });
+
+            var totalTaskRows = directTaskEvidenceCount + fallbackTaskCount;
+            var directCoverageRatio = totalTaskRows ? (directTaskEvidenceCount / totalTaskRows) : 0.35;
+            var recompositionConfidence = clamp(average([
+                average(currentBundle.map(function (cluster) {
+                    return cluster.evidence_confidence;
+                })),
+                occupationAnchorConfidence,
+                personalizationConfidence,
+                directCoverageRatio,
+                1 - clamp(dependencyPenalty / Math.max(workflowCompressionRaw || 0.01, 0.01), 0, 1) * 0.45
+            ]), 0, 1);
+            var recompositionBandHalfWidth = clamp(
+                0.06 +
+                ((1 - recompositionConfidence) * 0.18) +
+                ((1 - directCoverageRatio) * 0.05) +
+                ((1 - occupationAnchorConfidence) * 0.04),
+                0.06,
+                0.24
+            );
+            var recompositionSummary = buildRecompositionSummary({
+                workflow_compression: workflowCompression,
+                organizational_conversion: organizationalConversion,
+                substitution_potential: substitutionPotential,
+                substitution_gap: substitutionGap
+            }, {
+                confidence_score: recompositionConfidence,
+                band_half_width: recompositionBandHalfWidth,
+                dependency_penalty: dependencyPenalty,
+                binding_dependencies: bindingDependencies
             });
 
             var categoryMappings = (store.uiRoleMapByRole[roleCategory] || [])
@@ -1056,6 +1301,13 @@
                 occupation_anchor_confidence: occupationAnchorConfidence,
                 personalization_confidence: personalizationConfidence,
                 labor_context_confidence: laborContextConfidence,
+                friction_dimensions: {
+                    exception_burden: Number(bundleFriction.exception_burden.toFixed(3)),
+                    accountability_load: Number(bundleFriction.accountability_load.toFixed(3)),
+                    judgment_requirement: Number(bundleFriction.judgment_requirement.toFixed(3)),
+                    document_intensity: Number(bundleFriction.document_intensity.toFixed(3)),
+                    tacit_context_dependence: Number(bundleFriction.tacit_context_dependence.toFixed(3))
+                },
                 source_coverage: {
                     occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
                     task_prior_rows: currentBundle.length,
@@ -1067,8 +1319,9 @@
                 notes: [
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
                     'Headline outputs are driven by O*NET task structure plus Anthropic task-level transformation evidence.',
+                    'Task-family friction is now scored explicitly across exception burden, accountability load, judgment requirement, document intensity, and tacit/context dependence.',
                     'Cluster priors are shrunk toward occupation-level priors using evidence confidence, and direct task evidence is shrunk toward cluster estimates using task-count-weighted reliability.',
-                    'Recomposition layer: workflow compression=' + Number(recompositionSummary.workflow_compression.toFixed(2)) + ', organizational conversion=' + Number(recompositionSummary.organizational_conversion.toFixed(2)) + ', substitution gap=' + Number(recompositionSummary.substitution_gap.toFixed(2)) + '.',
+                    'Recomposition layer: workflow compression=' + Number(recompositionSummary.workflow_compression.toFixed(2)) + ', organizational conversion=' + Number(recompositionSummary.organizational_conversion.toFixed(2)) + ', substitution gap=' + Number(recompositionSummary.substitution_gap.toFixed(2)) + ', confidence=' + recompositionSummary.confidence_label.toLowerCase() + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + '.') : 'No explicit role-defining task input selected.',
                     'Current AI/tool support signal=' + Number(signals.taskSupportSignal.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
                     'Labor-market data is shown as context and does not drive the main role labels.',
@@ -1155,9 +1408,16 @@
                     organizational_conversion: Number(organizationalConversion.toFixed(3)),
                     substitution_potential: Number(substitutionPotential.toFixed(3)),
                     substitution_gap: Number(substitutionGap.toFixed(3)),
+                    recomposition_confidence: Number(recompositionConfidence.toFixed(3)),
+                    dependency_penalty: Number(dependencyPenalty.toFixed(3)),
                     adoption_pressure: Number(signals.adoptionPressure.toFixed(3)),
                     task_support_signal: Number(signals.taskSupportSignal.toFixed(3)),
                     fragility: Number(signals.fragility.toFixed(3)),
+                    exception_burden: Number(bundleFriction.exception_burden.toFixed(3)),
+                    accountability_load: Number(bundleFriction.accountability_load.toFixed(3)),
+                    judgment_requirement: Number(bundleFriction.judgment_requirement.toFixed(3)),
+                    document_intensity: Number(bundleFriction.document_intensity.toFixed(3)),
+                    tacit_context_dependence: Number(bundleFriction.tacit_context_dependence.toFixed(3)),
                     critical_exposed_share: Number(clamp(criticalExposedShare, 0, 1).toFixed(3)),
                     critical_retained_share: Number(clamp(criticalRetainedShare, 0, 1).toFixed(3)),
                     critical_absorbed_share: Number(clamp(criticalAbsorbedShare, 0, 1).toFixed(3)),
