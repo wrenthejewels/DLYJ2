@@ -8,7 +8,10 @@
     const routes = {
         '/': 'index.html',
         '/guide': 'guide/index.html',
-        '/method': 'method/index.html'
+        '/method': 'method/index.html',
+        '/main2': 'main2/index.html',
+        '/guide2': 'guide2/index.html',
+        '/method2': 'method2/index.html'
     };
 
     // Initialize navigation on page load

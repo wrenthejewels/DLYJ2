@@ -40,7 +40,11 @@ Displacement timing may remain in some form, but only as a secondary output.
 
 These decisions are currently settled unless explicitly revised:
 
-- `2.0` is the default homepage experience.
+- `1.0` remains the live default experience on the existing public routes until `2.0` is fully ready.
+- `2.0` will be developed on parallel preview routes first:
+  - `main2/index.html`
+  - `guide2/index.html`
+  - `method2/index.html`
 - `1.0` will eventually be archived separately rather than kept as the main product.
 - The current hazard model will not remain the primary product ontology.
 - The questionnaire concept stays, but outputs and internal mapping will change.
@@ -98,17 +102,26 @@ It is a new primary model that can still produce a timing-like view as a downstr
 
 ### 1.0 product surface still live
 
-The current public app and docs are still `1.0`:
+The current public app and docs remain `1.0` on the existing routes:
 - `index.html`
 - `method/index.html`
 - `guide/index.html`
 
-These pages are still framed around:
+These pages remain framed around:
 - displacement timelines
 - METR
 - blue/green hazard curves
 - risk by year
 - re-employment likelihood
+
+### 2.0 preview surface now split onto parallel pages
+
+The in-progress `2.0` product surface now lives separately at:
+- `main2/index.html`
+- `guide2/index.html`
+- `method2/index.html`
+
+This allows the team to keep iterating on the new transformation-first experience without replacing the live `1.0` hazard-model output before cutover.
 
 ### 2.0 data foundation now exists
 
@@ -181,9 +194,15 @@ to backing occupations in the `2.0` launch set.
 
 ### Product pages
 
+Live `1.0` pages:
 - `index.html`
 - `method/index.html`
 - `guide/index.html`
+
+Parallel `2.0` preview pages:
+- `main2/index.html`
+- `method2/index.html`
+- `guide2/index.html`
 
 ### 2.0 planning / docs
 
@@ -252,6 +271,7 @@ Latest known validated state:
 - integrated partial Manning occupation-level priors
 - rebalanced launch occupations to cover the broad public role categories
 - built validators and normalization scripts
+- created parallel `2.0` preview routes at `main2/index.html`, `guide2/index.html`, and `method2/index.html`
 
 ### Completed but still provisional
 
@@ -267,19 +287,18 @@ These exist, but some are still heuristic rather than final research-grade input
 
 ### Product / UX
 
-- `2.0` results page has not been implemented
-- `2.0` homepage flow has not been implemented
-- `1.0` cards are still live
-- `1.0` charts are still live
-- broad category selection has not yet been rewired to occupation candidates
+- `2.0` preview pages now exist separately, but `2.0` has not replaced the live `1.0` routes
+- the live homepage still shows the `1.0` cards and hazard output
+- the live homepage still shows the `1.0` charts
+- the live broad category selection has not yet been rewired to occupation candidates
 
 ### Model logic
 
-- no actual `2.0` transformation engine yet
-- no residual bundle scoring yet
-- no decoupling / O-Ring logic yet
-- no adaptation scoring logic using the new normalized layer yet
-- no new secondary hazard derived from the new ontology yet
+- a first-pass `2.0` transformation engine now exists in `v2_engine.js` and is wired into the preview route
+- residual bundle scoring still needs better calibration and direct task-bundle inputs
+- decoupling / O-Ring logic is still only partial / heuristic
+- adaptation scoring using the new normalized layer is still heuristic rather than final
+- the secondary hazard output still needs final definition against the new ontology
 
 ### Questionnaire
 
@@ -293,9 +312,11 @@ These exist, but some are still heuristic rather than final research-grade input
 
 ### Documentation
 
-- `guide/index.html` still explains the `1.0` hazard model
-- `method/index.html` still documents the `1.0` METR/hazard framework
-- no public `2.0` methodology page exists yet
+- the live public docs at `guide/index.html` and `method/index.html` still explain the `1.0` hazard model
+- the `2.0` documentation now lives on the parallel preview pages:
+  - `guide2/index.html`
+  - `method2/index.html`
+- the preview docs still need a full rewrite before cutover
 
 ## Major Open Questions
 
@@ -396,7 +417,7 @@ Best near-term candidate:
 
 ### Workstream 5: Product migration
 
-Replace the current homepage experience with `2.0` while retaining the `1.0` model only as internal history / later archive material.
+Continue building `2.0` on the parallel preview routes, then replace the current homepage experience only once the new outputs are ready. Retain the `1.0` model as a separate archive after cutover.
 
 ### Workstream 6: Documentation rewrite
 
@@ -408,10 +429,10 @@ so the public explanation matches the `2.0` ontology.
 
 ## Recommended Near-Term Sequence
 
-1. wire the homepage to category -> occupation candidates -> transformation outputs
-2. add broader occupation-level exposure coverage
-3. improve the transformation-engine scoring with the new intake fields
-4. rewrite guide and methodology
+1. keep the live `1.0` routes stable while iterating on `main2/index.html`, `guide2/index.html`, and `method2/index.html`
+2. improve the `2.0` transformation-engine scoring with the new intake fields
+3. add broader occupation-level exposure coverage
+4. rewrite the preview guide and methodology pages
 5. finalize what secondary hazard output survives from `1.0`
 
 ## Acceptance Criteria For V2.0
@@ -550,3 +571,18 @@ Suggested update format:
   - occupation-level exposure priors remain incomplete for uncovered launch roles
 - next recommended step:
   - improve occupation-prior coverage and then tighten the downstream scoring logic around the new direct `2.0` inputs
+
+## Session Update - 2026-03-09
+
+- completed:
+  - restored the live `index.html`, `guide/index.html`, and `method/index.html` routes to the older `1.0` hazard-model experience
+  - created parallel `2.0` preview entry points at `main2/index.html`, `guide2/index.html`, and `method2/index.html`
+  - updated the preview-page navigation so the new files cross-link within the `2.0` preview set
+- changed decisions:
+  - `2.0` should no longer replace the live homepage incrementally on the same files
+  - `2.0` should be developed on parallel preview routes until the full cutover is ready
+- new blockers:
+  - the `2.0` preview content still needs to diverge further from the legacy hazard-model presentation
+  - there is not yet a cutover checklist for swapping the live routes from `1.0` to `2.0`
+- next recommended step:
+  - continue `2.0` UI and documentation work only on the new preview routes, leaving the live `1.0` pages unchanged
