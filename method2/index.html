@@ -304,13 +304,14 @@
 
                 <section>
                     <h2>Task-Bundle Reconstruction</h2>
-                    <p>Let the baseline occupation share for cluster <em>i</em> be $s_i^{(0)}$. The current implementation applies additive override mass from direct task inputs and then renormalizes.</p>
+                    <p>Let the baseline occupation share for cluster <em>i</em> be $s_i^{(0)}$. The current implementation now treats the occupation bundle as a prior composition with concentration $\kappa$, then updates that prior with pseudo-mass from direct task inputs.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Task override rule</span>
+                        <span class="callout-label">Pseudo-count bundle update</span>
                         <div class="equation-display">$$o_i = w_i^{\text{explicit}} + 0.16 \cdot \mathbf{1}[i \in \text{dominantTaskClusters}] + 0.10 \cdot \mathbf{1}[i \in \text{roleCriticalClusters}]$$</div>
-                        <div class="equation-display">$$\tilde{s}_i = s_i^{(0)} + o_i,\qquad s_i = \frac{\tilde{s}_i}{\sum_j \tilde{s}_j}$$</div>
+                        <div class="equation-display">$$\kappa = 0.75 + 1.5 \cdot \operatorname{avg}_i(\text{clusterEvidenceConfidence}_i)$$</div>
+                        <div class="equation-display">$$s_i = \frac{\kappa s_i^{(0)} + o_i}{\kappa + \sum_j o_j}$$</div>
                     </div>
-                    <p>This produces the personalized current bundle shown in the transformation map. In the current release, these are still lightweight tilts on the occupation prior rather than a fully user-specified role reconstruction.</p>
+                    <p>This is equivalent to a Dirichlet-style prior update rather than an unconstrained ad hoc rescaling. In the current release, the direct inputs still tilt the occupation prior rather than fully replacing it with user-supplied time shares.</p>
                 </section>
 
                 <section>
@@ -351,15 +352,18 @@
 
                 <section>
                     <h2>Cluster-Level Transformation Scoring</h2>
-                    <p>For each task cluster <em>i</em>, the engine loads a base exposure prior $e_i^{(0)}$, a base augmentation prior $a_i^{(0)}$, and a base automation prior $u_i^{(0)}$. The automation prior is the mean of the partial-automation and high-automation priors. The current implementation also blends the cluster exposure prior lightly with the occupation-level exposure prior $E_{\text{occ}}$.</p>
+                    <p>For each task cluster <em>i</em>, the engine loads a base exposure prior $e_i^{(0)}$, a base augmentation prior $a_i^{(0)}$, and a base automation prior $u_i^{(0)}$. The automation prior is the mean of the partial-automation and high-automation priors. These cluster priors are no longer averaged mechanically with occupation priors; they are shrunk toward occupation-level priors using an adjusted reliability term.</p>
                     <p>Let $h_i$ be the built-in human-advantage weight for cluster <em>i</em>, let $k_i = \mathbf{1}[i \in \text{roleCriticalClusters}]$, and let $T$ be the direct AI/tool support signal. The live formulas are:</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Exposure, augmentation, automation</span>
-                        <div class="equation-display">$$\bar{e}_i^{(0)} = \operatorname{avg}(e_i^{(0)}, E_{\text{occ}})$$</div>
+                        <span class="callout-label">Prior shrinkage and transformation</span>
+                        <div class="equation-display">$$\rho_i = \text{adjusted cluster-prior reliability} \in [0,1]$$</div>
+                        <div class="equation-display">$$\bar{e}_i^{(0)} = \rho_i e_i^{(0)} + (1-\rho_i)E_{\text{occ}}$$</div>
+                        <div class="equation-display">$$\bar{a}_i^{(0)} = \rho_i a_i^{(0)} + (1-\rho_i)A_{\text{occ}}$$</div>
+                        <div class="equation-display">$$\bar{u}_i^{(0)} = \rho_i u_i^{(0)} + (1-\rho_i)U_{\text{occ}}$$</div>
                         <div class="equation-display">$$R_{\text{adopt}} = 0.92 + 0.16P_{\text{adopt}}$$</div>
                         <div class="equation-display">$$e_i = \operatorname{clamp}\!\left(\bar{e}_i^{(0)} \cdot (0.68 + 0.62E)\cdot R_{\text{adopt}}\cdot(1 + 0.08k_i)\cdot(1 - 0.42 h_i C),\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$a_i = \operatorname{clamp}\!\left(a_i^{(0)} \cdot (0.72 + 0.48A_{\text{aug}} + 0.32T)\cdot(1 + h_i(0.16 + 0.12T))\cdot R_{\text{adopt}},\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$u_i = \operatorname{clamp}\!\left(u_i^{(0)} \cdot (0.68 + 0.68A_{\text{auto}} + 0.18P_{\text{adopt}})\cdot(1 - h_i(0.42C + 0.18T)),\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$a_i = \operatorname{clamp}\!\left(\bar{a}_i^{(0)} \cdot (0.72 + 0.48A_{\text{aug}} + 0.32T)\cdot(1 + h_i(0.16 + 0.12T))\cdot R_{\text{adopt}},\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$u_i = \operatorname{clamp}\!\left(\bar{u}_i^{(0)} \cdot (0.68 + 0.68A_{\text{auto}} + 0.18P_{\text{adopt}})\cdot(1 - h_i(0.42C + 0.18T)),\,0,\,1\right)$$</div>
                         <div class="equation-display">$$m_i = \arg\max\{a_i,\ u_i\}$$</div>
                     </div>
                     <p>The model then estimates absorbed, retained, and elevated share for each cluster.</p>
@@ -379,22 +383,23 @@
 
                 <section>
                     <h2>Task-Level Exposure Projection</h2>
-                    <p>The task panel reuses the cluster-level transformation math rather than introducing a second scoring system. For each task <em>t</em>, the engine first takes the cluster-level result for $c(t)$ and then blends in direct Anthropic task evidence when available.</p>
+                    <p>The task panel reuses the cluster-level transformation math rather than introducing a second scoring system. For each task <em>t</em>, the engine first takes the cluster-level result for $c(t)$ and then shrinks direct Anthropic task evidence toward that cluster estimate using task-count-weighted reliability.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Task-level exposure and mode</span>
+                        <div class="equation-display">$$\lambda_t = c_t \cdot \frac{n_t}{n_t + 40}$$</div>
                         <div class="equation-display">$$e_t = 
 \begin{cases}
-\operatorname{avg}(e_{c(t)}, e_t^{\text{direct}}), & \text{if direct task evidence exists} \\
+\lambda_t e_t^{\text{direct}} + (1-\lambda_t)e_{c(t)}, & \text{if direct task evidence exists} \\
 e_{c(t)}, & \text{otherwise}
 \end{cases}$$</div>
                         <div class="equation-display">$$a_t = 
 \begin{cases}
-\operatorname{avg}(a_{c(t)}, a_t^{\text{direct}}), & \text{if direct task evidence exists} \\
+\lambda_t a_t^{\text{direct}} + (1-\lambda_t)a_{c(t)}, & \text{if direct task evidence exists} \\
 a_{c(t)}, & \text{otherwise}
 \end{cases}$$</div>
                         <div class="equation-display">$$u_t = 
 \begin{cases}
-\operatorname{avg}(u_{c(t)}, u_t^{\text{direct}}), & \text{if direct task evidence exists} \\
+\lambda_t u_t^{\text{direct}} + (1-\lambda_t)u_{c(t)}, & \text{if direct task evidence exists} \\
 u_{c(t)}, & \text{otherwise}
 \end{cases}$$</div>
                     </div>
@@ -409,7 +414,7 @@ u_{c(t)}, & \text{otherwise}
 \end{cases}$$</div>
                         <div class="equation-display">$$t_t = \text{retained}_t + \text{elev}_t$$</div>
                     </div>
-                    <p>In the interface, the task list is sorted by exposed share $s_t e_t$ by default. The user can expand from the top ten rows to the full mapped task list without changing the underlying calculations.</p>
+                    <p>Here $c_t$ is task-level evidence confidence and $n_t$ is the parsed Anthropic task count when available. In the interface, the task list is sorted by exposed share $s_t e_t$ by default. The user can expand from the top ten rows to the full mapped task list without changing the underlying calculations.</p>
                 </section>
 
                 <section>
@@ -513,6 +518,7 @@ r, & |\mathcal{K}| = 0
                     <div class="equation-callout">
                         <span class="callout-label">Task coverage counts</span>
                         <div class="equation-display">$$N_{\text{direct}} = \#\{t : \text{direct Anthropic task evidence exists}\},\qquad N_{\text{fallback}} = \#\{t : \text{cluster fallback is used}\}$$</div>
+                        <div class="equation-display">$$\bar{\rho} = \operatorname{avg}_i(\rho_i),\qquad \bar{\lambda} = \operatorname{avg}_{t \in \text{direct rows}}(\lambda_t)$$</div>
                     </div>
                     <p>These values are used in the evidence panel, the occupation-assignment card, and the task breakdown summary. They summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
                 </section>
@@ -533,6 +539,7 @@ r, & |\mathcal{K}| = 0
                         <li><strong>Direct task inputs are still coarse.</strong> They matter more than before, but they still tilt the occupation bundle rather than fully replacing it with user-supplied time shares.</li>
                         <li><strong>Task-level rows are partly projected from cluster math.</strong> When direct Anthropic task evidence is missing, the task panel inherits cluster-level exposure and mode estimates rather than estimating each task independently from a fully separate model.</li>
                         <li><strong>Adoption context is still a modifier, not a separate labor-demand model.</strong> It changes realized pressure inside the transformation engine, but it does not become an independent forecast system.</li>
+                        <li><strong>Coefficients remain hand-tuned.</strong> The shrinkage and transformation forms are now more principled, but the constants are still calibrated manually rather than estimated from a labeled validation set.</li>
                         <li><strong>Occupation quality remains critical.</strong> The largest benchmark-disagreement roles still need better occupation-prior and task-bundle cleanup.</li>
                         <li><strong>Confidence is descriptive.</strong> The model exposes coverage and alignment confidence, not a formal uncertainty distribution over every output.</li>
                     </ul>

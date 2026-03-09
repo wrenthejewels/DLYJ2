@@ -367,8 +367,10 @@ type V2Result = {
 
 The current live engine also makes these implementation choices:
 
-- cluster exposure is lightly blended with the occupation-level exposure prior before questionnaire modifiers are applied
+- cluster exposure, augmentation, and automation priors are shrunk toward occupation-level priors using evidence-confidence-weighted reliability rather than a simple average
+- task-family overrides update the occupation bundle through a pseudo-count composition update rather than an unconstrained rescaling
 - the user-selected `value-defining task family` receives extra weight in exposure, elevation, and top-exposed selection
+- direct task evidence is shrunk toward cluster estimates using task-count-weighted reliability, so sparse task rows do not overpower the occupation anchor
 - direct AI/tool support and adoption context now modify augmentation, automation, and absorbed-share calculations
 - labor-market context remains separate from the headline role labels
 
@@ -448,10 +450,11 @@ The first UI implementation can use placeholder or heuristic values so long as:
 
 ## Next Dependency
 
-With the direct `2.0` inputs now wired into live scoring, the next recommended step is:
+With confidence-weighted shrinkage and the task-level breakdown now live, the next recommended step is:
 - improve occupation-prior coverage and benchmark-disagreement mappings so the rendered result is more reliable for the weakest launch occupations, especially:
   - Management Analysts
   - Market Research Analysts
   - Human Resources Specialists
   - Accountants and Auditors
   - Lawyers
+- build a small labeled calibration set so the current hand-tuned coefficients can be estimated or stress-tested instead of remaining purely manual

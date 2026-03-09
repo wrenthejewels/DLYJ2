@@ -778,3 +778,20 @@ Suggested update format:
   - prefill behavior still carries some legacy category and hierarchy assumptions
 - next recommended step:
   - improve occupation-prior coverage and targeted mappings for disagreement-heavy roles such as Management Analysts, Market Research Analysts, Human Resources Specialists, Accountants and Auditors, and Lawyers
+
+## Session Update - 2026-03-10
+
+- completed:
+  - replaced the old task-bundle override normalization with a pseudo-count composition update so direct task-family inputs now act like a prior update rather than an unconstrained rescaling
+  - replaced simple cluster-to-occupation averaging with confidence-weighted shrinkage for exposure, augmentation, and automation priors
+  - replaced simple task-to-cluster averaging with task-count-weighted shrinkage so sparse Anthropic task rows no longer overpower cluster estimates
+  - extended the methodology page to document the new occupation-assignment, task projection, and shrinkage math
+- changed decisions:
+  - direct task evidence is now treated as a noisy estimate that should be partially pooled toward cluster structure, not as an equally reliable row-by-row truth source
+  - occupation priors remain active as shrinkage targets even when direct task evidence exists, especially for low-count or low-confidence task rows
+- new blockers:
+  - the current shrinkage constants and task-count schedule are still hand-tuned rather than estimated from a labeled validation set
+  - benchmark-disagreement occupations still need manual mapping review before coefficient tuning will be trustworthy
+  - task-cluster mapping confidence remains a major source of model error for some occupations
+- next recommended step:
+  - review and repair the disagreement-heavy occupations first, then build a small expert-labeled calibration set to estimate or stress-test the current coefficients

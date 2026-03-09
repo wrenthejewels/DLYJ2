@@ -509,6 +509,7 @@ The current `2.0` UI now implements the visible intake refactor:
   - value-defining task family
   - current AI/tool support
   - residual role distinctiveness
+- those direct task-family inputs now feed the live engine through a pseudo-count bundle update rather than a flat post-hoc renormalization
 - internal compatibility is still preserved through `Q1-Q19` IDs
 
 What remains incomplete:
@@ -550,3 +551,4 @@ The questionnaire should not be designed around:
 
 With the visible questionnaire refactor and direct-input scoring pass now implemented, the next recommended step is:
 - improve occupation-prior coverage and targeted bundle cleanup for benchmark-disagreement roles, while reducing the remaining dependence on legacy prefill assumptions
+- after the occupation cleanup pass, build a small labeled calibration set so the questionnaire-to-signal coefficients can be estimated or stress-tested instead of remaining hand-tuned
