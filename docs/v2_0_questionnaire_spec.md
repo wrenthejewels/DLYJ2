@@ -498,22 +498,23 @@ Depends on:
 
 ## Recommended MVP Implementation Strategy
 
-### Phase 1
+### Current implementation status
 
-Do not rebuild the full questionnaire UI immediately.
+The current `2.0` UI now implements the visible intake refactor:
+- category plus occupation anchoring is live on the main `2.0` page
+- the visible questionnaire uses the new grouped section names
+- direct task-family inputs now include:
+  - top task family
+  - secondary task family
+  - value-defining task family
+  - current AI/tool support
+  - residual role distinctiveness
+- internal compatibility is still preserved through `Q1-Q19` IDs
 
-Instead:
-- keep current `Q1-Q19` structure available
-- add the new occupation-candidate confirmation step
-- add one simple task-family weighting input
-- add one direct residual-role viability question
-- create a translation layer from the existing answers into the new `V2Result` fields
-
-This lets `2.0` move forward without waiting for a full intake redesign.
-
-### Phase 2
-
-Refactor the visible questionnaire into the new grouped structure after the transformation engine exists.
+What remains incomplete:
+- the visible questionnaire still uses the old radio-grid shell rather than a bespoke `2.0` intake layout
+- prefill logic still depends on legacy role presets and hierarchy assumptions
+- the scoring layer still relies on the existing question-to-signal translation rather than a fully re-derived `2.0` weighting system
 
 ## Minimum New Fields Needed For First Real V2
 
@@ -546,5 +547,8 @@ The questionnaire should not be designed around:
 
 ## Next Dependency
 
-With this questionnaire spec locked, the next recommended step is:
-- implement the first `2.0` scoring scaffold that maps current normalized data plus questionnaire responses into the `V2Result` structure
+With the visible questionnaire refactor now implemented, the next recommended step is:
+- tighten the scoring layer and occupation-prior coverage around the new direct `2.0` inputs, especially:
+  - role-defining task weighting
+  - residual bundle distinctiveness
+  - category/occupation anchoring quality for benchmark-disagreement roles

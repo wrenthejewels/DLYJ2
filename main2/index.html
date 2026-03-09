@@ -3601,7 +3601,7 @@
                         <div class="step-badge sequence-item" data-seq="1">Step 1</div>
                         <div class="step-card sequence-item" data-seq="2">
                             <select id="role-select" class="plane-dropdown">
-                                <option value="">Select role</option>
+                                <option value="">Select category</option>
                                 <option value="software">Software/Tech</option>
                                 <option value="admin">Administrative</option>
                                 <option value="data-analysis">Data Analysis</option>
@@ -3619,12 +3619,22 @@
                                 <option value="custom">Other/Custom</option>
                             </select>
                         </div>
-                        <div class="step-caption sequence-item" data-seq="7">Choose your role or closest approximation.</div>
+                        <div class="step-caption sequence-item" data-seq="9">Start with the closest work category so the model can narrow to a mapped occupation.</div>
                     </div>
 
                     <div class="step">
                         <div class="step-badge sequence-item" data-seq="3">Step 2</div>
                         <div class="step-card sequence-item" data-seq="4">
+                            <select id="top-occupation-select" class="plane-dropdown" disabled>
+                                <option value="">Select category first</option>
+                            </select>
+                        </div>
+                        <div class="step-caption sequence-item" data-seq="9">Pick the specific occupation that best matches your current role. This is the main anchor for the `2.0` model.</div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-badge sequence-item" data-seq="5">Step 3</div>
+                        <div class="step-card sequence-item" data-seq="6">
                             <select id="hierarchy-select" class="plane-dropdown">
                                 <option value="">Select hierarchy level</option>
                                 <option value="1">Level 1: Many layers above me (4+ people who do similar work)</option>
@@ -3634,15 +3644,15 @@
                                 <option value="5">Level 5: Unique/irreplaceable (own entire function/system)</option>
                             </select>
                         </div>
-                        <div class="step-caption sequence-item" data-seq="7">Select your hierarchy level based on how many people <strong>above you</strong> could realistically do your job. This differs from total seniority: someone may outrank you but be unable to perform your core duties.</div>
+                        <div class="step-caption sequence-item" data-seq="9">Select your hierarchy level based on how many people <strong>above you</strong> could realistically do your job. This differs from total seniority: someone may outrank you but be unable to perform your core duties.</div>
                     </div>
 
                     <div class="step">
-                        <div class="step-badge sequence-item" data-seq="5">Step 3</div>
-                        <div class="step-card step-card-button sequence-item" data-seq="6" style="min-height:70px;">
+                        <div class="step-badge sequence-item" data-seq="7">Step 4</div>
+                        <div class="step-card step-card-button sequence-item" data-seq="8" style="min-height:70px;">
                             <button id="questionnaire-button" class="step-button" style="width:100%; height:100%;">Personalize attributes</button>
                         </div>
-                        <div class="step-caption sequence-item" data-seq="7">Answer questions about your role to calibrate the model.</div>
+                        <div class="step-caption sequence-item" data-seq="9">Refine the default occupation profile with your actual task mix, context, and current AI support.</div>
                     </div>
                 </div>
                 <hr class="resources-divider">
@@ -3746,8 +3756,8 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <h2 class="card-title">2.0 transformation inputs</h2>
-                            <p class="card-description">These direct inputs personalize the transformation briefing around your actual task mix and context.</p>
+                            <h2 class="card-title">Task mix and role fit</h2>
+                            <p class="card-description">These direct `2.0` inputs distinguish what dominates your time from what defines the role's value.</p>
                         </div>
                     </div>
 
@@ -3793,6 +3803,26 @@
                         </div>
 
                         <div class="v2-input-field">
+                            <label for="v2-task-critical">Value-defining task family</label>
+                            <select id="v2-task-critical" class="plane-dropdown v2-direct-input">
+                                <option value="">Infer from occupation</option>
+                                <option value="cluster_analysis">Analysis</option>
+                                <option value="cluster_drafting">Drafting</option>
+                                <option value="cluster_research_synthesis">Research synthesis</option>
+                                <option value="cluster_coordination">Coordination</option>
+                                <option value="cluster_client_interaction">Client interaction</option>
+                                <option value="cluster_qa_review">QA / review</option>
+                                <option value="cluster_decision_support">Decision support</option>
+                                <option value="cluster_execution_routine">Routine execution</option>
+                                <option value="cluster_oversight_strategy">Oversight / strategy</option>
+                                <option value="cluster_relationship_management">Relationship management</option>
+                                <option value="cluster_documentation">Documentation</option>
+                                <option value="cluster_workflow_admin">Workflow administration</option>
+                            </select>
+                            <p>Pick the task family that most explains why the role exists, even if it is not the largest share of your week.</p>
+                        </div>
+
+                        <div class="v2-input-field">
                             <label for="v2-tool-support">Current AI/tool support in your workflow</label>
                             <select id="v2-tool-support" class="plane-dropdown v2-direct-input">
                                 <option value="">Infer from questionnaire</option>
@@ -3826,12 +3856,12 @@
                     <div class="card-header">
                         <div class="section-title--with-actions">
                             <div>
-                                <h2 class="card-title">Job characteristics</h2>
-                                <p class="card-description">Answer these questions to calibrate the model for your specific role.</p>
+                                <h2 class="card-title">Questionnaire</h2>
+                                <p class="card-description">These questions personalize the selected occupation around exposure conditions, bundle integrity, adoption context, and fit.</p>
                             </div>
                             <label class="task-bucket-toggle" style="margin-left:auto;">
                                 <input type="checkbox" id="prefill-questions">
-                                <span>Prefill from inferred role + hierarchy characteristics</span>
+                                <span>Prefill from selected occupation + hierarchy</span>
                             </label>
                         </div>
                     </div>
@@ -3839,7 +3869,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            AI Technical Readiness
+                            Exposure Conditions
                             <span class="category-count">4 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -3851,8 +3881,8 @@
                     <div class="category-content">
                         <div class="question-grid">
                     <div class="question">
-                        <h5>1. Current AI Performance</h5>
-                        <p>How well can AI already perform core tasks in your field?</p>
+                        <h5>1. Observed AI capability in this work</h5>
+                        <p>How well can current AI systems already handle the kinds of tasks most relevant to this occupation?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q1-1" name="q1" value="1">
@@ -3878,8 +3908,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>2. Data Availability</h5>
-                        <p>How much example work and documentation about your type of role is available (training materials, online guides, industry examples, case studies)?</p>
+                        <h5>2. Example work and documentation</h5>
+                        <p>How much role-relevant example work exists for imitation, benchmarking, training, or structured review?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q2-1" name="q2" value="1">
@@ -3905,8 +3935,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>3. Benchmark Clarity</h5>
-                        <p>How easily can success in your role be measured objectively?</p>
+                        <h5>3. Benchmark and review clarity</h5>
+                        <p>How easy is it to tell whether work in this role is good, correct, or complete using clear criteria?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q3-1" name="q3" value="1">
@@ -3933,7 +3963,7 @@
 
                     <div class="question">
                         <h5>4. Task Digitization</h5>
-                        <p>What percentage of your work inputs and outputs currently exist in digital/text format?</p>
+                        <p>What share of your work inputs and outputs already live in digital, text, spreadsheet, or system-readable form?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q4-1" name="q4" value="1">
@@ -3964,7 +3994,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Task Structure & Adaptability
+                            Bundle Integrity
                             <span class="category-count">6 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -3977,7 +4007,7 @@
                         <div class="question-grid">
                     <div class="question">
                         <h5>5. Task Decomposability</h5>
-                        <p>Can your work be broken into discrete, measurable tasks?</p>
+                        <p>Can the work be broken into discrete pieces that can be delegated, reviewed, or benchmarked separately?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q5-1" name="q5" value="1">
@@ -4004,7 +4034,7 @@
 
                     <div class="question">
                         <h5>6. Task Standardization</h5>
-                        <p>How standardized are procedures and workflows in your role?</p>
+                        <p>How standardized are the procedures, templates, and workflow steps in this role?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q6-1" name="q6" value="1">
@@ -4031,7 +4061,7 @@
 
                     <div class="question">
                         <h5>7. Context Dependency</h5>
-                        <p>How much does your work require understanding unique organizational context?</p>
+                        <p>How much does good performance depend on local organizational context, unwritten norms, or situation-specific judgment?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q7-1" name="q7" value="5">
@@ -4057,8 +4087,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>8. Feedback Loop Speed</h5>
-                        <p>How quickly do you get feedback on work quality?</p>
+                        <h5>8. Feedback and review speed</h5>
+                        <p>How quickly does the role usually get feedback that reveals whether output quality is acceptable?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q8-1" name="q8" value="1">
@@ -4085,7 +4115,7 @@
 
                     <div class="question">
                         <h5>9. Tacit Knowledge</h5>
-                        <p>How much of your expertise is documented vs. learned through experience?</p>
+                        <p>How much of the expertise in this role is learned through experience rather than fully documented in explicit procedures?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q9-1" name="q9" value="5">
@@ -4111,8 +4141,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>10. Task Reallocation Risk</h5>
-                        <p>If your position were eliminated, how easily could your responsibilities be redistributed to existing team members?</p>
+                        <h5>10. Residual bundle fragility</h5>
+                        <p>If routine parts of the role were absorbed, how easily would the remaining work fragment or get redistributed instead of staying a distinct job?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q10-1" name="q10" value="1">
@@ -4143,7 +4173,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Human & Organizational Factors
+                            Retained Work
                             <span class="category-count">2 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -4155,8 +4185,8 @@
                     <div class="category-content">
                         <div class="question-grid">
                     <div class="question">
-                        <h5>11. Human Judgment & Relationships</h5>
-                        <p>How critical are human relationships, empathy, and trust in your role?</p>
+                        <h5>11. Human judgment and relationship load</h5>
+                        <p>How much does the role depend on trust, stakeholder sensitivity, negotiation, empathy, or human accountability?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q11-1" name="q11" value="5">
@@ -4182,8 +4212,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>12. Physical Presence</h5>
-                        <p>How much does your work require physical presence?</p>
+                        <h5>12. Physical or on-site dependence</h5>
+                        <p>How much does the role depend on physical presence, site-specific work, or non-digitizable activity?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q12-1" name="q12" value="5">
@@ -4214,7 +4244,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Company & Industry Context
+                            Adoption Context
                             <span class="category-count">4 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -4226,8 +4256,8 @@
                     <div class="category-content">
                         <div class="question-grid">
                     <div class="question">
-                        <h5>13. Company AI Adoption Readiness</h5>
-                        <p>How prepared is your organization for AI integration?</p>
+                        <h5>13. Organization AI adoption readiness</h5>
+                        <p>How prepared is your organization to integrate AI into actual workflows, not just experiment with demos?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q13-1" name="q13" value="1">
@@ -4254,7 +4284,7 @@
 
                     <div class="question">
                         <h5>14. Labor Cost Pressure</h5>
-                        <p>How cost-sensitive is your employer to labor expenses?</p>
+                        <p>How strong is the pressure to reduce labor cost or increase output without adding headcount?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q14-1" name="q14" value="1">
@@ -4281,7 +4311,7 @@
 
                     <div class="question">
                         <h5>15. Labor Market Tightness</h5>
-                        <p>How difficult is it to hire people with your skills?</p>
+                        <p>How difficult is it for employers like yours to hire and retain people with this skill mix?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q15-1" name="q15" value="5">
@@ -4307,8 +4337,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>16. IT Infrastructure</h5>
-                        <p>How modern is your organization's technical infrastructure?</p>
+                        <h5>16. Workflow integration readiness</h5>
+                        <p>How ready is the organization to plug new AI systems into the tools, data, and review loops this work depends on?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q16-1" name="q16" value="1">
@@ -4339,7 +4369,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Personal Adaptability
+                            Personalization Fit
                             <span class="category-count">3 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -4352,7 +4382,7 @@
                         <div class="question-grid">
                     <div class="question">
                         <h5>17. Skill Transferability</h5>
-                        <p>How transferable are your core skills to other roles/industries?</p>
+                        <p>How transferable are your core skills to adjacent work or to the retained version of this role if the bundle narrows?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q17-1" name="q17" value="1">
@@ -4378,8 +4408,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>18. Adaptability/Learning</h5>
-                        <p>How quickly can you learn and adopt new tools/technologies?</p>
+                        <h5>18. Adaptability and learning speed</h5>
+                        <p>How quickly can you absorb new tools, workflows, and expectations when the role changes?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q18-1" name="q18" value="1">
@@ -4405,8 +4435,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>19. Job Performance</h5>
-                        <p>How good are you at your job, relative to your peers?</p>
+                        <h5>19. Relative performance in current role</h5>
+                        <p>How strong is your performance in this role relative to peers doing comparable work?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q19-1" name="q19" value="1">
@@ -4456,13 +4486,13 @@
                 <div class="v2-results-header">
                     <div class="v2-results-copy">
                         <div class="v2-results-kicker">V2.0 Empirical Role Briefing</div>
-                        <h3 id="v2-role-state-label">Select a role to begin</h3>
-                        <p id="v2-role-summary">Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.</p>
+                        <h3 id="v2-role-state-label">Select a category to begin</h3>
+                        <p id="v2-role-summary">Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.</p>
                     </div>
                     <div class="v2-occupation-picker">
-                        <label for="occupation-match-select">Occupation match</label>
+                        <label for="occupation-match-select">Occupation anchor</label>
                         <select id="occupation-match-select" class="plane-dropdown" disabled>
-                            <option value="">Select role first</option>
+                            <option value="">Select category first</option>
                         </select>
                     </div>
                 </div>
@@ -4903,25 +4933,25 @@
         const PROBABILITY_THRESHOLD_20 = 0.2;
 
         const QUESTION_LABELS = {
-            Q1: 'Current AI Performance',
-            Q2: 'Data Availability',
-            Q3: 'Benchmark Clarity',
+            Q1: 'Observed AI Capability',
+            Q2: 'Example Work and Documentation',
+            Q3: 'Benchmark and Review Clarity',
             Q4: 'Task Digitization',
             Q5: 'Task Decomposability',
             Q6: 'Task Standardization',
             Q7: 'Context Dependency',
-            Q8: 'Feedback Loop Speed',
+            Q8: 'Feedback and Review Speed',
             Q9: 'Tacit Knowledge',
-            Q10: 'Task Reallocation Risk',
-            Q11: 'Human Judgment & Relationships',
-            Q12: 'Physical Presence',
-            Q13: 'Company AI Adoption Readiness',
+            Q10: 'Residual Bundle Fragility',
+            Q11: 'Human Judgment and Relationship Load',
+            Q12: 'Physical or On-Site Dependence',
+            Q13: 'Organization AI Adoption Readiness',
             Q14: 'Labor Cost Pressure',
             Q15: 'Labor Market Tightness',
-            Q16: 'IT Infrastructure',
+            Q16: 'Workflow Integration Readiness',
             Q17: 'Skill Transferability',
-            Q18: 'Adaptability/Learning',
-            Q19: 'Job Performance'
+            Q18: 'Adaptability and Learning Speed',
+            Q19: 'Relative Performance in Current Role'
         };
         const QUESTION_IDS = Object.keys(QUESTION_LABELS);
         const DOMAIN_PENALTY_BIAS = 1.20; // Slightly reduced baseline misalignment to tighten domain spread
@@ -8584,14 +8614,17 @@ self.onmessage = function(e) {
         function getDirectV2Inputs() {
             const primaryCluster = document.getElementById('v2-task-primary')?.value || '';
             const secondaryCluster = document.getElementById('v2-task-secondary')?.value || '';
+            const criticalCluster = document.getElementById('v2-task-critical')?.value || '';
             const dominantTaskClusters = [primaryCluster, secondaryCluster].filter(Boolean);
             const dedupedClusters = Array.from(new Set(dominantTaskClusters));
+            const roleCriticalClusters = criticalCluster ? [criticalCluster] : [];
 
             const aiToolRaw = document.getElementById('v2-tool-support')?.value || '';
             const residualRaw = document.getElementById('v2-role-distinctiveness')?.value || '';
 
             return {
                 dominantTaskClusters: dedupedClusters,
+                roleCriticalClusters: roleCriticalClusters,
                 aiToolSupportLevel: aiToolRaw ? norm(parseFloat(aiToolRaw)) : null,
                 residualRoleDistinctiveness: residualRaw ? norm(parseFloat(residualRaw)) : null
             };
@@ -8599,7 +8632,7 @@ self.onmessage = function(e) {
 
         function resetV2Results(message, detail) {
             safeSetText('v2-role-state-label', message || 'Select a role to begin');
-            safeSetText('v2-role-summary', detail || 'Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.');
+            safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
             safeSetText('v2-outlook-summary-copy', detail || 'This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.');
             safeSetText('v2-role-state-card', '-');
             safeSetText('v2-score-role-outlook', '-');
@@ -8619,19 +8652,31 @@ self.onmessage = function(e) {
             safeSetText('v2-evidence-notes', '-');
             safeSetText('v2-map-subtitle', 'This view shows what in the role is exposed, how the change is split between augmentation and automation, and what remains.');
             renderV2LaborMarketContext(null, '');
-            renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped role to populate the current bundle.' });
+            renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped occupation to populate the current bundle.' });
             renderV2ClusterList('v2-exposed-bundle', [], { emptyText: 'Exposure detail appears once the transformation view is active.' });
             renderV2ClusterList('v2-residual-bundle', [], { emptyText: 'Residual role detail appears once the transformation view is active.' });
             lastV2Result = null;
         }
 
         async function populateOccupationCandidates(roleCategory, preserveCurrent = true) {
-            const select = document.getElementById('occupation-match-select');
-            if (!select) return [];
+            const topSelect = document.getElementById('top-occupation-select');
+            const resultSelect = document.getElementById('occupation-match-select');
+            const selects = [topSelect, resultSelect].filter(Boolean);
+            if (!selects.length) return [];
+
+            const setEmptyState = (label, disabled = true) => {
+                selects.forEach((select) => {
+                    select.disabled = disabled;
+                    select.innerHTML = `<option value="">${label}</option>`;
+                    select.classList.remove('selected');
+                });
+            };
 
             if (!roleCategory || roleCategory === 'custom') {
-                select.disabled = true;
-                select.innerHTML = '<option value="">Choose a mapped role family to continue</option>';
+                const label = roleCategory === 'custom'
+                    ? 'Choose the closest mapped category instead'
+                    : 'Select category first';
+                setEmptyState(label, true);
                 selectedOccupationId = null;
                 return [];
             }
@@ -8641,27 +8686,29 @@ self.onmessage = function(e) {
                 engine = await getV2Engine();
             } catch (error) {
                 console.error('[V2] Failed to load occupation candidates:', error);
-                select.disabled = true;
-                select.innerHTML = '<option value="">V2 occupation data unavailable</option>';
+                setEmptyState('V2 occupation data unavailable', true);
                 selectedOccupationId = null;
                 return [];
             }
 
             const candidates = engine.getOccupationCandidates(roleCategory, 5) || [];
-            select.innerHTML = '';
+            selects.forEach((select) => {
+                select.innerHTML = '';
+            });
 
             if (!candidates.length) {
-                select.disabled = true;
-                select.innerHTML = '<option value="">No mapped occupations available</option>';
+                setEmptyState('No mapped occupations available', true);
                 selectedOccupationId = null;
                 return [];
             }
 
             candidates.forEach((occupation) => {
-                const option = document.createElement('option');
-                option.value = occupation.occupation_id;
-                option.textContent = occupation.title;
-                select.appendChild(option);
+                selects.forEach((select) => {
+                    const option = document.createElement('option');
+                    option.value = occupation.occupation_id;
+                    option.textContent = occupation.title;
+                    select.appendChild(option);
+                });
             });
 
             const candidateIds = new Set(candidates.map(item => item.occupation_id));
@@ -8669,8 +8716,11 @@ self.onmessage = function(e) {
                 ? selectedOccupationId
                 : candidates[0].occupation_id;
 
-            select.disabled = false;
-            select.value = preferredId;
+            selects.forEach((select) => {
+                select.disabled = false;
+                select.value = preferredId;
+                select.classList.add('selected');
+            });
             selectedOccupationId = preferredId;
             return candidates;
         }
@@ -8680,7 +8730,7 @@ self.onmessage = function(e) {
             const roleCategory = selectedRole;
 
             if (!roleCategory) {
-                resetV2Results('Select a role to begin', 'Choose a broad role category, confirm an occupation match, and complete the questionnaire to generate the transformation briefing.');
+                resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
                 return null;
             }
 
@@ -8688,19 +8738,19 @@ self.onmessage = function(e) {
                 const select = document.getElementById('occupation-match-select');
                 if (select) {
                     select.disabled = true;
-                    select.innerHTML = '<option value="">Choose a mapped role family to continue</option>';
+                    select.innerHTML = '<option value="">Choose the closest mapped category instead</option>';
                 }
                 selectedOccupationId = null;
                 resetV2Results(
-                    'Choose the closest mapped role family',
-                    'The empirical 2.0 briefing only runs on mapped launch occupations. Select the closest preset role family and then confirm the occupation match before scoring.'
+                    'Choose the closest mapped category',
+                    'The empirical 2.0 briefing only runs on mapped launch occupations. Choose the closest supported category and occupation before scoring.'
                 );
                 return null;
             }
 
             const candidates = await populateOccupationCandidates(roleCategory, preserveSelection);
             if (!candidates.length || !selectedOccupationId) {
-                resetV2Results('No occupation match available', 'This role family does not yet have a launch occupation mapped into the transformation engine.');
+                resetV2Results('No occupation match available', 'This category does not yet have a launch occupation mapped into the transformation engine.');
                 return null;
             }
 
@@ -8737,6 +8787,7 @@ self.onmessage = function(e) {
                     answers: answers,
                     seniorityLevel: seniorityLevel,
                     dominantTaskClusters: directInputs.dominantTaskClusters,
+                    roleCriticalClusters: directInputs.roleCriticalClusters,
                     aiToolSupportLevel: aiToolSupportLevel,
                     residualRoleDistinctiveness: residualRoleDistinctiveness
                 });
@@ -8891,6 +8942,7 @@ self.onmessage = function(e) {
         // Lightweight top-of-page flow (dropdowns + progress dots)
         document.addEventListener('DOMContentLoaded', function() {
             const roleSelect = document.getElementById('role-select');
+            const topOccupationSelect = document.getElementById('top-occupation-select');
             const hierarchySelect = document.getElementById('hierarchy-select');
             const prefillToggle = document.getElementById('prefill-questions');
             const dotRole = document.getElementById('dot-role');
@@ -8937,11 +8989,6 @@ self.onmessage = function(e) {
             const activate = (el) => el && el.classList.add('active');
             const showBlock = (el) => el && el.classList.remove('hidden-block');
 
-            function clickPreset(roleVal) {
-                const btn = document.querySelector(`.preset-btn[data-role="${roleVal}"]`);
-                if (btn) btn.click();
-            }
-
             function syncSeniority(val) {
                 const radio = document.querySelector(`input[name="seniority"][value="${val}"]`);
                 if (radio) {
@@ -8951,7 +8998,7 @@ self.onmessage = function(e) {
             }
 
             function tryShowResults() {
-                if (roleSelect?.value && hierarchySelect?.value) {
+                if (roleSelect?.value && hierarchySelect?.value && (selectedOccupationId || roleSelect?.value === 'custom')) {
                     showBlock(resultsSection);
                     showBlock(explanationSection);
                 }
@@ -8959,7 +9006,7 @@ self.onmessage = function(e) {
 
             function setPrefillState() {
                 if (!prefillToggle) return;
-                const ready = !!(roleSelect?.value && hierarchySelect?.value);
+                const ready = !!(roleSelect?.value && hierarchySelect?.value && (selectedOccupationId || roleSelect?.value === 'custom'));
                 if (!ready) {
                     prefillToggle.checked = false;
                     prefillToggle.disabled = true;
@@ -8972,6 +9019,7 @@ self.onmessage = function(e) {
                 const subtitle = document.getElementById('chart-subtitle');
                 if (!subtitle) return;
 
+                const occupationText = topOccupationSelect?.selectedOptions[0]?.text || '';
                 const roleText = roleSelect?.selectedOptions[0]?.text || '';
                 const hierarchyValue = hierarchySelect?.value;
 
@@ -8980,19 +9028,51 @@ self.onmessage = function(e) {
                     levelText = `Level ${hierarchyValue}`;
                 }
 
-                if (roleText && roleText !== 'Select role' && levelText) {
+                if (occupationText && occupationText !== 'Select category first' && occupationText !== 'Choose the closest mapped category instead' && levelText) {
+                    subtitle.textContent = `${occupationText} · ${levelText}`;
+                } else if (occupationText && occupationText !== 'Select category first' && occupationText !== 'Choose the closest mapped category instead') {
+                    subtitle.textContent = occupationText;
+                } else if (roleText && roleText !== 'Select category' && levelText) {
                     subtitle.textContent = `${roleText} · ${levelText}`;
-                } else if (roleText && roleText !== 'Select role') {
+                } else if (roleText && roleText !== 'Select category') {
                     subtitle.textContent = roleText;
                 } else {
                     subtitle.textContent = '-';
                 }
             }
 
+            function syncLegacyRoleCategory(roleVal) {
+                selectedRole = roleVal || null;
+                document.querySelectorAll('.preset-btn').forEach((button) => {
+                    button.classList.toggle('active', !!roleVal && button.dataset.role === roleVal);
+                });
+            }
+
             occupationMatchSelect?.addEventListener('change', () => {
                 selectedOccupationId = occupationMatchSelect.value || null;
+                if (topOccupationSelect && topOccupationSelect.value !== selectedOccupationId) {
+                    topOccupationSelect.value = selectedOccupationId || '';
+                    topOccupationSelect.classList.toggle('selected', !!selectedOccupationId);
+                }
+                updateChartSubtitle();
+                tryShowResults();
+                setPrefillState();
                 updateV2Results({ preserveSelection: true }).catch(error => {
                     console.error('[V2] Failed to rerender after occupation change:', error);
+                });
+            });
+
+            topOccupationSelect?.addEventListener('change', () => {
+                selectedOccupationId = topOccupationSelect.value || null;
+                topOccupationSelect.classList.toggle('selected', !!selectedOccupationId);
+                if (occupationMatchSelect && occupationMatchSelect.value !== selectedOccupationId) {
+                    occupationMatchSelect.value = selectedOccupationId || '';
+                }
+                updateChartSubtitle();
+                tryShowResults();
+                setPrefillState();
+                updateV2Results({ preserveSelection: true }).catch(error => {
+                    console.error('[V2] Failed to rerender after top occupation change:', error);
                 });
             });
 
@@ -9005,15 +9085,33 @@ self.onmessage = function(e) {
                 });
             });
 
-            roleSelect?.addEventListener('change', () => {
-                if (roleSelect.value) {
-                    roleSelect.classList.add('selected');
-                    clickPreset(roleSelect.value);
+            roleSelect?.addEventListener('change', async () => {
+                const roleValue = roleSelect.value || '';
+                roleSelect.classList.toggle('selected', !!roleValue);
+                syncLegacyRoleCategory(roleValue);
+
+                if (roleValue) {
                     activate(dotRole);
                 }
+
+                selectedOccupationId = null;
+
+                try {
+                    await populateOccupationCandidates(roleValue, false);
+                } catch (error) {
+                    console.error('[V2] Failed to populate occupations from category change:', error);
+                }
+
+                if (!roleValue) {
+                    resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
+                }
+
+                updateSlidersFromPreset();
                 updateChartSubtitle();
                 tryShowResults();
                 setPrefillState();
+                analyzeRole();
+
                 if (prefillToggle?.checked) {
                     applyQuestionPreset();
                     analyzeRole();
@@ -9121,7 +9219,7 @@ self.onmessage = function(e) {
                 }
                 if (roleSelect?.value) activate(dotRole);
                 if (hierarchySelect?.value) activate(dotHierarchy);
-                if (roleSelect?.value && hierarchySelect?.value) {
+                if (roleSelect?.value && hierarchySelect?.value && (selectedOccupationId || roleSelect?.value === 'custom')) {
                     activate(dotDone);
                     showBlock(resultsSection);
                     showBlock(explanationSection);
@@ -9146,8 +9244,8 @@ self.onmessage = function(e) {
             prefillToggle?.addEventListener('change', () => {
                 if (prefillToggle.disabled) return;
                 if (prefillToggle.checked) {
-                    if (!selectedRole) {
-                        alert('Pick a role and hierarchy level first.');
+                    if (!selectedRole || (!selectedOccupationId && selectedRole !== 'custom')) {
+                        alert('Pick a category, occupation, and hierarchy level first.');
                         prefillToggle.checked = false;
                         return;
                     }

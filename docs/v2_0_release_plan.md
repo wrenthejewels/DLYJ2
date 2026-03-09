@@ -737,3 +737,25 @@ Suggested update format:
   - there is not yet a cutover checklist for swapping the live routes from `1.0` to `2.0`
 - next recommended step:
   - continue `2.0` UI and documentation work only on the new preview routes, leaving the live `1.0` pages unchanged
+
+## Session Update - 2026-03-09-G
+
+- completed:
+  - promoted the `2.0` model to the live root route while preserving the archived `1.0` homepage at `main-old/index.html`
+  - refactored the `2.0` entry flow from legacy role presets into `category -> occupation -> hierarchy -> questionnaire`
+  - added direct occupation search so users can jump straight to a mapped launch occupation even when the broad category is imperfect
+  - rewrote the visible questionnaire copy and grouping around the `2.0` model:
+    - `Exposure Conditions`
+    - `Bundle Integrity`
+    - `Retained Work`
+    - `Adoption Context`
+    - `Personalization Fit`
+  - added a new `value-defining task family` input and wired it into the engine as `roleCriticalClusters`
+- changed decisions:
+  - broad role categories are now helper filters, not the primary identity of the model
+  - the `2.0` intake is now explicitly occupation-anchored, even though legacy `Q1-Q19` compatibility remains in code
+- new blockers:
+  - the scoring layer still uses the current questionnaire-to-signal translation rather than a fully re-derived `2.0` weighting system
+  - benchmark-disagreement occupations still need targeted occupation-prior and task-bundle cleanup
+- next recommended step:
+  - tighten the downstream scoring logic and occupation-prior coverage around the new direct `2.0` inputs, starting with the largest benchmark-disagreement roles

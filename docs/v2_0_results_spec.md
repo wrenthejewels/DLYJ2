@@ -397,5 +397,8 @@ The first UI implementation can use placeholder or heuristic values so long as:
 
 ## Next Dependency
 
-With this spec locked, the next recommended step is:
-- define the `2.0` questionnaire mapping so responses can populate the result contract above
+With the `2.0` questionnaire mapping and visible intake now in place, the next recommended step is:
+- tighten the scoring logic and occupation-prior coverage so the rendered result makes fuller use of:
+  - role-defining task weighting
+  - residual bundle distinctiveness
+  - improved occupation anchoring for benchmark-disagreement roles

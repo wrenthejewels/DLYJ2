@@ -748,6 +748,74 @@
             getOccupationCandidates: function (roleCategory, limit) {
                 return resolveCandidates(roleCategory, limit || 3);
             },
+            listOccupations: function (limit) {
+                var rows = Object.keys(store.occupationsById)
+                    .map(function (occupationId) {
+                        var occupation = store.occupationsById[occupationId];
+                        var selector = store.selectorByOcc[occupationId] || {};
+
+                        return {
+                            occupation_id: occupation.occupation_id,
+                            onet_soc_code: occupation.onet_soc_code,
+                            title: occupation.title,
+                            role_family: occupation.role_family,
+                            selector_weight: toNumber(selector.selector_weight, 0.5),
+                            search_blob: selector.search_blob || occupation.title.toLowerCase()
+                        };
+                    })
+                    .sort(function (left, right) {
+                        return right.selector_weight - left.selector_weight;
+                    });
+
+                return typeof limit === 'number' && limit > 0 ? rows.slice(0, limit) : rows;
+            },
+            searchOccupations: function (query, limit, roleCategory) {
+                var normalizedQuery = String(query || '').trim().toLowerCase();
+                var rows = this.listOccupations();
+
+                if (roleCategory) {
+                    rows = rows.filter(function (row) {
+                        return row.role_family === roleCategory;
+                    });
+                }
+
+                if (!normalizedQuery) {
+                    return typeof limit === 'number' && limit > 0 ? rows.slice(0, limit) : rows;
+                }
+
+                rows = rows
+                    .map(function (row) {
+                        var title = String(row.title || '').toLowerCase();
+                        var searchBlob = String(row.search_blob || '').toLowerCase();
+                        var score = 0;
+
+                        if (title === normalizedQuery) {
+                            score += 100;
+                        } else if (title.indexOf(normalizedQuery) === 0) {
+                            score += 60;
+                        } else if (title.indexOf(normalizedQuery) !== -1) {
+                            score += 40;
+                        }
+
+                        if (searchBlob.indexOf(normalizedQuery) !== -1) {
+                            score += 20;
+                        }
+
+                        score += row.selector_weight * 10;
+
+                        return {
+                            score: score,
+                            row: row
+                        };
+                    })
+                    .filter(function (entry) { return entry.score > 0; })
+                    .sort(function (left, right) {
+                        return right.score - left.score;
+                    })
+                    .map(function (entry) { return entry.row; });
+
+                return typeof limit === 'number' && limit > 0 ? rows.slice(0, limit) : rows;
+            },
             getOccupationById: function (occupationId) {
                 return store.occupationsById[occupationId] || null;
             },
