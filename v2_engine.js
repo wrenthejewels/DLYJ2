@@ -11,6 +11,9 @@
         occupations: 'data/normalized/occupations.csv',
         selector: 'data/normalized/occupation_selector_index.csv',
         occupationTaskClusters: 'data/normalized/occupation_task_clusters.csv',
+        occupationTasks: 'data/normalized/occupation_tasks.csv',
+        taskMembership: 'data/normalized/task_cluster_membership.csv',
+        taskEvidence: 'data/normalized/task_exposure_evidence.csv',
         taskPriors: 'data/normalized/task_augmentation_automation_priors.csv',
         occupationPriors: 'data/normalized/occupation_exposure_priors.csv',
         adaptationPriors: 'data/normalized/occupation_adaptation_priors.csv',
@@ -121,6 +124,10 @@
                 return part ? part.charAt(0).toUpperCase() + part.slice(1) : part;
             })
             .join(' ');
+    }
+
+    function taskKey(occupationId, onetTaskId) {
+        return String(occupationId || '') + '|' + String(onetTaskId || '');
     }
 
     function parseCsv(text) {
@@ -499,6 +506,7 @@
             var exposedClusters = [];
             var retainedClusters = [];
             var elevatedClusters = [];
+            var clusterResultsById = {};
             var transformedShares = {};
             var absorbedTotal = 0;
             var exposedTaskShare = 0;
@@ -576,8 +584,10 @@
                     share_of_role: clusterShare,
                     exposure_score: exposure,
                     augmentation_likelihood: augmentation,
+                    automation_likelihood: automation,
                     partial_automation_likelihood: toNumber(prior.partial_automation_likelihood, automation),
                     high_automation_likelihood: toNumber(prior.high_automation_likelihood, automation * 0.7),
+                    absorbed_share: absorbedShare,
                     residual_relevance: transformedShare,
                     evidence_confidence: average([
                         toNumber(cluster.evidence_confidence, 0.4),
@@ -589,6 +599,7 @@
                 };
 
                 currentBundle.push(clusterResult);
+                clusterResultsById[cluster.task_cluster_id] = clusterResult;
 
                 if (isRoleCritical) {
                     roleDefiningWork = clusterResult;
@@ -623,6 +634,7 @@
             exposedTaskShare = clamp(exposedTaskShare, 0, 1);
             var automationShare = automationMass + augmentationMass > 0 ? clamp(automationMass / (automationMass + augmentationMass), 0, 1) : 0.5;
             var augmentationShare = 1 - automationShare;
+            var selector = store.selectorByOcc[occupationId] || {};
 
             var strategicResidualShare = sum(retainedClusters.map(function (cluster) {
                 return ELEVATION_CLUSTERS[cluster.task_cluster_id] ? cluster.residual_relevance : 0;
@@ -692,7 +704,7 @@
                 : 'low';
             var occupationAnchorConfidence = average([
                 occupationPrior ? toNumber(occupationPrior.confidence, 0.45) : 0.40,
-                store.selectorByOcc[occupationId] ? toNumber(store.selectorByOcc[occupationId].selector_weight, 0.50) : 0.50
+                selector ? toNumber(selector.selector_weight, 0.50) : 0.50
             ]);
             var personalizationConfidence = average([
                 signals.roleDistinctiveness,
@@ -711,6 +723,157 @@
                 roleSummary += ' The role-defining work in ' + roleDefiningWork.label.toLowerCase() + ' carries extra weight in the retained-bundle calculation.';
             }
 
+            var taskRowsByCluster = {};
+            var taskBreakdownRows = [];
+            var directTaskEvidenceCount = 0;
+            var fallbackTaskCount = 0;
+
+            (store.occupationTasksByOcc[occupationId] || []).forEach(function (task) {
+                var key = taskKey(occupationId, task.onet_task_id);
+                var membership = store.taskMembershipByKey[key] || null;
+                var evidence = store.taskEvidenceByKey[key] || null;
+                var clusterId = membership && membership.task_cluster_id
+                    ? membership.task_cluster_id
+                    : (evidence && evidence.task_cluster_id ? evidence.task_cluster_id : null);
+
+                if (!clusterId || !clusterResultsById[clusterId]) {
+                    return;
+                }
+
+                var importanceWeight = clamp(toNumber(task.importance, 0.55), 0, 1);
+                var frequencyWeight = clamp(toNumber(task.frequency, importanceWeight), 0, 1);
+                var observedUsageWeight = evidence ? clamp(toNumber(evidence.observed_usage_share, 0), 0, 1) : 0;
+                var coreBoost = String(task.task_type || '').toLowerCase() === 'core' ? 0.08 : 0;
+                var membershipWeight = membership ? clamp(toNumber(membership.membership_weight, 1), 0.15, 1) : 1;
+                var rawTaskWeight = Math.max(0.04, (importanceWeight * 0.58) + (frequencyWeight * 0.27) + (observedUsageWeight * 0.15) + coreBoost) * membershipWeight;
+
+                if (!taskRowsByCluster[clusterId]) {
+                    taskRowsByCluster[clusterId] = [];
+                }
+
+                taskRowsByCluster[clusterId].push({
+                    task: task,
+                    membership: membership,
+                    evidence: evidence,
+                    raw_weight: rawTaskWeight
+                });
+            });
+
+            Object.keys(taskRowsByCluster).forEach(function (clusterId) {
+                var clusterResult = clusterResultsById[clusterId];
+                var rows = taskRowsByCluster[clusterId] || [];
+                var totalRawWeight = sum(rows.map(function (row) {
+                    return row.raw_weight;
+                })) || rows.length || 1;
+
+                rows.forEach(function (row) {
+                    var evidence = row.evidence;
+                    var membership = row.membership;
+                    var taskShare = clusterResult.share_of_role * (row.raw_weight / totalRawWeight);
+                    var taskExposure = evidence
+                        ? average([clusterResult.exposure_score, toNumber(evidence.exposure_score, clusterResult.exposure_score)])
+                        : clusterResult.exposure_score;
+                    var taskAugmentation = evidence
+                        ? average([clusterResult.augmentation_likelihood, toNumber(evidence.augmentation_score, clusterResult.augmentation_likelihood)])
+                        : clusterResult.augmentation_likelihood;
+                    var taskAutomation = evidence
+                        ? average([clusterResult.automation_likelihood, toNumber(evidence.automation_score, clusterResult.automation_likelihood)])
+                        : clusterResult.automation_likelihood;
+                    var taskAbsorbedShare = taskShare * taskExposure * taskAutomation * (0.74 + (signals.adoptionPressure * 0.16));
+                    var taskRetainedShare = Math.max(0, taskShare - taskAbsorbedShare);
+                    var taskElevationBoost = ELEVATION_CLUSTERS[clusterId]
+                        ? taskAbsorbedShare * (0.22 + signals.seniority * 0.18 + signals.roleDistinctiveness * 0.12 + (clusterResult.is_role_critical ? 0.08 : 0))
+                        : 0;
+                    var transformedTaskShare = taskRetainedShare + taskElevationBoost;
+                    var hasDirectEvidence = !!(evidence && evidence.source_id && String(evidence.source_id).indexOf('src_internal_stub') !== 0);
+
+                    if (hasDirectEvidence) {
+                        directTaskEvidenceCount += 1;
+                    } else {
+                        fallbackTaskCount += 1;
+                    }
+
+                    taskBreakdownRows.push({
+                        onet_task_id: row.task.onet_task_id,
+                        task_statement: row.task.task_statement,
+                        task_type: row.task.task_type || '',
+                        task_cluster_id: clusterId,
+                        task_cluster_label: clusterResult.label,
+                        share_of_role: Number(taskShare.toFixed(4)),
+                        exposed_share: Number((taskShare * taskExposure).toFixed(4)),
+                        retained_share: Number(transformedTaskShare.toFixed(4)),
+                        exposure_score: Number(taskExposure.toFixed(3)),
+                        exposure_level: toTier(taskExposure, [0.40, 0.68], ['low', 'moderate', 'high']),
+                        augmentation_likelihood: Number(taskAugmentation.toFixed(3)),
+                        automation_likelihood: Number(taskAutomation.toFixed(3)),
+                        likely_mode: taskAugmentation >= taskAutomation ? 'augmentation' : 'automation',
+                        evidence_confidence: Number(average([
+                            clusterResult.evidence_confidence,
+                            evidence ? toNumber(evidence.confidence, 0.55) : null,
+                            membership ? toNumber(membership.mapping_confidence, 0.45) : 0.45
+                        ]).toFixed(3)),
+                        mapping_method: membership ? membership.mapping_method : 'cluster_fallback',
+                        mapping_confidence: Number((membership ? toNumber(membership.mapping_confidence, 0.45) : 0.45).toFixed(3)),
+                        evidence_type: evidence ? evidence.evidence_type : 'cluster_fallback',
+                        evidence_source: evidence ? evidence.source_id : null,
+                        observed_usage_share: Number((evidence ? toNumber(evidence.observed_usage_share, 0) : 0).toFixed(4)),
+                        has_direct_evidence: hasDirectEvidence,
+                        is_role_critical: !!clusterResult.is_role_critical
+                    });
+                });
+            });
+
+            taskBreakdownRows.sort(function (left, right) {
+                if (right.exposed_share !== left.exposed_share) {
+                    return right.exposed_share - left.exposed_share;
+                }
+                return right.share_of_role - left.share_of_role;
+            });
+
+            var categoryMappings = (store.uiRoleMapByRole[roleCategory] || [])
+                .filter(function (row) { return row.onet_soc_code; })
+                .slice()
+                .sort(function (left, right) {
+                    return toNumber(left.fit_rank, 99) - toNumber(right.fit_rank, 99);
+                });
+            var categoryCandidateRank = null;
+            for (var categoryIndex = 0; categoryIndex < categoryMappings.length; categoryIndex += 1) {
+                if (categoryMappings[categoryIndex].onet_soc_code === occupation.onet_soc_code) {
+                    categoryCandidateRank = categoryIndex + 1;
+                    break;
+                }
+            }
+
+            var occupationAssignment = {
+                role_category: roleCategory,
+                role_category_label: slugToLabel(roleCategory),
+                selected_occupation_id: occupationId,
+                selected_occupation_title: occupation.title,
+                onet_soc_code: occupation.onet_soc_code || null,
+                selector_weight: Number(toNumber(selector.selector_weight, 0.5).toFixed(3)),
+                anchor_confidence: Number(occupationAnchorConfidence.toFixed(3)),
+                category_candidate_count: categoryMappings.length,
+                category_candidate_rank: categoryCandidateRank,
+                occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
+                assignment_method: input.occupationId
+                    ? 'Using the occupation you explicitly selected from the mapped launch set.'
+                    : 'Using the top mapped occupation for the selected launch category.',
+                task_assignment_method: 'The model starts from O*NET tasks for the selected occupation, maps those tasks into task clusters, blends in Anthropic task evidence where available, and then reweights the task bundle using your questionnaire.',
+                dominant_task_clusters: (input.dominantTaskClusters || []).map(function (clusterId) {
+                    return {
+                        task_cluster_id: clusterId,
+                        label: slugToLabel(clusterId)
+                    };
+                }),
+                role_defining_cluster: roleDefiningWork ? {
+                    task_cluster_id: roleDefiningWork.task_cluster_id,
+                    label: roleDefiningWork.label
+                } : null,
+                direct_task_evidence_count: directTaskEvidenceCount,
+                fallback_task_count: fallbackTaskCount,
+                questionnaire_effect: 'Your task-family choices change role-share weights. Your questionnaire answers then change exposure, augmentation, automation, and retained-share estimates inside that occupation anchor.'
+            };
+
             var evidenceSummary = {
                 task_evidence_confidence: average(currentBundle.map(function (cluster) {
                     return cluster.evidence_confidence;
@@ -722,11 +885,14 @@
                     occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
                     task_prior_rows: currentBundle.length,
                     exposed_cluster_rows: exposedClusters.length,
+                    direct_task_evidence_rows: directTaskEvidenceCount,
+                    fallback_task_rows: fallbackTaskCount,
                     labor_context_available: !!laborContext
                 },
                 notes: [
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
                     'Headline outputs are driven by O*NET task structure plus Anthropic task-level transformation evidence.',
+                    'Task-level rows blend direct Anthropic task evidence with cluster fallback estimates when direct task coverage is thin.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + '.') : 'No explicit role-defining task input selected.',
                     'Current AI/tool support signal=' + Number(signals.taskSupportSignal.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
                     'Labor-market data is shown as context and does not drive the main role labels.',
@@ -742,6 +908,7 @@
                 role_outlook: roleState,
                 role_outlook_label: ROLE_STATE_LABELS[roleState],
                 role_summary: roleSummary,
+                occupation_assignment: occupationAssignment,
                 top_exposed_work: topExposed ? {
                     task_cluster_id: topExposed.task_cluster_id,
                     label: topExposed.label,
@@ -767,6 +934,12 @@
                     exposed_clusters: exposedClusters,
                     retained_clusters: retainedClusters,
                     elevated_clusters: elevatedClusters
+                },
+                task_breakdown: {
+                    total_tasks_considered: taskBreakdownRows.length,
+                    direct_evidence_tasks: directTaskEvidenceCount,
+                    cluster_fallback_tasks: fallbackTaskCount,
+                    tasks: taskBreakdownRows
                 },
                 narrative_summary: null,
                 evidence_summary: evidenceSummary,
@@ -931,6 +1104,23 @@
             selectorByOcc: indexBy(loaded.selector, 'occupation_id'),
             occupationTaskClusters: loaded.occupationTaskClusters,
             occupationTaskClustersByOcc: groupBy(loaded.occupationTaskClusters, 'occupation_id'),
+            occupationTasksByOcc: groupBy(loaded.occupationTasks, 'occupation_id'),
+            taskMembershipByKey: loaded.taskMembership.reduce(function (map, row) {
+                var key = taskKey(row.occupation_id, row.onet_task_id);
+                var current = map[key];
+                if (!current || toNumber(row.mapping_confidence, 0) >= toNumber(current.mapping_confidence, 0)) {
+                    map[key] = row;
+                }
+                return map;
+            }, {}),
+            taskEvidenceByKey: loaded.taskEvidence.reduce(function (map, row) {
+                var key = taskKey(row.occupation_id, row.onet_task_id);
+                var current = map[key];
+                if (!current || toNumber(row.confidence, 0) >= toNumber(current.confidence, 0)) {
+                    map[key] = row;
+                }
+                return map;
+            }, {}),
             taskPriors: loaded.taskPriors,
             taskPriorsByOcc: groupBy(loaded.taskPriors, 'occupation_id'),
             occupationPriorsByOcc: groupBy(loaded.occupationPriors, 'occupation_id'),

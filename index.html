@@ -2810,6 +2810,7 @@
 
         .v2-outlook-panel,
         .v2-map-panel,
+        .v2-task-panel,
         .v2-rail-card,
         .v2-labor-panel,
         .v2-narrative-panel {
@@ -2945,7 +2946,22 @@
             border: 1px solid #ece4d7;
         }
 
+        .v2-assignment-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .v2-assignment-copy {
+            margin: 0;
+            font-size: 0.92rem;
+            line-height: 1.65;
+            color: #5a534b;
+        }
+
         .v2-map-panel,
+        .v2-task-panel,
         .v2-labor-panel,
         .v2-narrative-panel {
             padding: 24px;
@@ -2953,6 +2969,161 @@
 
         .v2-map-header {
             margin-bottom: 20px;
+        }
+
+        .v2-task-panel {
+            margin-top: 20px;
+            background: linear-gradient(180deg, #fffef9 0%, #f6fbff 100%);
+        }
+
+        .v2-task-summary {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+            gap: 16px;
+            align-items: start;
+            margin-bottom: 18px;
+        }
+
+        .v2-task-summary-copy {
+            font-size: 0.96rem;
+            line-height: 1.7;
+            color: #554f47;
+        }
+
+        .v2-task-stats {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .v2-task-stat {
+            border-radius: 16px;
+            padding: 14px 16px;
+            border: 1px solid #dde7f2;
+            background: rgba(255, 255, 255, 0.88);
+        }
+
+        .v2-task-stat span {
+            display: block;
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #857d72;
+            margin-bottom: 8px;
+        }
+
+        .v2-task-stat strong {
+            display: block;
+            font-size: 1rem;
+            color: #1f1c18;
+        }
+
+        .v2-task-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .v2-task-item {
+            border-radius: 18px;
+            padding: 16px 18px;
+            border: 1px solid #e4ddd0;
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        .v2-task-item--critical {
+            border-color: rgba(42, 82, 152, 0.34);
+            box-shadow: inset 0 0 0 1px rgba(42, 82, 152, 0.08);
+        }
+
+        .v2-task-topline {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .v2-task-statement {
+            font-size: 0.98rem;
+            line-height: 1.55;
+            color: #1f1c18;
+            font-weight: 600;
+        }
+
+        .v2-task-share {
+            white-space: nowrap;
+            font-size: 0.9rem;
+            color: #6f665c;
+            font-weight: 600;
+        }
+
+        .v2-task-meter {
+            position: relative;
+            height: 10px;
+            border-radius: 999px;
+            background: #e8e1d4;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .v2-task-meter-share,
+        .v2-task-meter-exposed {
+            position: absolute;
+            inset: 0 auto 0 0;
+            height: 100%;
+            border-radius: 999px;
+        }
+
+        .v2-task-meter-share {
+            background: linear-gradient(90deg, rgba(42, 82, 152, 0.22) 0%, rgba(42, 82, 152, 0.38) 100%);
+        }
+
+        .v2-task-meter-exposed {
+            background: linear-gradient(90deg, #c97b32 0%, #e3a050 100%);
+        }
+
+        .v2-task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .v2-task-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 0.75rem;
+            line-height: 1;
+            border: 1px solid #ddd5c8;
+            background: #f7f3ec;
+            color: #5f584f;
+        }
+
+        .v2-task-chip--accent {
+            background: rgba(42, 82, 152, 0.10);
+            border-color: rgba(42, 82, 152, 0.22);
+            color: #193459;
+        }
+
+        .v2-task-chip--warning {
+            background: rgba(201, 123, 50, 0.12);
+            border-color: rgba(201, 123, 50, 0.22);
+            color: #8c4c16;
+        }
+
+        .v2-task-chip--success {
+            background: rgba(67, 120, 90, 0.12);
+            border-color: rgba(67, 120, 90, 0.22);
+            color: #2e6046;
+        }
+
+        .v2-task-footnote {
+            font-size: 0.84rem;
+            line-height: 1.6;
+            color: #6d665e;
         }
 
         .v2-map-grid {
@@ -3171,7 +3342,9 @@
             .v2-secondary-layout,
             .v2-outlook-grid,
             .v2-score-stack,
-            .v2-narrative-grid {
+            .v2-narrative-grid,
+            .v2-task-summary,
+            .v2-task-stats {
                 grid-template-columns: 1fr;
             }
 
@@ -4566,6 +4739,28 @@
                             </div>
                         </div>
                         <div class="v2-rail-card">
+                            <div class="v2-section-label">Occupation assignment</div>
+                            <div class="v2-assignment-rows">
+                                <div class="v2-evidence-row">
+                                    <span>Mapped category</span>
+                                    <strong id="v2-assignment-category">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Occupation anchor</span>
+                                    <strong id="v2-assignment-anchor">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Match quality</span>
+                                    <strong id="v2-assignment-match">-</strong>
+                                </div>
+                                <div class="v2-evidence-row">
+                                    <span>Task coverage</span>
+                                    <strong id="v2-assignment-coverage">-</strong>
+                                </div>
+                            </div>
+                            <p class="v2-assignment-copy" id="v2-assignment-copy">Choose a mapped occupation to see how your role is assigned to the underlying O*NET, Anthropic, and BLS occupation data.</p>
+                        </div>
+                        <div class="v2-rail-card">
                             <div class="v2-section-label">How to read this</div>
                             <p>The briefing separates role-structure change from labor-market context. The outlook is driven by O*NET task structure and Anthropic task evidence, while BLS data appears below as context for the selected occupation.</p>
                         </div>
@@ -4593,6 +4788,36 @@
                         </div>
                     </div>
                 </div>
+
+                <section class="v2-task-panel">
+                    <div class="v2-map-header">
+                        <div class="v2-section-label">Task-level view</div>
+                        <h3 class="chart-title">Live Task Breakdown</h3>
+                        <p class="chart-subtitle" id="v2-task-note">This view reorders the selected occupation&apos;s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.</p>
+                    </div>
+                    <div class="v2-task-summary">
+                        <p class="v2-task-summary-copy" id="v2-task-summary-copy">Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.</p>
+                        <div class="v2-task-stats">
+                            <div class="v2-task-stat">
+                                <span>Tasks shown</span>
+                                <strong id="v2-task-total">-</strong>
+                            </div>
+                            <div class="v2-task-stat">
+                                <span>Direct Anthropic rows</span>
+                                <strong id="v2-task-direct">-</strong>
+                            </div>
+                            <div class="v2-task-stat">
+                                <span>Cluster fallback rows</span>
+                                <strong id="v2-task-fallback">-</strong>
+                            </div>
+                            <div class="v2-task-stat">
+                                <span>Ordering</span>
+                                <strong id="v2-task-ordering">-</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="v2-task-list" id="v2-task-breakdown"></div>
+                </section>
 
                 <div class="v2-secondary-layout">
                     <section class="v2-narrative-panel">
@@ -8613,6 +8838,138 @@ self.onmessage = function(e) {
             });
         }
 
+        function createV2TaskChip(text, tone = '') {
+            const chip = document.createElement('span');
+            chip.className = `v2-task-chip${tone ? ` v2-task-chip--${tone}` : ''}`;
+            chip.textContent = text;
+            return chip;
+        }
+
+        function renderV2OccupationAssignment(assignment) {
+            safeSetText('v2-assignment-category', assignment ? assignment.role_category_label || '-' : '-');
+            safeSetText('v2-assignment-anchor', assignment ? assignment.selected_occupation_title || '-' : '-');
+            safeSetText(
+                'v2-assignment-match',
+                assignment
+                    ? `${Math.round((assignment.anchor_confidence || 0) * 100)}% anchor confidence${assignment.category_candidate_rank ? ` · candidate ${assignment.category_candidate_rank} of ${assignment.category_candidate_count}` : ''}`
+                    : '-'
+            );
+            safeSetText(
+                'v2-assignment-coverage',
+                assignment
+                    ? `${assignment.direct_task_evidence_count || 0} direct task rows · ${assignment.fallback_task_count || 0} fallback rows`
+                    : '-'
+            );
+
+            const parts = [];
+            if (assignment?.onet_soc_code) {
+                parts.push(`${assignment.selected_occupation_title} is anchored to O*NET/SOC ${assignment.onet_soc_code}.`);
+            }
+            if (assignment?.assignment_method) {
+                parts.push(assignment.assignment_method);
+            }
+            if (assignment?.questionnaire_effect) {
+                parts.push(assignment.questionnaire_effect);
+            }
+            if (assignment?.role_defining_cluster?.label) {
+                parts.push(`The role-defining task family is currently ${assignment.role_defining_cluster.label.toLowerCase()}.`);
+            }
+
+            safeSetText(
+                'v2-assignment-copy',
+                parts.length
+                    ? parts.join(' ')
+                    : 'Choose a mapped occupation to see how your role is assigned to the underlying O*NET, Anthropic, and BLS occupation data.'
+            );
+        }
+
+        function createV2TaskBreakdownItem(task) {
+            const item = document.createElement('div');
+            item.className = `v2-task-item${task?.is_role_critical ? ' v2-task-item--critical' : ''}`;
+
+            const topline = document.createElement('div');
+            topline.className = 'v2-task-topline';
+
+            const statement = document.createElement('div');
+            statement.className = 'v2-task-statement';
+            statement.textContent = task?.task_statement || 'Unknown task';
+
+            const share = document.createElement('div');
+            share.className = 'v2-task-share';
+            share.textContent = `${Math.round((Number(task?.share_of_role) || 0) * 100)}% of role`;
+
+            topline.appendChild(statement);
+            topline.appendChild(share);
+
+            const meter = document.createElement('div');
+            meter.className = 'v2-task-meter';
+
+            const shareFill = document.createElement('div');
+            shareFill.className = 'v2-task-meter-share';
+            shareFill.style.width = `${Math.max(0, Math.min(100, (Number(task?.share_of_role) || 0) * 100))}%`;
+
+            const exposedFill = document.createElement('div');
+            exposedFill.className = 'v2-task-meter-exposed';
+            exposedFill.style.width = `${Math.max(0, Math.min(100, (Number(task?.exposed_share) || 0) * 100))}%`;
+
+            meter.appendChild(shareFill);
+            meter.appendChild(exposedFill);
+
+            const meta = document.createElement('div');
+            meta.className = 'v2-task-meta';
+            meta.appendChild(createV2TaskChip(task?.task_cluster_label || 'Unknown cluster', 'accent'));
+            meta.appendChild(createV2TaskChip(`${formatV2Label(task?.exposure_level)} exposure`, task?.exposure_level === 'high' ? 'warning' : (task?.exposure_level === 'moderate' ? 'accent' : '')));
+            meta.appendChild(createV2TaskChip(formatV2Label(task?.likely_mode || 'mixed'), task?.likely_mode === 'automation' ? 'warning' : 'success'));
+            meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.evidence_confidence) || 0) * 100)}% confidence`));
+            meta.appendChild(createV2TaskChip(task?.has_direct_evidence ? 'Direct task evidence' : 'Cluster fallback'));
+
+            if (task?.is_role_critical) {
+                meta.appendChild(createV2TaskChip('Role-defining family', 'accent'));
+            }
+
+            const footnote = document.createElement('div');
+            footnote.className = 'v2-task-footnote';
+            footnote.textContent = `${Math.round((Number(task?.exposed_share) || 0) * 100)}% exposed share, ${Math.round((Number(task?.retained_share) || 0) * 100)}% retained after transformation. ${task?.mapping_method ? `Mapped via ${String(task.mapping_method).replace(/_/g, ' ')}.` : ''}`;
+
+            item.appendChild(topline);
+            item.appendChild(meter);
+            item.appendChild(meta);
+            item.appendChild(footnote);
+            return item;
+        }
+
+        function renderV2TaskBreakdown(taskBreakdown, assignment) {
+            const container = document.getElementById('v2-task-breakdown');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            const rows = Array.isArray(taskBreakdown?.tasks) ? taskBreakdown.tasks.slice(0, 10) : [];
+
+            safeSetText('v2-task-total', rows.length ? `${rows.length} of ${taskBreakdown.total_tasks_considered}` : '-');
+            safeSetText('v2-task-direct', taskBreakdown ? String(taskBreakdown.direct_evidence_tasks || 0) : '-');
+            safeSetText('v2-task-fallback', taskBreakdown ? String(taskBreakdown.cluster_fallback_tasks || 0) : '-');
+            safeSetText('v2-task-ordering', rows.length ? 'Top exposed share' : '-');
+            safeSetText(
+                'v2-task-summary-copy',
+                assignment
+                    ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped O*NET tasks. This list live-updates as your selected occupation, task-family inputs, and questionnaire answers change task shares and exposure estimates inside that occupation anchor.`
+                    : 'Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.'
+            );
+
+            if (!rows.length) {
+                const empty = document.createElement('div');
+                empty.className = 'v2-task-item';
+                empty.textContent = 'No mapped task-level rows are available for this occupation yet.';
+                container.appendChild(empty);
+                return;
+            }
+
+            rows.forEach((task) => {
+                container.appendChild(createV2TaskBreakdownItem(task));
+            });
+        }
+
         function getDirectV2Inputs() {
             const primaryCluster = document.getElementById('v2-task-primary')?.value || '';
             const secondaryCluster = document.getElementById('v2-task-secondary')?.value || '';
@@ -8653,10 +9010,13 @@ self.onmessage = function(e) {
             safeSetText('v2-prior-confidence', '-');
             safeSetText('v2-evidence-notes', '-');
             safeSetText('v2-map-subtitle', 'This view shows what in the role is exposed, how the change is split between augmentation and automation, and what remains.');
+            safeSetText('v2-task-note', 'This view reorders the selected occupation\'s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.');
             renderV2LaborMarketContext(null, '');
+            renderV2OccupationAssignment(null);
             renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped occupation to populate the current bundle.' });
             renderV2ClusterList('v2-exposed-bundle', [], { emptyText: 'Exposure detail appears once the transformation view is active.' });
             renderV2ClusterList('v2-residual-bundle', [], { emptyText: 'Residual role detail appears once the transformation view is active.' });
+            renderV2TaskBreakdown(null, null);
             lastV2Result = null;
         }
 
@@ -8833,6 +9193,11 @@ self.onmessage = function(e) {
                 'v2-map-subtitle',
                 `${result.selected_occupation_title} shows ${Math.round((result.exposed_task_share || 0) * 100)}% exposed task share, with a ${formatV2Label(result.mode_of_change).toLowerCase()} pattern and a ${formatV2Label(result.residual_role_strength).toLowerCase()} retained bundle.`
             );
+            safeSetText(
+                'v2-task-note',
+                `${result.selected_occupation_title} uses its mapped O*NET task list as the baseline. The bars below show current role share in blue and exposed share in amber, and they update live as your questionnaire changes the task-weighting and exposure math.`
+            );
+            renderV2OccupationAssignment(result.occupation_assignment);
             renderV2LaborMarketContext(result.labor_market_context, result.selected_occupation_title);
 
             renderV2ClusterList('v2-current-bundle', result.transformation_map?.current_bundle, {
@@ -8847,6 +9212,7 @@ self.onmessage = function(e) {
                 shareKey: 'residual_relevance',
                 emptyText: 'No residual bundle clusters exceeded the display threshold.'
             });
+            renderV2TaskBreakdown(result.task_breakdown, result.occupation_assignment);
 
             return result;
         }
