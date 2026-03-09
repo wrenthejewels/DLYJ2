@@ -151,24 +151,17 @@ The following real sources are already in the repo and wired into normalized out
 - `Anthropic Economic Index`
 - `BLS OEWS 2024`
 - `BLS employment projections`
+- `BLS CPS occupation-group unemployment`
 
-### Partial source integrated
+### Archived source
 
-The following source is now partially integrated:
+The following source remains in the repo only as archived reference material:
 
 - `Manning / Aguirre 2026`
 
 Important caveat:
-- published paper tables only cover part of the current launch set
-- mapped O*NET codes are medium-confidence because the paper does not publish O*NET codes directly
-
-### Current Manning coverage
-
-Current coverage of selected launch occupations:
-- `15 / 34` covered by the extracted published tables
-- `19 / 34` not covered
-
-Because of this, Manning is currently treated as a partial occupation-prior layer, not the sole launch prior.
+- it is no longer part of the active `2.0` selector, prior, or runtime logic
+- published paper tables still do not cover the launch set cleanly enough for launch use
 
 ## Launch Occupation Coverage
 
@@ -225,6 +218,7 @@ Parallel `2.0` preview pages:
 - `data/normalized/occupation_exposure_priors.csv`
 - `data/normalized/occupation_adaptation_priors.csv`
 - `data/normalized/occupation_labor_market_context.csv`
+- `data/normalized/occupation_unemployment_monthly.csv`
 
 ### Metadata controlling launch behavior
 
@@ -243,7 +237,9 @@ Parallel `2.0` preview pages:
 - `scripts/data/infer_task_clusters.ps1`
 - `scripts/data/normalize_anthropic_ei.ps1`
 - `scripts/data/normalize_bls.ps1`
+- `scripts/data/normalize_bls_unemployment.ps1`
 - `scripts/data/normalize_manning_aguirre.ps1`
+- `scripts/data/rebuild_v2_priors.ps1`
 
 ## Current Validation Status
 
@@ -253,7 +249,7 @@ Latest known validated state:
 - `34` occupations
 - `669` normalized occupation-task rows
 - `12` task clusters
-- `10` registered sources
+- `12` registered sources
 - `34` selected launch occupations
 - `2` stretch occupations
 
@@ -268,16 +264,17 @@ Latest known validated state:
 - integrated real O*NET occupation/task structure
 - integrated real Anthropic task-level evidence
 - integrated real BLS wage/employment/projection context
-- integrated partial Manning occupation-level priors
+- integrated BLS monthly occupation-group unemployment context
+- rebuilt active occupation priors from O*NET, Anthropic, and BLS
 - rebalanced launch occupations to cover the broad public role categories
 - built validators and normalization scripts
 - created parallel `2.0` preview routes at `main2/index.html`, `guide2/index.html`, and `method2/index.html`
+- added a labor-market context panel and unemployment chart to the `2.0` preview
 
 ### Completed but still provisional
 
 - role-family fallback priors
 - task-cluster inference
-- partial Manning title-to-O*NET mapping
 - quality indicators
 - transition adjacency
 
@@ -295,6 +292,7 @@ These exist, but some are still heuristic rather than final research-grade input
 ### Model logic
 
 - a first-pass `2.0` transformation engine now exists in `v2_engine.js` and is wired into the preview route
+- the preview result now includes labor-market context and a 12-month BLS unemployment chart for the selected occupation's mapped occupation group
 - residual bundle scoring still needs better calibration and direct task-bundle inputs
 - decoupling / O-Ring logic is still only partial / heuristic
 - adaptation scoring using the new normalized layer is still heuristic rather than final
@@ -410,10 +408,16 @@ Remaining work:
 
 ### Workstream 4: Occupation prior improvement
 
-Add broader occupation-level priors to reduce partial-source coverage gaps.
+Improve occupation-level priors and precision on top of the launch-safe stack.
 
-Best near-term candidate:
+Current active stack:
+- O*NET task structure
+- Anthropic task exposure / augmentation evidence
+- BLS labor-market context
+
+Next candidate additions:
 - Eloundou / GPTs-are-GPTs / EIG-style exposure dataset
+- OECD / PIAAC benchmarks in a later phase
 
 ### Workstream 5: Product migration
 
@@ -431,7 +435,7 @@ so the public explanation matches the `2.0` ontology.
 
 1. keep the live `1.0` routes stable while iterating on `main2/index.html`, `guide2/index.html`, and `method2/index.html`
 2. improve the `2.0` transformation-engine scoring with the new intake fields
-3. add broader occupation-level exposure coverage
+3. tighten category-to-occupation selection so launch roles map more precisely to O*NET / BLS / Anthropic evidence
 4. rewrite the preview guide and methodology pages
 5. finalize what secondary hazard output survives from `1.0`
 
@@ -517,6 +521,23 @@ Suggested update format:
   - implement the first `2.0` transformation-engine scaffold against the normalized data and questionnaire mapping
 
 ## Session Update - 2026-03-06-D
+
+## Session Update - 2026-03-08
+
+- completed:
+  - removed Manning from the active `2.0` selector and prior stack
+  - rebuilt occupation exposure and adaptation priors from O*NET, Anthropic, and BLS inputs
+  - added normalized BLS monthly unemployment data for mapped occupation groups
+  - extended `v2_engine.js` to return labor-market context plus a 12-month unemployment series
+  - added a labor-market context panel and unemployment chart to `main2/index.html`
+- changed decisions:
+  - Manning remains archived only and is not a launch input
+  - official BLS monthly occupation-group unemployment is the launch unemployment chart, not custom role-level monthly estimates
+- new blockers:
+  - occupation-to-BLS unemployment mapping is still group-level rather than detailed-role monthly
+  - preview guide and methodology pages still need to explain the new labor-market panel
+- next recommended step:
+  - retrofit the intake and role selector so users choose a more precise launch occupation before role-specific panels render
 
 - completed:
   - added `v2_engine.js` as the first runtime-capable `2.0` transformation-engine scaffold

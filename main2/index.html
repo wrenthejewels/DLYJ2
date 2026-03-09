@@ -4361,6 +4361,42 @@
                         <span class="v2-evidence-value" id="v2-evidence-notes">-</span>
                     </div>
                 </div>
+
+                <div class="v2-map-panel">
+                    <div class="v2-map-header">
+                        <h3 class="chart-title">Labor Market Context</h3>
+                        <p class="chart-subtitle" id="v2-unemployment-note">Choose a mapped occupation to load BLS context.</p>
+                    </div>
+                    <div class="results v2-results-grid" style="margin-bottom: 20px;">
+                        <div class="result-card">
+                            <h4>U.S. Employment</h4>
+                            <div class="result-value" id="v2-employment">-</div>
+                        </div>
+                        <div class="result-card">
+                            <h4>Annual Openings</h4>
+                            <div class="result-value" id="v2-openings">-</div>
+                        </div>
+                        <div class="result-card">
+                            <h4>Median Wage</h4>
+                            <div class="result-value" id="v2-wage">-</div>
+                        </div>
+                        <div class="result-card">
+                            <h4>2034 Growth</h4>
+                            <div class="result-value" id="v2-growth">-</div>
+                        </div>
+                        <div class="result-card result-card--primary">
+                            <h4>Latest BLS Unemployment</h4>
+                            <div class="result-value" id="v2-unemployment-latest">-</div>
+                            <div style="font-size: 0.8rem; color: var(--text-tertiary); margin-top: 8px;" id="v2-unemployment-series-label">-</div>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="min-height: 280px;">
+                        <canvas id="v2-unemployment-chart" aria-label="BLS unemployment chart"></canvas>
+                        <div id="v2-unemployment-empty" style="display:none; color: var(--text-secondary); font-size: 0.95rem; padding: 16px 0;">
+                            No official monthly BLS unemployment series is mapped for this occupation yet.
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="pinnable-section" id="pinnable-section">
@@ -8095,7 +8131,7 @@ self.onmessage = function(e) {
             }
 
             if (!v2EnginePromise) {
-                v2EnginePromise = window.DLYJV2.create({ basePath: '' });
+                v2EnginePromise = window.DLYJV2.create({ basePath: '..' });
             }
 
             return v2EnginePromise;
@@ -8118,6 +8154,136 @@ self.onmessage = function(e) {
             }
 
             return `${Math.round(numeric * 100)}%`;
+        }
+
+        function formatCompactNumber(value) {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return '-';
+            }
+
+            return new Intl.NumberFormat('en-US', {
+                notation: 'compact',
+                maximumFractionDigits: numeric >= 1000000 ? 1 : 0
+            }).format(numeric);
+        }
+
+        function formatCurrency(value) {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return '-';
+            }
+
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                maximumFractionDigits: 0
+            }).format(numeric);
+        }
+
+        function formatSignedPercent(value) {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return '-';
+            }
+
+            return `${numeric > 0 ? '+' : ''}${numeric.toFixed(1)}%`;
+        }
+
+        let v2UnemploymentChart = null;
+
+        function renderV2UnemploymentChart(laborContext) {
+            const canvas = document.getElementById('v2-unemployment-chart');
+            const emptyState = document.getElementById('v2-unemployment-empty');
+            if (!canvas || !emptyState) {
+                return;
+            }
+
+            if (v2UnemploymentChart) {
+                v2UnemploymentChart.destroy();
+                v2UnemploymentChart = null;
+            }
+
+            const series = Array.isArray(laborContext?.monthly_unemployment_series)
+                ? laborContext.monthly_unemployment_series
+                : [];
+
+            if (!series.length) {
+                canvas.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            canvas.style.display = 'block';
+            emptyState.style.display = 'none';
+
+            v2UnemploymentChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: series.map(point => point.month_label),
+                    datasets: [{
+                        label: 'Unemployment rate',
+                        data: series.map(point => point.unemployment_rate),
+                        borderColor: '#2a5298',
+                        backgroundColor: 'rgba(42, 82, 152, 0.12)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 4,
+                        spanGaps: false,
+                        tension: 0.25,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const value = context.parsed.y;
+                                    return Number.isFinite(value) ? `${value.toFixed(1)}%` : 'Data unavailable';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 6
+                            },
+                            grid: { display: false }
+                        },
+                        y: {
+                            ticks: {
+                                callback: (value) => `${value}%`
+                            },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderV2LaborMarketContext(laborContext, occupationTitle) {
+            safeSetText('v2-employment', laborContext ? formatCompactNumber(laborContext.employment_us) : '-');
+            safeSetText('v2-openings', laborContext ? formatCompactNumber(laborContext.annual_openings) : '-');
+            safeSetText('v2-wage', laborContext ? formatCurrency(laborContext.median_wage_usd) : '-');
+            safeSetText('v2-growth', laborContext ? formatSignedPercent(laborContext.projection_growth_pct) : '-');
+            safeSetText('v2-unemployment-latest', laborContext && laborContext.latest_unemployment_rate !== null
+                ? `${Number(laborContext.latest_unemployment_rate).toFixed(1)}%`
+                : '-');
+            safeSetText('v2-unemployment-series-label', laborContext?.unemployment_group_label || 'No mapped unemployment series');
+            safeSetText(
+                'v2-unemployment-note',
+                laborContext?.unemployment_group_label
+                    ? `${occupationTitle} is mapped to the official BLS ${laborContext.unemployment_group_label.toLowerCase()} monthly unemployment series.`
+                    : 'This occupation does not have an official BLS unemployment series mapped yet.'
+            );
+            renderV2UnemploymentChart(laborContext);
         }
 
         function createClusterListItem(cluster, options = {}) {
@@ -8222,6 +8388,7 @@ self.onmessage = function(e) {
             safeSetText('v2-prior-confidence', '-');
             safeSetText('v2-evidence-notes', '-');
             safeSetText('v2-map-subtitle', 'This view shows what in the role is exposed, what is likely to be absorbed, and what remains.');
+            renderV2LaborMarketContext(null, '');
             renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped role to populate the current bundle.' });
             renderV2ClusterList('v2-exposed-bundle', [], { emptyText: 'Exposure detail appears once the transformation view is active.' });
             renderV2ClusterList('v2-residual-bundle', [], { emptyText: 'Residual role detail appears once the transformation view is active.' });
@@ -8375,6 +8542,7 @@ self.onmessage = function(e) {
                 'v2-map-subtitle',
                 `${result.selected_occupation_title} shows ${Math.round((result.exposed_task_share || 0) * 100)}% exposed task share with a ${formatV2Label(result.automation_vs_augmentation_balance).toLowerCase()} balance.`
             );
+            renderV2LaborMarketContext(result.labor_market_context, result.selected_occupation_title);
 
             renderV2ClusterList('v2-current-bundle', result.transformation_map?.current_bundle, {
                 shareKey: 'share_of_role',

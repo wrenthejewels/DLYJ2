@@ -1,13 +1,18 @@
 # Anthropic Economic Index Raw Inputs
 
-Planned raw files:
-- release_2025_02_10_onet_task_mappings
-- release_2025_02_10_onet_task_statements
-- release_2025_02_10_automation_vs_augmentation
-- release_2025_03_27_task_pct_v1
-- release_2025_03_27_task_pct_v2
-- release_2025_03_27_task_thinking_fractions
-- release_2025_03_27_automation_vs_augmentation_by_task
-- optional_release_2026_01_15_extracts
+Local raw files currently present:
+- `task_pct_v2.csv`
+- `automation_vs_augmentation_by_task.csv`
+- `automation_vs_augmentation.csv`
+- `onet_task_statements.csv`
+- `soc_structure.csv`
 
-These files provide task-level evidence on AI usage plus augmentation versus automation splits.
+Imported release snapshot:
+- `release_2026_01_15/data_documentation.md`
+- `release_2026_01_15/aei_v4_appendix.pdf`
+- `release_2026_01_15/data/intermediate/aei_raw_1p_api_2025-11-13_to_2025-11-20.csv`
+- `release_2026_01_15/data/intermediate/aei_raw_claude_ai_2025-11-13_to_2025-11-20.csv`
+
+Important note:
+- the current `normalize_anthropic_ei.ps1` pipeline still consumes the root-level task-mapping extracts
+- the `release_2026_01_15` raw package is now available locally for a future integration pass, but is not yet normalized into the active v2 outputs

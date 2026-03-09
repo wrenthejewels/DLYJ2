@@ -171,6 +171,11 @@ foreach ($row in $oews) {
         wage_p25_usd = if ($wageP25 -ne $null) { [int]$wageP25 } else { 0 }
         wage_p75_usd = if ($wageP75 -ne $null) { [int]$wageP75 } else { 0 }
         projection_growth_pct = if ($projectionGrowth -ne $null) { [double]$projectionGrowth } elseif ($existingGrowth -ne $null) { [double]$existingGrowth } else { 0.0 }
+        unemployment_group_id = $existingLabor.unemployment_group_id
+        unemployment_group_label = $existingLabor.unemployment_group_label
+        unemployment_series_id = $existingLabor.unemployment_series_id
+        latest_unemployment_rate = $existingLabor.latest_unemployment_rate
+        latest_unemployment_period = $existingLabor.latest_unemployment_period
         labor_market_confidence = Get-LaborMarketConfidence -Row $row
         release_year = if ($projectionReleaseYear -ne $null) { [int]$projectionReleaseYear } elseif ($existingReleaseYear -ne $null) { [int]$existingReleaseYear } else { 2024 }
     })

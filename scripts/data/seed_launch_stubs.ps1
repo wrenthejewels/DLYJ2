@@ -284,7 +284,7 @@ foreach ($seed in $launchSeed) {
         learning_intensity_score = ('{0:N2}' -f [double]$defaults.learning_intensity_score)
         transition_option_count = [Math]::Max(6, [Math]::Round((([double]$defaults.transferability_score + [double]$defaults.adaptive_capacity_score) * 12)))
         job_zone = [int]$defaults.job_zone
-        source_mix = 'src_onet_30_1|src_manning_aguirre_2026_01|src_internal_stub_2026_03'
+        source_mix = 'src_onet_30_1|src_internal_stub_2026_03'
         confidence = '0.46'
         notes = 'launch_stub_generated'
     })
@@ -311,6 +311,11 @@ foreach ($seed in $launchSeed) {
         wage_p25_usd = [Math]::Round($wage * 0.72)
         wage_p75_usd = [Math]::Round($wage * 1.28)
         projection_growth_pct = ('{0:N0}' -f $growth)
+        unemployment_group_id = $null
+        unemployment_group_label = $null
+        unemployment_series_id = $null
+        latest_unemployment_rate = $null
+        latest_unemployment_period = $null
         labor_market_confidence = ('{0:N2}' -f [double]$defaults.labor_market_confidence)
         release_year = 2024
     })

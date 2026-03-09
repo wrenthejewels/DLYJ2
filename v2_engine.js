@@ -15,6 +15,7 @@
         occupationPriors: 'data/normalized/occupation_exposure_priors.csv',
         adaptationPriors: 'data/normalized/occupation_adaptation_priors.csv',
         laborContext: 'data/normalized/occupation_labor_market_context.csv',
+        unemploymentMonthly: 'data/normalized/occupation_unemployment_monthly.csv',
         uiRoleMap: 'data/metadata/ui_role_category_map.csv'
     };
 
@@ -250,11 +251,6 @@
         }
 
         return rows.slice().sort(function (left, right) {
-            var leftRank = left.source_id === 'src_manning_aguirre_2026_01' ? 0 : 1;
-            var rightRank = right.source_id === 'src_manning_aguirre_2026_01' ? 0 : 1;
-            if (leftRank !== rightRank) {
-                return leftRank - rightRank;
-            }
             return toNumber(right.confidence, 0) - toNumber(left.confidence, 0);
         })[0];
     }
@@ -465,6 +461,9 @@
             var occupationPrior = pickOccupationPrior(store.occupationPriorsByOcc[occupationId] || []);
             var adaptationPrior = store.adaptationByOcc[occupationId] || null;
             var laborContext = store.laborByOcc[occupationId] || null;
+            var unemploymentSeries = laborContext && laborContext.unemployment_group_id
+                ? (store.unemploymentByGroup[laborContext.unemployment_group_id] || [])
+                : [];
             var signals = deriveQuestionnaireSignals(input.answers || {}, input || {});
 
             var currentBundle = [];
@@ -655,7 +654,7 @@
                 task_evidence_confidence: average(currentBundle.map(function (cluster) {
                     return cluster.evidence_confidence;
                 })),
-                occupation_prior_confidence: occupationPrior ? toNumber(occupationPrior.confidence, occupationPrior.source_id === 'src_manning_aguirre_2026_01' ? 0.58 : 0.45) : 0.40,
+                occupation_prior_confidence: occupationPrior ? toNumber(occupationPrior.confidence, 0.45) : 0.40,
                 residual_bundle_confidence: average([
                     average(currentBundle.map(function (cluster) { return cluster.evidence_confidence; })),
                     signals.roleDistinctiveness,
@@ -664,7 +663,8 @@
                 notes: [
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
                     'Task evidence is drawn from normalized task-cluster priors and occupation structure.',
-                    laborContext ? ('Labor context includes employment=' + laborContext.employment_us + ' and median_wage=' + laborContext.median_wage_usd + '.') : 'Labor context unavailable for this occupation.'
+                    laborContext ? ('Labor context includes employment=' + laborContext.employment_us + ', median_wage=' + laborContext.median_wage_usd + ', growth=' + laborContext.projection_growth_pct + '%.') : 'Labor context unavailable for this occupation.',
+                    laborContext && laborContext.unemployment_group_label ? ('Latest official BLS unemployment for ' + laborContext.unemployment_group_label + ' is ' + laborContext.latest_unemployment_rate + '% (' + laborContext.latest_unemployment_period + ').') : 'No mapped BLS unemployment series for this occupation yet.'
                 ]
             };
 
@@ -701,6 +701,28 @@
                     ]).toFixed(3))
                 },
                 evidence_summary: evidenceSummary,
+                labor_market_context: laborContext ? {
+                    employment_us: toNumber(laborContext.employment_us, 0),
+                    annual_openings: toNumber(laborContext.annual_openings, 0),
+                    median_wage_usd: toNumber(laborContext.median_wage_usd, 0),
+                    wage_p25_usd: toNumber(laborContext.wage_p25_usd, 0),
+                    wage_p75_usd: toNumber(laborContext.wage_p75_usd, 0),
+                    projection_growth_pct: toNumber(laborContext.projection_growth_pct, 0),
+                    unemployment_group_id: laborContext.unemployment_group_id || null,
+                    unemployment_group_label: laborContext.unemployment_group_label || null,
+                    unemployment_series_id: laborContext.unemployment_series_id || null,
+                    latest_unemployment_rate: laborContext.latest_unemployment_rate !== undefined && laborContext.latest_unemployment_rate !== '' ? toNumber(laborContext.latest_unemployment_rate, null) : null,
+                    latest_unemployment_period: laborContext.latest_unemployment_period || null,
+                    monthly_unemployment_series: unemploymentSeries.map(function (row) {
+                        return {
+                            year: toNumber(row.year, 0),
+                            month: toNumber(row.month, 0),
+                            month_label: row.month_label,
+                            unemployment_rate: row.unemployment_rate !== undefined && row.unemployment_rate !== '' ? toNumber(row.unemployment_rate, null) : null,
+                            is_missing: String(row.is_missing || '') === '1'
+                        };
+                    })
+                } : null,
                 diagnostics: {
                     occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
                     occupation_prior_exposure: Number(occupationExposure.toFixed(3)),
@@ -765,6 +787,7 @@
             occupationPriorsByOcc: groupBy(loaded.occupationPriors, 'occupation_id'),
             adaptationByOcc: indexBy(loaded.adaptationPriors, 'occupation_id'),
             laborByOcc: indexBy(loaded.laborContext, 'occupation_id'),
+            unemploymentByGroup: groupBy(loaded.unemploymentMonthly, 'unemployment_group_id'),
             uiRoleMapByRole: groupRoleMap(loaded.uiRoleMap)
         });
     }

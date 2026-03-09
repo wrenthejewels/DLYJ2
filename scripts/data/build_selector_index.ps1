@@ -27,8 +27,10 @@ $occupations = Import-Csv (Join-Path $normalizedDir 'occupations.csv')
 $aliases = Import-Csv (Join-Path $normalizedDir 'occupation_aliases.csv')
 $labor = Import-Csv (Join-Path $normalizedDir 'occupation_labor_market_context.csv')
 $priors = Import-Csv (Join-Path $normalizedDir 'occupation_exposure_priors.csv')
+$adaptation = Import-Csv (Join-Path $normalizedDir 'occupation_adaptation_priors.csv')
 
 $laborByOcc = Get-Map -Rows $labor -Key 'occupation_id'
+$adaptationByOcc = Get-Map -Rows $adaptation -Key 'occupation_id'
 
 $priorsByOcc = @{}
 foreach ($row in $priors) {
@@ -63,12 +65,13 @@ $output = foreach ($occupation in $occupations) {
         $laborRow = $laborByOcc[$occupationId]
     }
 
-    $manningRow = $null
+    $priorRow = $null
     if ($priorsByOcc.ContainsKey($occupationId)) {
-        $manningRow = $priorsByOcc[$occupationId] |
-            Sort-Object @{ Expression = { if ($_.source_id -eq 'src_manning_aguirre_2026_01') { 0 } else { 1 } } }, @{ Expression = { - [double]($_.confidence) } } |
+        $priorRow = $priorsByOcc[$occupationId] |
+            Sort-Object @{ Expression = { - [double]($_.confidence) } } |
             Select-Object -First 1
     }
+    $adaptationRow = if ($adaptationByOcc.ContainsKey($occupationId)) { $adaptationByOcc[$occupationId] } else { $null }
 
     $searchTerms = @($occupation.title_short, $occupation.title)
     $searchTerms += $aliasList
@@ -80,8 +83,8 @@ $output = foreach ($occupation in $occupations) {
     $selectionPriority = [double]$occupation.selection_priority
     $employment = if ($laborRow) { [double]$laborRow.employment_us } else { 0 }
     $employmentNorm = if ($laborRow) { ($employment - $minEmployment) / $employmentRange } else { 0 }
-    $exposure = if ($manningRow -and $manningRow.exposure_score) { [double]$manningRow.exposure_score } else { 0.5 }
-    $adaptive = if ($manningRow -and $manningRow.adaptive_capacity_score) { [double]$manningRow.adaptive_capacity_score } else { 0.5 }
+    $exposure = if ($priorRow -and $priorRow.exposure_score) { [double]$priorRow.exposure_score } else { 0.5 }
+    $adaptive = if ($adaptationRow -and $adaptationRow.adaptive_capacity_score) { [double]$adaptationRow.adaptive_capacity_score } elseif ($priorRow -and $priorRow.adaptive_capacity_score) { [double]$priorRow.adaptive_capacity_score } else { 0.5 }
 
     $selectorWeightRaw = [Math]::Round(($selectionPriority * 0.70) + ($employmentNorm * 0.15) + ($exposure * 0.10) + ($adaptive * 0.05), 2)
     $selectorWeight = Clamp $selectorWeightRaw 0.00 0.99
@@ -95,8 +98,8 @@ $output = foreach ($occupation in $occupations) {
         employment_us = if ($laborRow) { [int]$laborRow.employment_us } else { $null }
         median_wage_usd = if ($laborRow) { [int]$laborRow.median_wage_usd } else { $null }
         projection_growth_pct = if ($laborRow) { [double]$laborRow.projection_growth_pct } else { $null }
-        manning_exposure_score = if ($manningRow) { $manningRow.exposure_score } else { $null }
-        manning_adaptive_capacity_score = if ($manningRow) { $manningRow.adaptive_capacity_score } else { $null }
+        exposure_prior_score = if ($priorRow) { $priorRow.exposure_score } else { $null }
+        adaptive_capacity_prior_score = if ($adaptationRow) { $adaptationRow.adaptive_capacity_score } elseif ($priorRow) { $priorRow.adaptive_capacity_score } else { $null }
         selector_weight = ('{0:N2}' -f $selectorWeight)
         coverage_tier = $coverageTier
     }

@@ -19,8 +19,19 @@ sources:
     license: 'See dataset card'
     geography: global_usage_mapped_to_onet
     granularity: task_level
-    status: planned_raw_import
-    notes: 'Primary task-level evidence for usage plus augmentation versus automation splits.'
+    status: active
+    notes: 'Primary task-level evidence for usage plus augmentation versus automation splits. The current normalization pipeline consumes the root-level Anthropic task extracts stored in data/raw/anthropic_economic_index.'
+  - source_id: src_anthropic_ei_2026_01_15
+    name: Anthropic Economic Index
+    category: task_exposure
+    version_label: '2026-01-15'
+    release_date: '2026-01-15'
+    download_url: 'https://huggingface.co/datasets/Anthropic/EconomicIndex/tree/main/release_2026_01_15'
+    license: 'See dataset card'
+    geography: global_usage_logs
+    granularity: raw_usage_snapshot
+    status: raw_imported_not_normalized
+    notes: 'Raw January 15 2026 release snapshot imported under data/raw/anthropic_economic_index/release_2026_01_15. Not yet consumed by normalize_anthropic_ei.ps1.'
   - source_id: src_manning_aguirre_2026_01
     name: Manning and Aguirre adaptive capacity paper
     category: occupation_prior
@@ -30,8 +41,8 @@ sources:
     license: 'NBER working paper terms'
     geography: us
     granularity: occupation_level
-    status: partial_manual_extract
-    notes: 'Occupation-level exposure and adaptive capacity prior for selector and summary layers. Current repo coverage is partial and based on manually extracted published tables with mapped O*NET codes.'
+    status: archived_not_used
+    notes: 'Retained only as archived historical material. No longer used in active selector, priors, or runtime scoring because launch coverage is partial.'
   - source_id: src_oecd_job_quality_2014
     name: OECD Job Quality Framework
     category: quality_framework
@@ -76,6 +87,28 @@ sources:
     granularity: occupation_level
     status: planned_raw_import
     notes: 'Growth and openings context for selector ranking and transition outlook.'
+  - source_id: src_bls_cps_occupation_unemployment_2026_03
+    name: BLS CPS unemployment by occupation group
+    category: labor_market_context
+    version_label: 'Monthly occupation-group unemployment API snapshot'
+    release_date: '2026-03-09'
+    download_url: 'https://api.bls.gov/publicAPI/v2/timeseries/data/'
+    license: public_domain
+    geography: us
+    granularity: occupation_group_monthly
+    status: active
+    notes: 'Official monthly unemployment series used for the last-12-month labor market chart on the v2 page.'
+  - source_id: src_v2_launch_aggregate_2026_03
+    name: V2 launch aggregate prior
+    category: occupation_prior
+    version_label: '2026-03-09 aggregate'
+    release_date: '2026-03-09'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_level
+    status: active
+    notes: 'Derived occupation prior built from O*NET structure, Anthropic task evidence, and BLS labor context for launch.'
   - source_id: src_aioe_2023
     name: AI Occupational Exposure
     category: occupation_prior
