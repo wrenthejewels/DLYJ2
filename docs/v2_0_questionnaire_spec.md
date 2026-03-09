@@ -514,7 +514,8 @@ The current `2.0` UI now implements the visible intake refactor:
 What remains incomplete:
 - the visible questionnaire still uses the old radio-grid shell rather than a bespoke `2.0` intake layout
 - prefill logic still depends on legacy role presets and hierarchy assumptions
-- the scoring layer still relies on the existing question-to-signal translation rather than a fully re-derived `2.0` weighting system
+- the scoring layer now uses the direct `2.0` inputs materially, but it still relies on the existing question-to-signal translation rather than a fully re-derived `2.0` weighting system
+- occupation cleanup is still needed for the largest benchmark-disagreement roles, where better questionnaire inputs cannot fully offset weak priors or weak bundle mapping
 
 ## Minimum New Fields Needed For First Real V2
 
@@ -547,8 +548,5 @@ The questionnaire should not be designed around:
 
 ## Next Dependency
 
-With the visible questionnaire refactor now implemented, the next recommended step is:
-- tighten the scoring layer and occupation-prior coverage around the new direct `2.0` inputs, especially:
-  - role-defining task weighting
-  - residual bundle distinctiveness
-  - category/occupation anchoring quality for benchmark-disagreement roles
+With the visible questionnaire refactor and direct-input scoring pass now implemented, the next recommended step is:
+- improve occupation-prior coverage and targeted bundle cleanup for benchmark-disagreement roles, while reducing the remaining dependence on legacy prefill assumptions

@@ -759,3 +759,22 @@ Suggested update format:
   - benchmark-disagreement occupations still need targeted occupation-prior and task-bundle cleanup
 - next recommended step:
   - tighten the downstream scoring logic and occupation-prior coverage around the new direct `2.0` inputs, starting with the largest benchmark-disagreement roles
+
+## Session Update - 2026-03-09-H
+
+- completed:
+  - tightened the live `2.0` scoring layer so direct questionnaire inputs now materially change the output:
+    - role-defining task families now receive extra weight in exposure, elevation, retained-bundle interpretation, and top-exposed selection
+    - current AI/tool support and adoption context now modify augmentation, automation, and absorbed-share calculations
+    - the residual-role and personalization-fit scores now use role-critical retained-share diagnostics instead of relying only on the occupation prior and broad structural signals
+  - expanded the live result payload with explicit `role_defining_work` and richer diagnostics for adoption pressure, tool support, and critical-cluster transformation
+  - aligned the `2.0` methodology and spec docs to the live formulas and result contract
+- changed decisions:
+  - direct `2.0` inputs are now first-class score drivers, not just UI hints layered on top of occupation priors
+  - occupation priors remain anchor inputs, but cluster-level task evidence and role-critical user inputs now dominate more of the public result
+- new blockers:
+  - benchmark-disagreement occupations still need targeted occupation-prior and task-bundle cleanup
+  - the questionnaire still runs through the legacy `Q1-Q19` compatibility layer rather than a fully re-derived `2.0` signal system
+  - prefill behavior still carries some legacy category and hierarchy assumptions
+- next recommended step:
+  - improve occupation-prior coverage and targeted mappings for disagreement-heavy roles such as Management Analysts, Market Research Analysts, Human Resources Specialists, Accountants and Auditors, and Lawyers

@@ -298,6 +298,13 @@ type V2Result = {
     exposure_score: number
     exposure_level: 'low' | 'moderate' | 'high'
   } | null
+  role_defining_work: {
+    task_cluster_id: string
+    label: string
+    share_of_role: number
+    retained_share: number
+    exposed_share: number
+  } | null
   exposed_task_share: number
   mode_of_change: BalanceTier
   augmentation_share: number
@@ -318,8 +325,52 @@ type V2Result = {
     labor_context_confidence: number
     notes: string[]
   }
+  labor_market_context: {
+    employment_us: number
+    annual_openings: number
+    median_wage_usd: number
+    wage_p25_usd: number
+    wage_p75_usd: number
+    projection_growth_pct: number
+    unemployment_group_id: string | null
+    unemployment_group_label: string | null
+    unemployment_series_id: string | null
+    latest_unemployment_rate: number | null
+    latest_unemployment_period: string | null
+    monthly_unemployment_series: Array<{
+      year: number
+      month: number
+      month_label: string
+      unemployment_rate: number | null
+      is_missing: boolean
+    }>
+  } | null
+  diagnostics: {
+    occupation_prior_source: string | null
+    occupation_prior_exposure: number
+    occupation_prior_adaptive_capacity: number
+    adoption_pressure: number
+    task_support_signal: number
+    fragility: number
+    critical_exposed_share: number
+    critical_retained_share: number
+    critical_absorbed_share: number
+    personalization_fit_score: number
+    residual_role_strength_score: number
+    retained_transformed_share: number
+    absorbed_share: number
+  }
 }
 ```
+
+### Live scoring notes
+
+The current live engine also makes these implementation choices:
+
+- cluster exposure is lightly blended with the occupation-level exposure prior before questionnaire modifiers are applied
+- the user-selected `value-defining task family` receives extra weight in exposure, elevation, and top-exposed selection
+- direct AI/tool support and adoption context now modify augmentation, automation, and absorbed-share calculations
+- labor-market context remains separate from the headline role labels
 
 ## Mapping To Current Data Layer
 
@@ -397,8 +448,10 @@ The first UI implementation can use placeholder or heuristic values so long as:
 
 ## Next Dependency
 
-With the `2.0` questionnaire mapping and visible intake now in place, the next recommended step is:
-- tighten the scoring logic and occupation-prior coverage so the rendered result makes fuller use of:
-  - role-defining task weighting
-  - residual bundle distinctiveness
-  - improved occupation anchoring for benchmark-disagreement roles
+With the direct `2.0` inputs now wired into live scoring, the next recommended step is:
+- improve occupation-prior coverage and benchmark-disagreement mappings so the rendered result is more reliable for the weakest launch occupations, especially:
+  - Management Analysts
+  - Market Research Analysts
+  - Human Resources Specialists
+  - Accountants and Auditors
+  - Lawyers

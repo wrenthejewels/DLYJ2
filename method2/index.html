@@ -329,33 +329,35 @@
                         <div class="equation-display">$$F_{\text{adapt}} = \operatorname{avg}(q_{17},q_{18},q_{19})$$</div>
                         <div class="equation-display">$$G_{\text{fragile}} = \operatorname{avg}(q_{10},1-r)$$</div>
                     </div>
-                    <p><code>P_adopt</code> and the direct AI support signal are computed and exposed in state, but they are currently secondary compared with exposure, coupling, fragility, and retained-bundle structure in the headline scoring rules.</p>
+                    <p><code>P_adopt</code> and the direct AI support signal are now part of the live scoring path, but they still act as secondary modifiers rather than replacing task evidence.</p>
                 </section>
 
                 <section>
                     <h2>Cluster-Level Transformation Scoring</h2>
-                    <p>For each task cluster <em>i</em>, the engine loads a base exposure prior $e_i^{(0)}$, a base augmentation prior $a_i^{(0)}$, and a base automation prior $u_i^{(0)}$. The automation prior is the mean of the partial-automation and high-automation priors.</p>
-                    <p>Let $h_i$ be the built-in human-advantage weight for cluster <em>i</em>. The live formulas are:</p>
+                    <p>For each task cluster <em>i</em>, the engine loads a base exposure prior $e_i^{(0)}$, a base augmentation prior $a_i^{(0)}$, and a base automation prior $u_i^{(0)}$. The automation prior is the mean of the partial-automation and high-automation priors. The current implementation also blends the cluster exposure prior lightly with the occupation-level exposure prior $E_{\text{occ}}$.</p>
+                    <p>Let $h_i$ be the built-in human-advantage weight for cluster <em>i</em>, let $k_i = \mathbf{1}[i \in \text{roleCriticalClusters}]$, and let $T$ be the direct AI/tool support signal. The live formulas are:</p>
                     <div class="equation-callout">
                         <span class="callout-label">Exposure, augmentation, automation</span>
-                        <div class="equation-display">$$e_i = \operatorname{clamp}\!\left(e_i^{(0)} \cdot (0.70 + 0.70E)\cdot(1 - 0.45 h_i C),\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$a_i = \operatorname{clamp}\!\left(a_i^{(0)} \cdot (0.75 + 0.55A_{\text{aug}})\cdot(1 + 0.20 h_i),\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$u_i = \operatorname{clamp}\!\left(u_i^{(0)} \cdot (0.70 + 0.75A_{\text{auto}})\cdot(1 - 0.55 h_i C),\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$\bar{e}_i^{(0)} = \operatorname{avg}(e_i^{(0)}, E_{\text{occ}})$$</div>
+                        <div class="equation-display">$$R_{\text{adopt}} = 0.92 + 0.16P_{\text{adopt}}$$</div>
+                        <div class="equation-display">$$e_i = \operatorname{clamp}\!\left(\bar{e}_i^{(0)} \cdot (0.68 + 0.62E)\cdot R_{\text{adopt}}\cdot(1 + 0.08k_i)\cdot(1 - 0.42 h_i C),\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$a_i = \operatorname{clamp}\!\left(a_i^{(0)} \cdot (0.72 + 0.48A_{\text{aug}} + 0.32T)\cdot(1 + h_i(0.16 + 0.12T))\cdot R_{\text{adopt}},\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$u_i = \operatorname{clamp}\!\left(u_i^{(0)} \cdot (0.68 + 0.68A_{\text{auto}} + 0.18P_{\text{adopt}})\cdot(1 - h_i(0.42C + 0.18T)),\,0,\,1\right)$$</div>
                         <div class="equation-display">$$m_i = \arg\max\{a_i,\ u_i\}$$</div>
                     </div>
                     <p>The model then estimates absorbed, retained, and elevated share for each cluster.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Bundle transformation</span>
-                        <div class="equation-display">$$\text{absorbed}_i = s_i \cdot e_i \cdot u_i \cdot 0.82$$</div>
+                        <div class="equation-display">$$\text{absorbed}_i = s_i \cdot e_i \cdot u_i \cdot (0.74 + 0.16P_{\text{adopt}})$$</div>
                         <div class="equation-display">$$\text{retained}_i = \max(0,\ s_i - \text{absorbed}_i)$$</div>
                         <div class="equation-display">$$\text{elev}_i =
 \begin{cases}
-\text{absorbed}_i \cdot (0.22 + 0.18s + 0.12r), & i \in \mathcal{E} \\
+\text{absorbed}_i \cdot (0.22 + 0.18s + 0.12r + 0.08k_i), & i \in \mathcal{E} \\
 0, & i \notin \mathcal{E}
 \end{cases}$$</div>
                         <div class="equation-display">$$t_i = \text{retained}_i + \text{elev}_i$$</div>
                     </div>
-                    <p>Here $\mathcal{E}$ is the fixed set of elevation-capable clusters: coordination, QA/review, decision support, oversight/strategy, relationship management, and client interaction.</p>
+                    <p>Here $\mathcal{E}$ is the fixed set of elevation-capable clusters: coordination, QA/review, decision support, oversight/strategy, relationship management, and client interaction. A user-selected role-defining cluster receives extra weight in exposure and elevation so the model is not driven by time share alone.</p>
                 </section>
 
                 <section>
@@ -374,14 +376,20 @@
                     <div class="equation-callout">
                         <span class="callout-label">Strategic retained share</span>
                         <div class="equation-display">$$S_{\text{strategic}} = \sum_{i \in \mathcal{E} \cap \mathcal{R}} t_i$$</div>
+                        <div class="equation-display">$$S_{\text{critical,exposed}} = \sum_{i \in \mathcal{K}} s_i e_i,\qquad S_{\text{critical,retained}} = \sum_{i \in \mathcal{K}} t_i$$</div>
+                        <div class="equation-display">$$B_{\text{critical}} =
+\begin{cases}
+\operatorname{avg}\!\left(S_{\text{critical,retained}},\ 1 - \operatorname{clamp}(S_{\text{critical,exposed}}\cdot\max(\pi_{\text{auto}},0.45),0,1)\right), & |\mathcal{K}| > 0 \\
+r, & |\mathcal{K}| = 0
+\end{cases}$$</div>
                     </div>
                     <div class="equation-callout">
                         <span class="callout-label">Residual role strength</span>
-                        <div class="equation-display">$$V = \operatorname{clamp}\!\left(0.65 \cdot \operatorname{avg}(1-G_{\text{fragile}},\ r,\ C,\ S_{\text{strategic}},\ 1-\pi_{\text{auto}}) + 0.35 \cdot \operatorname{clamp}\!\left(\sum_i t_i,\ 0,\ 1\right),\ 0,\ 1\right)$$</div>
+                        <div class="equation-display">$$V = \operatorname{clamp}\!\left(0.68 \cdot \operatorname{avg}(1-G_{\text{fragile}},\ r,\ C,\ S_{\text{strategic}},\ B_{\text{critical}},\ 1-\pi_{\text{auto}}) + 0.32 \cdot \operatorname{clamp}\!\left(\sum_i t_i,\ 0,\ 1\right),\ 0,\ 1\right)$$</div>
                     </div>
                     <div class="equation-callout">
                         <span class="callout-label">Personalization fit</span>
-                        <div class="equation-display">$$P = \operatorname{clamp}\!\left(\operatorname{avg}(A_{\text{occ}},\ S_{\text{strategic}},\ C,\ F_{\text{adapt}},\ 0.55s + 0.45r,\ 1-G_{\text{fragile}}),\ 0,\ 1\right)$$</div>
+                        <div class="equation-display">$$P = \operatorname{clamp}\!\left(\operatorname{avg}(A_{\text{occ}},\ S_{\text{strategic}},\ S_{\text{critical,retained}} \text{ or } r,\ C,\ F_{\text{adapt}},\ T,\ 0.55s + 0.45r,\ 1-G_{\text{fragile}}),\ 0,\ 1\right)$$</div>
                     </div>
                     <p>$A_{\text{occ}}$ is the occupation-level adaptive-capacity prior from the adaptation-prior layer when available, otherwise from the occupation-prior layer.</p>
                 </section>
@@ -407,7 +415,7 @@
                     <h3>Top exposed work</h3>
                     <div class="equation-callout">
                         <span class="callout-label">Selection rule</span>
-                        <div class="equation-display">$$i^\star = \arg\max_i(s_i e_i)$$</div>
+                        <div class="equation-display">$$i^\star = \arg\max_i\left((s_i e_i)\cdot(1 + 0.35k_i)\right)$$</div>
                         <div class="equation-display">$$\text{Exposure tier}(i^\star) =
 \begin{cases}
 \text{high}, & e_{i^\star} \ge 0.68 \\
@@ -446,7 +454,7 @@
                         <span class="callout-label">Confidence fields</span>
                         <div class="equation-display">$$C_{\text{task}} = \operatorname{avg}_i(\text{clusterEvidenceConfidence}_i)$$</div>
                         <div class="equation-display">$$C_{\text{anchor}} = \operatorname{avg}(\text{occupationPriorConfidence},\ \text{selectorWeight})$$</div>
-                        <div class="equation-display">$$C_{\text{personal}} = \operatorname{avg}(r,\ 1-G_{\text{fragile}},\ C,\ C_{\text{task}})$$</div>
+                        <div class="equation-display">$$C_{\text{personal}} = \operatorname{avg}(r,\ 1-G_{\text{fragile}},\ C,\ T,\ C_{\text{task}})$$</div>
                         <div class="equation-display">$$C_{\text{labor}} = \text{laborMarketConfidence}$$</div>
                     </div>
                     <p>These values are used in the evidence panel and notes. They summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
@@ -465,8 +473,8 @@
                 <section>
                     <h2>Current Limitations</h2>
                     <ul class="detail-list">
-                        <li><strong>Direct task inputs are still coarse.</strong> They tilt the occupation bundle rather than fully replacing it with user-supplied time shares.</li>
-                        <li><strong>Adoption pressure is underweighted.</strong> The engine computes it, but current headline rules are much more sensitive to exposure, coupling, fragility, and retained-bundle mass.</li>
+                        <li><strong>Direct task inputs are still coarse.</strong> They matter more than before, but they still tilt the occupation bundle rather than fully replacing it with user-supplied time shares.</li>
+                        <li><strong>Adoption context is still a modifier, not a separate labor-demand model.</strong> It changes realized pressure inside the transformation engine, but it does not become an independent forecast system.</li>
                         <li><strong>Occupation quality remains critical.</strong> The largest benchmark-disagreement roles still need better occupation-prior and task-bundle cleanup.</li>
                         <li><strong>Confidence is descriptive.</strong> The model exposes coverage and alignment confidence, not a formal uncertainty distribution over every output.</li>
                     </ul>
