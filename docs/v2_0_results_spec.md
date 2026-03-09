@@ -54,7 +54,7 @@ Example summary patterns:
 
 These five cards are the locked default headline outputs for `2.0`.
 
-### 1. Likely Role State
+### 1. Role Outlook
 
 Type:
 - text label
@@ -64,9 +64,9 @@ Purpose:
 
 Allowed values should come from a small fixed label set:
 - `Mostly augmented`
-- `Routine tasks absorbed`
+- `Routine work compressed`
 - `Role becomes more senior`
-- `Role narrows but remains viable`
+- `Role becomes narrower`
 - `Role fragments`
 - `High displacement risk`
 
@@ -210,10 +210,10 @@ This should be a structured explanation, not freeform prose.
 
 Recommended template:
 
-1. `What is changing`
-2. `What gets absorbed`
-3. `What remains`
-4. `What kind of worker benefits in the transformed version of the role`
+1. `Why this role changes`
+2. `What is under pressure`
+3. `What stays core`
+4. `How your answers shape the result`
 
 ### Labor Market Context Panel
 
@@ -236,6 +236,13 @@ This section should explicitly tell the user:
 - where the model used occupation priors
 - where the model used task-level evidence
 - where coverage is partial
+
+The default source explanation should be:
+- `O*NET` for occupation and task structure
+- `Anthropic Economic Index 2026-01-15` for primary task exposure and augmentation/automation evidence
+- `BLS` for labor-market context
+- legacy Anthropic `2025-03-27` extract only as fallback supporting coverage
+- a derived launch prior only where occupation-level aggregation is needed
 
 It should also display source-confidence language such as:
 - `Task evidence strong`
@@ -336,10 +343,14 @@ Use:
 - `data/normalized/occupation_exposure_priors.csv`
 - `data/normalized/occupation_adaptation_priors.csv`
 
+Important implementation rule:
+- these priors support occupation anchoring and confidence, but should not overpower task-level Anthropic evidence
+
 ### Labor context inputs
 
 Use:
 - `data/normalized/occupation_labor_market_context.csv`
+- `data/normalized/occupation_unemployment_monthly.csv`
 
 ### Role-category bridge
 
@@ -357,8 +368,6 @@ Current `1.0` headline cards in `index.html` are:
 
 These should be replaced by the five `2.0` headline cards defined above.
 
-The old risk-year logic should move into the secondary timing panel.
-
 ## What Replaces Current 1.0 Chart
 
 Current `1.0` chart:
@@ -367,16 +376,13 @@ Current `1.0` chart:
 `2.0` replacement:
 - `Role Transformation Map`
 
-Secondary optional chart:
-- `Transformation Pressure Over Time`
-
-If a time-series view remains, it should not visually dominate the page.
+No timing replacement is required on the main `2.0` page.
 
 ## Visual Priority Rules
 
-1. `Likely Role State` should be the most prominent card.
-2. The transformation map should sit above any timing chart.
-3. The secondary timing panel should be collapsible or visually lower-emphasis.
+1. `Role Outlook` should be the most prominent card.
+2. The transformation map should sit above the labor-market context panel.
+3. Labor-market context should not visually overpower the transformation result.
 4. Evidence and caveats must be visible without requiring the methodology page.
 
 ## Implementation Notes

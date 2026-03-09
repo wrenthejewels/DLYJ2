@@ -10,3 +10,5 @@ Suggested future script targets:
 - `fetch_onet.ps1`
 - `fetch_bls.ps1`
 - `fetch_anthropic_ei.ps1`
+- `fetch_aioe.ps1`
+- `fetch_ilo.ps1`

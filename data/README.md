@@ -14,3 +14,4 @@ Key normalized tables include:
 - `occupation_tasks.csv`
 - `occupation_task_clusters.csv`
 - `occupation_exposure_priors.csv`
+- `occupation_benchmark_scores.csv`

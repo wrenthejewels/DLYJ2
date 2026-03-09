@@ -90,6 +90,7 @@ $headerMap = @{
     'task_exposure_evidence.csv' = @('occupation_id','onet_task_id','task_cluster_id','source_id','exposure_score','augmentation_score','automation_score','observed_usage_share','evidence_type','confidence','notes')
     'task_augmentation_automation_priors.csv' = @('occupation_id','task_cluster_id','exposure_score','augmentation_likelihood','partial_automation_likelihood','high_automation_likelihood','evidence_confidence','primary_sources','notes')
     'occupation_adaptation_priors.csv' = @('occupation_id','adaptive_capacity_score','transferability_score','learning_intensity_score','transition_option_count','job_zone','source_mix','confidence','notes')
+    'occupation_benchmark_scores.csv' = @('occupation_id','aioe_score','aioe_percentile','lm_aioe_score','lm_aioe_percentile','benchmark_mean_percentile','source_id','confidence','notes')
     'occupation_quality_indicators.csv' = @('occupation_id','earnings_quality_proxy','labor_market_security_proxy','working_environment_quality_proxy','autonomy_proxy','learning_opportunity_proxy','social_interaction_intensity','time_pressure_proxy','quality_confidence','source_mix','notes')
     'occupation_labor_market_context.csv' = @('occupation_id','employment_us','annual_openings','median_wage_usd','wage_p25_usd','wage_p75_usd','projection_growth_pct','unemployment_group_id','unemployment_group_label','unemployment_series_id','latest_unemployment_rate','latest_unemployment_period','labor_market_confidence','release_year')
     'occupation_unemployment_monthly.csv' = @('unemployment_group_id','unemployment_group_label','unemployment_series_id','year','month','period','month_label','unemployment_rate','is_missing','source_id','notes')
@@ -126,6 +127,7 @@ $exposurePriors = Import-Csv (Join-Path $normalizedDir 'occupation_exposure_prio
 $taskEvidence = Import-Csv (Join-Path $normalizedDir 'task_exposure_evidence.csv')
 $taskPriors = Import-Csv (Join-Path $normalizedDir 'task_augmentation_automation_priors.csv')
 $adaptation = Import-Csv (Join-Path $normalizedDir 'occupation_adaptation_priors.csv')
+$benchmarks = Import-Csv (Join-Path $normalizedDir 'occupation_benchmark_scores.csv')
 $quality = Import-Csv (Join-Path $normalizedDir 'occupation_quality_indicators.csv')
 $labor = Import-Csv (Join-Path $normalizedDir 'occupation_labor_market_context.csv')
 $transitions = Import-Csv (Join-Path $normalizedDir 'occupation_transition_adjacency.csv')
@@ -156,6 +158,8 @@ Assert-ForeignKey -Rows $taskEvidence -Column 'source_id' -Allowed $sourceIds -L
 Assert-ForeignKey -Rows $taskPriors -Column 'occupation_id' -Allowed $occupationIds -Label 'task priors occupation_id'
 Assert-ForeignKey -Rows $taskPriors -Column 'task_cluster_id' -Allowed $taskClusterIds -Label 'task priors task_cluster_id'
 Assert-ForeignKey -Rows $adaptation -Column 'occupation_id' -Allowed $occupationIds -Label 'adaptation occupation_id'
+Assert-ForeignKey -Rows $benchmarks -Column 'occupation_id' -Allowed $occupationIds -Label 'benchmark occupation_id'
+Assert-ForeignKey -Rows $benchmarks -Column 'source_id' -Allowed $sourceIds -Label 'benchmark source_id'
 Assert-ForeignKey -Rows $quality -Column 'occupation_id' -Allowed $occupationIds -Label 'quality occupation_id'
 Assert-ForeignKey -Rows $labor -Column 'occupation_id' -Allowed $occupationIds -Label 'labor occupation_id'
 Assert-ForeignKey -Rows $transitions -Column 'from_occupation_id' -Allowed $occupationIds -Label 'transition from_occupation_id'

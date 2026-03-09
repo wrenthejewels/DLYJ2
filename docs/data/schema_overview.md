@@ -24,8 +24,9 @@ Core join path:
 5. `task_augmentation_automation_priors.csv`
 6. `occupation_exposure_priors.csv`
 7. `occupation_adaptation_priors.csv`
-8. `occupation_quality_indicators.csv`
-9. `occupation_labor_market_context.csv`
+8. `occupation_benchmark_scores.csv`
+9. `occupation_quality_indicators.csv`
+10. `occupation_labor_market_context.csv`
 
 ## Purpose of the normalized layer
 

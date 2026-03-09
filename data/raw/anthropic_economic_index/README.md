@@ -14,5 +14,5 @@ Imported release snapshot:
 - `release_2026_01_15/data/intermediate/aei_raw_claude_ai_2025-11-13_to_2025-11-20.csv`
 
 Important note:
-- the current `normalize_anthropic_ei.ps1` pipeline still consumes the root-level task-mapping extracts
-- the `release_2026_01_15` raw package is now available locally for a future integration pass, but is not yet normalized into the active v2 outputs
+- the active `normalize_anthropic_ei.ps1` pipeline now prefers the `release_2026_01_15` raw package and aggregates Claude.ai plus 1P API O*NET-task telemetry into the live v2 outputs
+- the root-level `2025-03-27` task-mapping extracts are retained as a fallback supporting layer for any remaining unmatched task rows

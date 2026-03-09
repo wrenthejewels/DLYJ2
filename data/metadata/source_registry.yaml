@@ -19,8 +19,8 @@ sources:
     license: 'See dataset card'
     geography: global_usage_mapped_to_onet
     granularity: task_level
-    status: active
-    notes: 'Primary task-level evidence for usage plus augmentation versus automation splits. The current normalization pipeline consumes the root-level Anthropic task extracts stored in data/raw/anthropic_economic_index.'
+    status: fallback_supporting_extract
+    notes: 'Legacy task-level extract retained as fallback coverage for rows not yet resolved by the January 15 2026 release path.'
   - source_id: src_anthropic_ei_2026_01_15
     name: Anthropic Economic Index
     category: task_exposure
@@ -30,8 +30,8 @@ sources:
     license: 'See dataset card'
     geography: global_usage_logs
     granularity: raw_usage_snapshot
-    status: raw_imported_not_normalized
-    notes: 'Raw January 15 2026 release snapshot imported under data/raw/anthropic_economic_index/release_2026_01_15. Not yet consumed by normalize_anthropic_ei.ps1.'
+    status: active
+    notes: 'Primary Anthropic source for the v2 task pipeline. Normalized from the imported Claude.ai and 1P API raw task telemetry under data/raw/anthropic_economic_index/release_2026_01_15.'
   - source_id: src_manning_aguirre_2026_01
     name: Manning and Aguirre adaptive capacity paper
     category: occupation_prior
@@ -118,8 +118,8 @@ sources:
     license: 'Repository terms'
     geography: us
     granularity: occupation_level
-    status: planned_optional_benchmark
-    notes: 'Benchmark prior and sanity check against newer exposure sources.'
+    status: active_benchmark_only
+    notes: 'Imported and normalized as a benchmark-only layer. Used to validate directional rankings against the live Anthropic-driven exposure stack, not to drive public headline outputs.'
   - source_id: src_ilo_genai_2025_05
     name: ILO refined global GenAI exposure index
     category: occupation_prior
@@ -129,8 +129,8 @@ sources:
     license: 'ILO terms'
     geography: global
     granularity: occupation_level
-    status: planned_optional_extract
-    notes: 'Optional global benchmark for augmentation versus automation framing.'
+    status: raw_imported_pending_mapping
+    notes: 'Raw article and occupation-chart dataset are now mirrored locally, but normalization is still blocked by the weak O*NET-to-ISCO join path.'
   - source_id: src_internal_stub_2026_03
     name: Internal v2 stub generator
     category: development_scaffold

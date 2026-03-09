@@ -54,19 +54,13 @@ These decisions are currently settled unless explicitly revised:
 
 The current recommended headline outputs are:
 
-1. `Likely Role State`
-2. `Most Exposed Task Cluster`
-3. `Automation vs Augmentation Balance`
-4. `Residual Role Viability`
-5. `Adaptation Capacity`
-6. `Transformation Pressure by 2030`
+1. `Role Outlook`
+2. `Top Exposed Work`
+3. `Mode Of Change`
+4. `Residual Role Strength`
+5. `Personalization Fit`
 
-The current `1.0` style timeline outputs should be demoted to a secondary panel or derived summary, not removed from the model space entirely.
-
-Examples of secondary timeline framing:
-- `Secondary Displacement Hazard`
-- `Displacement Window`
-- `Bundle Collapse Risk`
+The public `2.0` main page should not include a timing panel or METR-derived hazard outputs.
 
 ## Conceptual Shift From 1.0 To 2.0
 
@@ -89,14 +83,14 @@ Examples of secondary timeline framing:
 - augmentation vs automation split
 - bundle decoupling / O-Ring logic
 - residual role viability
-- worker adaptation capacity
-- optional secondary hazard
+- worker-specific fit with the retained role
+- labor-market context as a separate panel
 
 ### Practical implication
 
 `2.0` is not a coefficient update to `1.0`.
 
-It is a new primary model that can still produce a timing-like view as a downstream output.
+It is a new primary model and should stand on its own without the old timing layer.
 
 ## Current Repo State
 
@@ -217,6 +211,7 @@ Parallel `2.0` preview pages:
 - `data/normalized/task_augmentation_automation_priors.csv`
 - `data/normalized/occupation_exposure_priors.csv`
 - `data/normalized/occupation_adaptation_priors.csv`
+- `data/normalized/occupation_benchmark_scores.csv`
 - `data/normalized/occupation_labor_market_context.csv`
 - `data/normalized/occupation_unemployment_monthly.csv`
 
@@ -295,8 +290,7 @@ These exist, but some are still heuristic rather than final research-grade input
 - the preview result now includes labor-market context and a 12-month BLS unemployment chart for the selected occupation's mapped occupation group
 - residual bundle scoring still needs better calibration and direct task-bundle inputs
 - decoupling / O-Ring logic is still only partial / heuristic
-- adaptation scoring using the new normalized layer is still heuristic rather than final
-- the secondary hazard output still needs final definition against the new ontology
+- personalization-fit scoring using the new normalized layer is still heuristic rather than final
 
 ### Questionnaire
 
@@ -305,8 +299,8 @@ These exist, but some are still heuristic rather than final research-grade input
   - task mix
   - exposure mode
   - coupling
-  - residual viability
-  - adaptation
+  - residual role strength
+  - personalization fit
 
 ### Documentation
 
@@ -321,7 +315,7 @@ These exist, but some are still heuristic rather than final research-grade input
 These decisions should be resolved before large UI implementation begins:
 
 1. Which parts of the current questionnaire remain unchanged, and which must be redesigned?
-2. What exact form should the new secondary hazard output take?
+2. How much personalization should come from explicit task-mix input versus occupation priors?
 3. Do we want occupation selection to be:
    - broad category only
    - category then occupation
@@ -345,16 +339,15 @@ The results-page structure and headline output contract are now documented in:
 3. task exposure scoring
 4. augmentation vs automation split
 5. bundle decoupling / residual role estimation
-6. adaptation scoring
-7. optional secondary hazard
+6. personalization-fit scoring
 
 ### Result
 
 - transformation-first summary
 - task-level explanation
 - residual role narrative
-- adaptation summary
-- secondary timing panel
+- personalization-fit summary
+- labor-market context panel
 
 ## Recommended Workstreams
 
@@ -395,8 +388,7 @@ Implement:
 - exposure scoring
 - automation vs augmentation balance
 - residual bundle viability
-- adaptation capacity
-- secondary hazard summary
+- personalization fit
 
 Status:
 - first runtime scaffold now exists in `v2_engine.js`
@@ -419,11 +411,34 @@ Next candidate additions:
 - Eloundou / GPTs-are-GPTs / EIG-style exposure dataset
 - OECD / PIAAC benchmarks in a later phase
 
-### Workstream 5: Product migration
+### Workstream 5: Source integration roadmap
+
+Integrate additional sources in strict priority order:
+
+1. `Anthropic Economic Index 2026-01-15`
+   - normalize the imported raw release into the existing task and task-cluster pipeline
+   - use it as the primary Anthropic task exposure and augmentation/automation layer
+   - retain the older Anthropic extract only as documented fallback coverage where the 2026 release still does not resolve a mapped row
+
+2. `Benchmark validation layer`
+   - add `AIOE` and optionally `ILO refined GenAI exposure index` only as comparison layers
+   - use them to sanity-check occupation priors and directional rankings
+   - do not let them drive headline outputs unless they clearly outperform the active stack
+
+3. `OECD / PIAAC phase`
+   - use OECD only after the main role-briefing model is stable
+   - apply it to autonomy, learning intensity, quality-of-work, and resilience context rather than primary exposure scoring
+
+Explicit non-goals:
+- do not restore `Manning / Aguirre` to active scoring
+- do not promote internal stubs into public headline outputs
+- do not reintroduce METR timing outputs into the `2.0` main page
+
+### Workstream 6: Product migration
 
 Continue building `2.0` on the parallel preview routes, then replace the current homepage experience only once the new outputs are ready. Retain the `1.0` model as a separate archive after cutover.
 
-### Workstream 6: Documentation rewrite
+### Workstream 7: Documentation rewrite
 
 Rewrite:
 - `guide/index.html`
@@ -436,8 +451,9 @@ so the public explanation matches the `2.0` ontology.
 1. keep the live `1.0` routes stable while iterating on `main2/index.html`, `guide2/index.html`, and `method2/index.html`
 2. improve the `2.0` transformation-engine scoring with the new intake fields
 3. tighten category-to-occupation selection so launch roles map more precisely to O*NET / BLS / Anthropic evidence
-4. rewrite the preview guide and methodology pages
-5. finalize what secondary hazard output survives from `1.0`
+4. import any remaining benchmark data for `ILO` once a stable raw occupational extract is available
+5. review the new benchmark validation report and inspect large disagreements before changing any public score logic
+6. rewrite the preview guide and methodology pages
 
 ## Acceptance Criteria For V2.0
 
@@ -448,9 +464,45 @@ so the public explanation matches the `2.0` ontology.
 3. the result distinguishes augmentation from automation
 4. the result shows what remains after exposed tasks are absorbed
 5. the result expresses whether the residual bundle is still viable
-6. the result includes worker adaptation capacity
-7. any timing or hazard output is clearly secondary
+6. the result includes worker-specific fit with the retained role
+7. the public `2.0` main page does not depend on timing or hazard outputs
 8. public docs describe the actual `2.0` model rather than the current `1.0` model
+
+## Current Source Strategy
+
+### Active for public `2.0`
+
+- `O*NET`
+  - occupation structure
+  - task bundle priors
+  - work-context scaffolding
+- `Anthropic Economic Index 2026-01-15 normalized task telemetry`
+  - task exposure
+  - augmentation vs automation split
+  - evidence confidence inputs from work-use share, human-only ability, task success, and AI autonomy
+- `BLS OEWS / projections / CPS`
+  - labor-market context
+  - selector support
+  - monthly unemployment chart
+- `src_v2_launch_aggregate_2026_03`
+  - derived occupation prior built from the active stack above
+
+### Present but not active in headline scoring
+
+- `Anthropic Economic Index 2025-03-27 legacy extract`
+  - retained only as fallback supporting coverage behind the primary 2026 Anthropic layer
+- `AIOE`
+  - imported and normalized as a benchmark-only validation layer
+- `ILO refined GenAI exposure index`
+  - raw chart data imported locally, but normalization is still blocked by the weak O*NET-to-ISCO join path
+- `OECD / PIAAC`
+  - planned later resilience / quality layer
+
+### Explicitly excluded
+
+- `Manning / Aguirre`
+- legacy `METR` timing logic
+- internal stub layers as public scoring inputs
 
 ## Session Update Protocol
 
@@ -553,6 +605,67 @@ Suggested update format:
   - the embedded legacy hazard code still exists under the hood and should be removed in a future cleanup pass
 - next recommended step:
   - rewrite `guide2` and `method2` so the public explanation matches the new five-factor model contract
+
+## Session Update - 2026-03-09-C
+
+- completed:
+  - defined a strict source-integration roadmap for `2.0`
+  - locked Anthropic `2026-01-15` as the next real integration target
+  - locked `AIOE` and `ILO` as benchmark-only layers unless proven better than the active stack
+  - locked `OECD / PIAAC` as a later resilience / job-quality phase rather than a launch exposure input
+- changed decisions:
+  - the active public `2.0` role model is now explicitly `O*NET + Anthropic + BLS + derived launch prior`
+  - non-active sources must be documented as either `benchmark`, `future phase`, or `excluded`
+- new blockers:
+  - no raw benchmark-source files for `AIOE` or `ILO` are present locally yet
+  - the docs still need a corresponding rewrite on `guide2` and `method2`
+- next recommended step:
+  - import benchmark datasets and build a benchmark comparison normalizer against the now-live Anthropic 2026 stack
+
+## Session Update - 2026-03-09-D
+
+- completed:
+  - integrated the Anthropic `2026-01-15` raw release into `normalize_anthropic_ei.ps1`
+  - switched the live v2 normalized Anthropic path to the 2026 release with explicit O*NET-task aggregation rules
+  - retained the older Anthropic `2025-03-27` extract only as fallback coverage for unresolved rows
+  - added `scripts/data/compare_anthropic_releases.ps1` and generated `docs/data/anthropic_2026_integration_report.md`
+- changed decisions:
+  - the active public `2.0` task-evidence stack is now `O*NET + Anthropic 2026 + BLS`, with Anthropic `2025-03-27` retained as fallback only
+  - richer Anthropic task telemetry now informs evidence confidence, not just exposure and mode shares
+- new blockers:
+  - no raw `AIOE` or `ILO` files are present locally yet, so benchmark validation cannot be implemented beyond documentation and source registration
+  - a small number of legacy Anthropic fallback rows still remain until the 2026 release covers those mapped tasks directly
+- next recommended step:
+  - import benchmark datasets and build a benchmark comparison normalizer rather than expanding the public score stack further
+
+## Session Update - 2026-03-09-E
+
+- completed:
+  - imported the raw `AIOE` benchmark workbooks into `data/raw/aioe`
+  - imported the raw ILO occupation-exposure article and chart dataset into `data/raw/ilo`
+  - added `scripts/data/normalize_aioe.ps1` to generate `occupation_benchmark_scores.csv`
+  - added `scripts/data/compare_benchmark_sources.ps1` and generated `docs/data/benchmark_validation_report.md`
+  - updated validation and schema docs so the benchmark layer is a first-class normalized contract
+- changed decisions:
+  - `AIOE` is now an imported benchmark-only source, not just a planned source-registry placeholder
+  - `ILO` raw data is now imported, but normalization still remains pending until a stronger `O*NET -> ISCO` bridge exists
+- new blockers:
+  - the current `crosswalk_onet_to_isco.csv` is still explicitly a placeholder, which blocks credible ILO occupation benchmarking
+  - benchmark disagreements now need substantive review before any source-promotion decision is made
+- next recommended step:
+  - inspect the largest benchmark disagreements and decide whether they reflect Anthropic task coverage issues, occupation bundling issues, or expected conceptual differences
+
+## Session Update - 2026-03-09-F
+
+- completed:
+  - added `scripts/data/diagnose_benchmark_disagreements.ps1`
+  - generated `docs/data/benchmark_disagreement_diagnostics.md` to classify large AIOE disagreements into coverage-gap, stub-dependency, low-confidence, or conceptual-review buckets
+- changed decisions:
+  - benchmark review is now a reproducible diagnostic step, not a manual interpretation pass
+- new blockers:
+  - several high-gap occupations still need human review even after automated bucketing, especially where the benchmark is high but the live exposure prior remains low
+- next recommended step:
+  - review the `conceptual_gap_review` occupations first and decide whether the issue is occupation bundling, Anthropic task coverage, or an expected methodology difference with AIOE
 
 ## Session Update - 2026-03-06-D
 

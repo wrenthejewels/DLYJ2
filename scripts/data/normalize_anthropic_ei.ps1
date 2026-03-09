@@ -2,7 +2,10 @@ param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [string]$SourceDir,
     [string]$OutputDir,
-    [switch]$IncludeCandidates
+    [string]$ContractDir,
+    [switch]$IncludeCandidates,
+    [ValidateSet('auto','legacy_2025','release_2026_01_15')]
+    [string]$Mode = 'auto'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,6 +15,12 @@ if (-not $SourceDir) {
 }
 if (-not $OutputDir) {
     $OutputDir = Join-Path $Root 'data\normalized'
+}
+if (-not $ContractDir) {
+    $ContractDir = Join-Path $Root 'data\normalized'
+}
+if (-not (Test-Path $OutputDir)) {
+    New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 }
 
 function Convert-ToOccupationId([string]$SocCode) {
@@ -29,9 +38,24 @@ function Import-RequiredCsv([string]$Path) {
     return Import-Csv $Path
 }
 
+function Average {
+    param([double[]]$Values)
+
+    $usable = @($Values | Where-Object { $null -ne $_ })
+    if (-not $usable.Count) { return $null }
+    return (($usable | Measure-Object -Average).Average)
+}
+
 function Normalize-Text([string]$Text) {
     if ([string]::IsNullOrWhiteSpace($Text)) { return '' }
     return ($Text.ToLowerInvariant() -replace '[^a-z0-9\s]', ' ' -replace '\s+', ' ').Trim()
+}
+
+function Parse-NullableDouble([object]$Value) {
+    if ($null -eq $Value -or [string]::IsNullOrWhiteSpace([string]$Value)) {
+        return $null
+    }
+    return [double]$Value
 }
 
 function Infer-ClusterId {
@@ -60,8 +84,308 @@ function Infer-ClusterId {
     return ($scores.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1).Key
 }
 
+function Get-PreferredMode {
+    param(
+        [string]$RequestedMode,
+        [string]$AnthropicSourceDir
+    )
+
+    if ($RequestedMode -ne 'auto') {
+        return $RequestedMode
+    }
+
+    $releaseDir = Join-Path $AnthropicSourceDir 'release_2026_01_15\data\intermediate'
+    $apiPath = Join-Path $releaseDir 'aei_raw_1p_api_2025-11-13_to_2025-11-20.csv'
+    $claudePath = Join-Path $releaseDir 'aei_raw_claude_ai_2025-11-13_to_2025-11-20.csv'
+
+    if ((Test-Path $apiPath) -and (Test-Path $claudePath)) {
+        return 'release_2026_01_15'
+    }
+
+    return 'legacy_2025'
+}
+
+function Get-OrCreateTaskMetric {
+    param(
+        [hashtable]$Map,
+        [string]$TaskKey
+    )
+
+    if (-not $Map.ContainsKey($TaskKey)) {
+        $Map[$TaskKey] = @{
+            task_key = $TaskKey
+            task_count = 0.0
+            collaboration = @{}
+            human_only_ability = @{}
+            use_case = @{}
+            task_success = @{}
+            multitasking = @{}
+            ai_autonomy_mean = $null
+            ai_autonomy_count = 0.0
+            human_only_time_mean = $null
+            human_only_time_count = 0.0
+            human_with_ai_time_mean = $null
+            human_with_ai_time_count = 0.0
+        }
+    }
+
+    return $Map[$TaskKey]
+}
+
+function Split-AnthropicClusterName([string]$ClusterName) {
+    $separatorIndex = $ClusterName.LastIndexOf('::')
+    if ($separatorIndex -lt 0) {
+        return [PSCustomObject]@{
+            task_key = Normalize-Text $ClusterName
+            label = ''
+        }
+    }
+
+    $taskName = $ClusterName.Substring(0, $separatorIndex)
+    $label = $ClusterName.Substring($separatorIndex + 2)
+    return [PSCustomObject]@{
+        task_key = Normalize-Text $taskName
+        label = $label
+    }
+}
+
+function Merge-ShareBucket {
+    param(
+        [hashtable]$WeightedSums,
+        [hashtable]$Weights,
+        [hashtable]$SourceShares,
+        [double]$Weight
+    )
+
+    foreach ($label in $SourceShares.Keys) {
+        if (-not $WeightedSums.ContainsKey($label)) { $WeightedSums[$label] = 0.0 }
+        if (-not $Weights.ContainsKey($label)) { $Weights[$label] = 0.0 }
+        $WeightedSums[$label] += ([double]$SourceShares[$label] * $Weight)
+        $Weights[$label] += $Weight
+    }
+}
+
+function Finalize-ShareBucket {
+    param(
+        [hashtable]$WeightedSums,
+        [hashtable]$Weights
+    )
+
+    $result = @{}
+    foreach ($label in $WeightedSums.Keys) {
+        $weight = if ($Weights.ContainsKey($label)) { [double]$Weights[$label] } else { 0.0 }
+        if ($weight -gt 0) {
+            $result[$label] = [double]$WeightedSums[$label] / $weight
+        }
+    }
+
+    return $result
+}
+
+function Get-ShareValue {
+    param(
+        [hashtable]$Bucket,
+        [string]$Label,
+        [double]$Default = 0.0
+    )
+
+    if ($Bucket.ContainsKey($Label)) {
+        return [double]$Bucket[$Label]
+    }
+
+    return $Default
+}
+
+function Get-MeanValue {
+    param(
+        [hashtable]$Metric,
+        [string]$MeanKey,
+        [string]$CountKey,
+        [double]$DefaultCount
+    )
+
+    if ($null -eq $Metric[$MeanKey]) {
+        return [PSCustomObject]@{
+            weighted_sum = 0.0
+            weight = 0.0
+        }
+    }
+
+    $weight = if ($Metric[$CountKey] -gt 0) { [double]$Metric[$CountKey] } else { $DefaultCount }
+    return [PSCustomObject]@{
+        weighted_sum = ([double]$Metric[$MeanKey] * $weight)
+        weight = $weight
+    }
+}
+
+function Get-2026PlatformMetrics {
+    param(
+        [Parameter(Mandatory)] [string]$Path,
+        [switch]$RequireGlobalRows
+    )
+
+    $rows = Import-RequiredCsv $Path
+    $taskMetrics = @{}
+    $totalTaskCount = 0.0
+
+    foreach ($row in $rows) {
+        if ($RequireGlobalRows -and $row.geo_id -ne 'GLOBAL') {
+            continue
+        }
+
+        if ($row.facet -eq 'onet_task' -and $row.variable -eq 'onet_task_count') {
+            $taskKey = Normalize-Text $row.cluster_name
+            if (-not $taskKey) { continue }
+
+            $metric = Get-OrCreateTaskMetric -Map $taskMetrics -TaskKey $taskKey
+            $metric.task_count = [double]$row.value
+            $totalTaskCount += [double]$row.value
+            continue
+        }
+
+        $parts = Split-AnthropicClusterName -ClusterName $row.cluster_name
+        if (-not $parts.task_key) {
+            continue
+        }
+
+        $metric = Get-OrCreateTaskMetric -Map $taskMetrics -TaskKey $parts.task_key
+        switch ($row.facet) {
+            'onet_task::collaboration' {
+                if ($row.variable -eq 'onet_task_collaboration_pct' -and $parts.label) {
+                    $metric.collaboration[$parts.label] = ([double]$row.value / 100.0)
+                }
+            }
+            'onet_task::human_only_ability' {
+                if ($row.variable -eq 'onet_task_human_only_ability_pct' -and $parts.label) {
+                    $metric.human_only_ability[$parts.label] = ([double]$row.value / 100.0)
+                }
+            }
+            'onet_task::use_case' {
+                if ($row.variable -eq 'onet_task_use_case_pct' -and $parts.label) {
+                    $metric.use_case[$parts.label] = ([double]$row.value / 100.0)
+                }
+            }
+            'onet_task::task_success' {
+                if ($row.variable -eq 'onet_task_task_success_pct' -and $parts.label) {
+                    $metric.task_success[$parts.label] = ([double]$row.value / 100.0)
+                }
+            }
+            'onet_task::multitasking' {
+                if ($row.variable -eq 'onet_task_multitasking_pct' -and $parts.label) {
+                    $metric.multitasking[$parts.label] = ([double]$row.value / 100.0)
+                }
+            }
+            'onet_task::ai_autonomy' {
+                if ($row.variable -eq 'onet_task_ai_autonomy_mean') {
+                    $metric.ai_autonomy_mean = [double]$row.value
+                } elseif ($row.variable -eq 'onet_task_ai_autonomy_count') {
+                    $metric.ai_autonomy_count = [double]$row.value
+                }
+            }
+            'onet_task::human_only_time' {
+                if ($row.variable -eq 'onet_task_human_only_time_mean') {
+                    $metric.human_only_time_mean = [double]$row.value
+                } elseif ($row.variable -eq 'onet_task_human_only_time_count') {
+                    $metric.human_only_time_count = [double]$row.value
+                }
+            }
+            'onet_task::human_with_ai_time' {
+                if ($row.variable -eq 'onet_task_human_with_ai_time_mean') {
+                    $metric.human_with_ai_time_mean = [double]$row.value
+                } elseif ($row.variable -eq 'onet_task_human_with_ai_time_count') {
+                    $metric.human_with_ai_time_count = [double]$row.value
+                }
+            }
+        }
+    }
+
+    return [PSCustomObject]@{
+        total_task_count = $totalTaskCount
+        task_metrics = $taskMetrics
+    }
+}
+
+function Combine-2026Metrics {
+    param([object[]]$PlatformMetrics)
+
+    $combined = @{}
+    $totalTaskCount = ($PlatformMetrics | Measure-Object -Property total_task_count -Sum).Sum
+
+    foreach ($platform in $PlatformMetrics) {
+        foreach ($taskKey in $platform.task_metrics.Keys) {
+            $sourceMetric = $platform.task_metrics[$taskKey]
+            if (-not $combined.ContainsKey($taskKey)) {
+                $combined[$taskKey] = @{
+                    task_key = $taskKey
+                    task_count = 0.0
+                    collaboration_weighted = @{}
+                    collaboration_weights = @{}
+                    human_only_weighted = @{}
+                    human_only_weights = @{}
+                    use_case_weighted = @{}
+                    use_case_weights = @{}
+                    task_success_weighted = @{}
+                    task_success_weights = @{}
+                    multitasking_weighted = @{}
+                    multitasking_weights = @{}
+                    ai_autonomy_weighted_sum = 0.0
+                    ai_autonomy_weight = 0.0
+                    human_only_time_weighted_sum = 0.0
+                    human_only_time_weight = 0.0
+                    human_with_ai_time_weighted_sum = 0.0
+                    human_with_ai_time_weight = 0.0
+                }
+            }
+
+            $target = $combined[$taskKey]
+            $taskWeight = [Math]::Max([double]$sourceMetric.task_count, 0.0)
+            $target.task_count += $taskWeight
+
+            if ($taskWeight -gt 0) {
+                Merge-ShareBucket -WeightedSums $target.collaboration_weighted -Weights $target.collaboration_weights -SourceShares $sourceMetric.collaboration -Weight $taskWeight
+                Merge-ShareBucket -WeightedSums $target.human_only_weighted -Weights $target.human_only_weights -SourceShares $sourceMetric.human_only_ability -Weight $taskWeight
+                Merge-ShareBucket -WeightedSums $target.use_case_weighted -Weights $target.use_case_weights -SourceShares $sourceMetric.use_case -Weight $taskWeight
+                Merge-ShareBucket -WeightedSums $target.task_success_weighted -Weights $target.task_success_weights -SourceShares $sourceMetric.task_success -Weight $taskWeight
+                Merge-ShareBucket -WeightedSums $target.multitasking_weighted -Weights $target.multitasking_weights -SourceShares $sourceMetric.multitasking -Weight $taskWeight
+            }
+
+            $aiAutonomy = Get-MeanValue -Metric $sourceMetric -MeanKey 'ai_autonomy_mean' -CountKey 'ai_autonomy_count' -DefaultCount $taskWeight
+            $target.ai_autonomy_weighted_sum += $aiAutonomy.weighted_sum
+            $target.ai_autonomy_weight += $aiAutonomy.weight
+
+            $humanOnlyTime = Get-MeanValue -Metric $sourceMetric -MeanKey 'human_only_time_mean' -CountKey 'human_only_time_count' -DefaultCount $taskWeight
+            $target.human_only_time_weighted_sum += $humanOnlyTime.weighted_sum
+            $target.human_only_time_weight += $humanOnlyTime.weight
+
+            $humanWithAiTime = Get-MeanValue -Metric $sourceMetric -MeanKey 'human_with_ai_time_mean' -CountKey 'human_with_ai_time_count' -DefaultCount $taskWeight
+            $target.human_with_ai_time_weighted_sum += $humanWithAiTime.weighted_sum
+            $target.human_with_ai_time_weight += $humanWithAiTime.weight
+        }
+    }
+
+    $finalRows = @{}
+    foreach ($taskKey in $combined.Keys) {
+        $entry = $combined[$taskKey]
+        $finalRows[$taskKey] = [PSCustomObject]@{
+            task_key = $taskKey
+            task_count = [double]$entry.task_count
+            task_pct = if ($totalTaskCount -gt 0) { [double]$entry.task_count / [double]$totalTaskCount } else { 0.0 }
+            collaboration = Finalize-ShareBucket -WeightedSums $entry.collaboration_weighted -Weights $entry.collaboration_weights
+            human_only_ability = Finalize-ShareBucket -WeightedSums $entry.human_only_weighted -Weights $entry.human_only_weights
+            use_case = Finalize-ShareBucket -WeightedSums $entry.use_case_weighted -Weights $entry.use_case_weights
+            task_success = Finalize-ShareBucket -WeightedSums $entry.task_success_weighted -Weights $entry.task_success_weights
+            multitasking = Finalize-ShareBucket -WeightedSums $entry.multitasking_weighted -Weights $entry.multitasking_weights
+            ai_autonomy_mean = if ($entry.ai_autonomy_weight -gt 0) { [double]$entry.ai_autonomy_weighted_sum / [double]$entry.ai_autonomy_weight } else { $null }
+            human_only_time_mean = if ($entry.human_only_time_weight -gt 0) { [double]$entry.human_only_time_weighted_sum / [double]$entry.human_only_time_weight } else { $null }
+            human_with_ai_time_mean = if ($entry.human_with_ai_time_weight -gt 0) { [double]$entry.human_with_ai_time_weighted_sum / [double]$entry.human_with_ai_time_weight } else { $null }
+        }
+    }
+
+    return $finalRows
+}
+
 $metadataDir = Join-Path $Root 'data\metadata'
-$normalizedDir = Join-Path $Root 'data\normalized'
+$normalizedDir = $ContractDir
 $launchSeed = Import-Csv (Join-Path $metadataDir 'launch_occupation_seed.csv')
 if (-not $IncludeCandidates) {
     $launchSeed = $launchSeed | Where-Object { $_.status -eq 'selected' }
@@ -73,6 +397,7 @@ foreach ($row in $launchSeed) { $seedBySoc[$row.provisional_onet_soc_code] = $ro
 $taskMembership = Import-Csv (Join-Path $normalizedDir 'task_cluster_membership.csv')
 $existingEvidence = Import-Csv (Join-Path $normalizedDir 'task_exposure_evidence.csv')
 $existingPriors = Import-Csv (Join-Path $normalizedDir 'task_augmentation_automation_priors.csv')
+$occupationTasks = Import-Csv (Join-Path $normalizedDir 'occupation_tasks.csv')
 $keywordRows = Import-Csv (Join-Path $metadataDir 'task_cluster_keywords.csv')
 $roleProfiles = Import-Csv (Join-Path $metadataDir 'role_family_cluster_profiles.csv')
 
@@ -93,59 +418,124 @@ foreach ($row in $roleProfiles) {
     $roleClusterBias[$row.role_family][$row.task_cluster_id] = [double]$row.share_prior
 }
 
-$rawRows = Import-RequiredCsv (Join-Path $SourceDir 'automation_vs_augmentation_by_task.csv')
 $newEvidence = New-Object System.Collections.Generic.List[object]
+$selectedOccupationIds = $launchSeed | ForEach-Object { Convert-ToOccupationId $_.provisional_onet_soc_code }
+$statementRowsByTaskName = @{}
+foreach ($row in $occupationTasks) {
+    if ($row.occupation_id -notin $selectedOccupationIds) {
+        continue
+    }
 
-if ($rawRows.Count -gt 0 -and $rawRows[0].PSObject.Properties['onet_soc_code']) {
-    foreach ($row in $rawRows) {
-        if (-not $row.onet_soc_code -or $row.onet_soc_code -notin $seedCodes) {
+    $taskNameKey = Normalize-Text $row.task_statement
+    if (-not $taskNameKey) { continue }
+
+    if (-not $statementRowsByTaskName.ContainsKey($taskNameKey)) {
+        $statementRowsByTaskName[$taskNameKey] = New-Object System.Collections.Generic.List[object]
+    }
+
+    $statementRowsByTaskName[$taskNameKey].Add($row)
+}
+
+$activeMode = Get-PreferredMode -RequestedMode $Mode -AnthropicSourceDir $SourceDir
+$anthropicSourceId = if ($activeMode -eq 'release_2026_01_15') { 'src_anthropic_ei_2026_01_15' } else { 'src_anthropic_ei_2025_03_27' }
+
+if ($activeMode -eq 'release_2026_01_15') {
+    $releaseDir = Join-Path $SourceDir 'release_2026_01_15\data\intermediate'
+    $apiMetrics = Get-2026PlatformMetrics -Path (Join-Path $releaseDir 'aei_raw_1p_api_2025-11-13_to_2025-11-20.csv')
+    $claudeMetrics = Get-2026PlatformMetrics -Path (Join-Path $releaseDir 'aei_raw_claude_ai_2025-11-13_to_2025-11-20.csv') -RequireGlobalRows
+    $platformMetrics = @($apiMetrics, $claudeMetrics)
+    $combinedMetrics = Combine-2026Metrics -PlatformMetrics $platformMetrics
+    $maxTaskPct = (($combinedMetrics.Values | Measure-Object -Property task_pct -Maximum).Maximum)
+    if (-not $maxTaskPct -or [double]$maxTaskPct -le 0) { $maxTaskPct = 0.01 }
+    $maxTaskCount = (($combinedMetrics.Values | Measure-Object -Property task_count -Maximum).Maximum)
+    if (-not $maxTaskCount -or [double]$maxTaskCount -le 0) { $maxTaskCount = 1.0 }
+
+    foreach ($taskKey in $combinedMetrics.Keys) {
+        if (-not $statementRowsByTaskName.ContainsKey($taskKey)) {
             continue
         }
 
-        $occupationId = Convert-ToOccupationId $row.onet_soc_code
-        $taskId = $row.onet_task_id
-        $mapping = $membershipByKey["$occupationId|$taskId"]
-        $clusterId = if ($row.task_cluster_id) { $row.task_cluster_id } elseif ($mapping) { $mapping.task_cluster_id } else { $null }
-        if (-not $clusterId) {
-            continue
+        $metric = $combinedMetrics[$taskKey]
+        $usageScore = Clamp ([Math]::Sqrt(([double]$metric.task_pct) / [double]$maxTaskPct)) 0.03 0.98
+        $autonomyNorm = if ($null -ne $metric.ai_autonomy_mean) {
+            Clamp ((([double]$metric.ai_autonomy_mean) - 1.0) / 4.0) 0.0 1.0
+        } else {
+            0.50
         }
+        $workShare = Get-ShareValue -Bucket $metric.use_case -Label 'work'
+        $successShare = Get-ShareValue -Bucket $metric.task_success -Label 'yes'
+        $nonHumanShare = Get-ShareValue -Bucket $metric.human_only_ability -Label 'no'
 
-        $newEvidence.Add([PSCustomObject]@{
-            occupation_id = $occupationId
-            onet_task_id = $taskId
-            task_cluster_id = $clusterId
-            source_id = 'src_anthropic_ei_2025_03_27'
-            exposure_score = ('{0:N2}' -f [double]$row.exposure_score)
-            augmentation_score = ('{0:N2}' -f [double]$row.augmentation_score)
-            automation_score = ('{0:N2}' -f [double]$row.automation_score)
-            observed_usage_share = if ($row.observed_usage_share) { ('{0:N2}' -f [double]$row.observed_usage_share) } else { '0.10' }
-            evidence_type = 'anthropic_task_usage'
-            confidence = if ($row.confidence) { ('{0:N2}' -f [double]$row.confidence) } else { '0.75' }
-            notes = 'anthropic_normalized'
-        })
+        $directiveShare = Get-ShareValue -Bucket $metric.collaboration -Label 'directive'
+        $feedbackShare = Get-ShareValue -Bucket $metric.collaboration -Label 'feedback loop'
+        $learningShare = Get-ShareValue -Bucket $metric.collaboration -Label 'learning'
+        $iterationShare = Get-ShareValue -Bucket $metric.collaboration -Label 'task iteration'
+        $validationShare = Get-ShareValue -Bucket $metric.collaboration -Label 'validation'
+        $augmentationBase = Clamp ($feedbackShare + $learningShare + $iterationShare + $validationShare) 0.0 0.98
+        $automationBase = Clamp $directiveShare 0.0 0.98
+
+        $exposure = Clamp (($usageScore * 0.72) + ($workShare * 0.16) + ($autonomyNorm * 0.12)) 0.03 0.98
+        $augmentation = Clamp (($augmentationBase * 0.78) + ($successShare * 0.12) + ((1.0 - $nonHumanShare) * 0.10)) 0.0 0.98
+        $automation = Clamp (($automationBase * 0.72) + ($autonomyNorm * 0.18) + ($nonHumanShare * 0.10)) 0.0 0.98
+
+        $coverageSignals = @()
+        $coverageSignals += if ($metric.collaboration.ContainsKey('not_classified')) { 1.0 - [double]$metric.collaboration['not_classified'] } else { 0.75 }
+        $coverageSignals += if ($metric.human_only_ability.ContainsKey('not_classified')) { 1.0 - [double]$metric.human_only_ability['not_classified'] } else { 0.75 }
+        $coverageSignals += if ($metric.use_case.ContainsKey('not_classified')) { 1.0 - [double]$metric.use_case['not_classified'] } else { 0.75 }
+        $classificationCoverage = Average -Values $coverageSignals
+        $countNorm = Clamp (([Math]::Log10(([double]$metric.task_count + 1.0))) / ([Math]::Log10(([double]$maxTaskCount + 1.0)))) 0.0 1.0
+        $confidence = Clamp (0.35 + ($countNorm * 0.35) + ($classificationCoverage * 0.20) + ($workShare * 0.10)) 0.35 0.96
+
+        $timeRatio = if ($null -ne $metric.human_only_time_mean -and [double]$metric.human_only_time_mean -gt 0 -and $null -ne $metric.human_with_ai_time_mean) {
+            [double]$metric.human_with_ai_time_mean / [double]$metric.human_only_time_mean
+        } else {
+            $null
+        }
+        $autonomyMeanLabel = if ($null -ne $metric.ai_autonomy_mean) { '{0:N2}' -f [double]$metric.ai_autonomy_mean } else { 'na' }
+        $timeRatioLabel = if ($null -ne $timeRatio) { '{0:N2}' -f $timeRatio } else { 'na' }
+        $notes = @(
+            'anthropic_normalized'
+            'release_2026_01_15'
+            ('task_count={0:N0}' -f [double]$metric.task_count)
+            ('work_share={0:N2}' -f $workShare)
+            ('autonomy_mean={0}' -f $autonomyMeanLabel)
+            ('success_share={0:N2}' -f $successShare)
+            ('time_ratio={0}' -f $timeRatioLabel)
+        ) -join '|'
+
+        foreach ($statementRow in $statementRowsByTaskName[$taskKey]) {
+            $occupationId = $statementRow.occupation_id
+            $taskId = $statementRow.onet_task_id
+            $mapping = $membershipByKey["$occupationId|$taskId"]
+            $clusterId = if ($mapping) { $mapping.task_cluster_id } else {
+                Infer-ClusterId -TaskStatement $statementRow.task_statement -OccupationId $occupationId -KeywordRowsByCluster $keywordRowsByCluster -RoleClusterBias $roleClusterBias -RoleFamily $statementRow.role_family
+            }
+            if (-not $clusterId) { continue }
+
+            $newEvidence.Add([PSCustomObject]@{
+                occupation_id = $occupationId
+                onet_task_id = $taskId
+                task_cluster_id = $clusterId
+                source_id = $anthropicSourceId
+                exposure_score = ('{0:N2}' -f $exposure)
+                augmentation_score = ('{0:N2}' -f $augmentation)
+                automation_score = ('{0:N2}' -f $automation)
+                observed_usage_share = ('{0:N4}' -f [double]$metric.task_pct)
+                evidence_type = 'anthropic_task_usage'
+                confidence = ('{0:N2}' -f $confidence)
+                notes = $notes
+            })
+        }
     }
 } else {
+    $rawRows = Import-RequiredCsv (Join-Path $SourceDir 'automation_vs_augmentation_by_task.csv')
     $taskPctRows = Import-RequiredCsv (Join-Path $SourceDir 'task_pct_v2.csv')
-    $onetTaskStatements = Import-RequiredCsv (Join-Path $SourceDir 'onet_task_statements.csv')
-
     $pctByTaskName = @{}
     foreach ($row in $taskPctRows) {
         $pctByTaskName[(Normalize-Text $row.task_name)] = [double]$row.pct
     }
     $maxPct = ($taskPctRows | Measure-Object -Property pct -Maximum).Maximum
     if (-not $maxPct -or [double]$maxPct -le 0) { $maxPct = 0.01 }
-
-    $statementRowsByTaskName = @{}
-    foreach ($row in $onetTaskStatements) {
-        if (-not $row.'O*NET-SOC Code' -or $row.'O*NET-SOC Code' -notin $seedCodes) {
-            continue
-        }
-        $taskNameKey = Normalize-Text $row.Task
-        if (-not $statementRowsByTaskName.ContainsKey($taskNameKey)) {
-            $statementRowsByTaskName[$taskNameKey] = @()
-        }
-        $statementRowsByTaskName[$taskNameKey] += $row
-    }
 
     foreach ($row in $rawRows) {
         $taskNameKey = Normalize-Text $row.task_name
@@ -159,14 +549,13 @@ if ($rawRows.Count -gt 0 -and $rawRows[0].PSObject.Properties['onet_soc_code']) 
         $exposure = Clamp ([Math]::Sqrt($pct / [double]$maxPct)) 0.05 0.95
 
         foreach ($statementRow in $statementRowsByTaskName[$taskNameKey]) {
-            $soc = $statementRow.'O*NET-SOC Code'
-            $occupationId = Convert-ToOccupationId $soc
-            $taskId = $statementRow.'Task ID'
+            $occupationId = $statementRow.occupation_id
+            $taskId = $statementRow.onet_task_id
             $mapping = $membershipByKey["$occupationId|$taskId"]
             $clusterId = if ($mapping) {
                 $mapping.task_cluster_id
             } else {
-                Infer-ClusterId -TaskStatement $statementRow.Task -OccupationId $occupationId -KeywordRowsByCluster $keywordRowsByCluster -RoleClusterBias $roleClusterBias -RoleFamily $seedBySoc[$soc].role_family
+                Infer-ClusterId -TaskStatement $statementRow.task_statement -OccupationId $occupationId -KeywordRowsByCluster $keywordRowsByCluster -RoleClusterBias $roleClusterBias -RoleFamily $statementRow.role_family
             }
             if (-not $clusterId) { continue }
 
@@ -174,14 +563,14 @@ if ($rawRows.Count -gt 0 -and $rawRows[0].PSObject.Properties['onet_soc_code']) 
                 occupation_id = $occupationId
                 onet_task_id = $taskId
                 task_cluster_id = $clusterId
-                source_id = 'src_anthropic_ei_2025_03_27'
+                source_id = $anthropicSourceId
                 exposure_score = ('{0:N2}' -f $exposure)
                 augmentation_score = ('{0:N2}' -f (Clamp $augmentation 0.00 0.98))
                 automation_score = ('{0:N2}' -f (Clamp $automation 0.00 0.98))
                 observed_usage_share = ('{0:N4}' -f $pct)
                 evidence_type = 'anthropic_task_usage'
                 confidence = '0.78'
-                notes = 'anthropic_normalized'
+                notes = 'anthropic_normalized|release_2025_03_27'
             })
         }
     }
@@ -234,8 +623,8 @@ foreach ($aggregate in $aggregates.Values) {
         partial_automation_likelihood = ('{0:N2}' -f $partialAuto)
         high_automation_likelihood = ('{0:N2}' -f (Clamp ($partialAuto - 0.08) 0.02 0.90))
         evidence_confidence = ('{0:N2}' -f ($aggregate.weighted_confidence / $weight))
-        primary_sources = 'src_anthropic_ei_2025_03_27|src_onet_30_1'
-        notes = 'anthropic_normalized'
+        primary_sources = "$anthropicSourceId|src_onet_30_1"
+        notes = "anthropic_normalized|mode=$activeMode"
     })
 }
 
@@ -254,4 +643,5 @@ $mergedPriors | Export-Csv -Path (Join-Path $OutputDir 'task_augmentation_automa
     merged_task_evidence_rows = $mergedEvidence.Count
     merged_task_prior_rows = $mergedPriors.Count
     source_dir = $SourceDir
+    mode = $activeMode
 } | Format-List

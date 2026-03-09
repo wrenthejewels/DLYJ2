@@ -26,7 +26,7 @@ The `2.0` questionnaire should instead estimate:
 - exposure-relevant task properties
 - coupling / decoupling
 - residual bundle viability
-- worker adaptation capacity
+- worker-specific fit with the retained role
 - adoption context
 
 It should not ask broad questions only because they were useful for the old hazard model.
@@ -40,7 +40,7 @@ The recommended `2.0` intake has six sections.
 3. exposure conditions
 4. coupling and residual bundle
 5. adoption context
-6. adaptation capacity
+6. personalization fit
 
 ## Section 1: Role Anchoring
 
@@ -93,7 +93,7 @@ This should no longer primarily act as a hazard shield.
 
 Maps to:
 - residual viability modifiers
-- adaptation modifiers
+- personalization-fit modifiers
 - likely role-state modifiers
 
 ### R4. Industry / operating environment
@@ -134,7 +134,7 @@ These should map onto your task clusters:
 
 Maps to:
 - `transformation_map.current_bundle`
-- `top_exposed_task_cluster`
+- `top_exposed_work`
 
 ### T2. Which tasks define the role's value
 
@@ -146,7 +146,7 @@ Purpose:
 
 Maps to:
 - residual bundle viability
-- likely role state
+- role outlook
 
 ### T3. Which tasks are already partially supported by AI/tools
 
@@ -157,7 +157,7 @@ Purpose:
 - calibrate exposure mode toward augmentation vs substitution
 
 Maps to:
-- automation vs augmentation balance
+- mode of change
 - exposed task share
 
 ## Section 3: Exposure Conditions
@@ -308,8 +308,8 @@ These questions should stay, but they are no longer the center of the model.
 Keep.
 
 Maps to:
-- transformation pressure by 2030
-- secondary hazard
+- labor-market interpretation
+- mode-of-change context
 
 #### Current Q14: Labor Cost Pressure
 
@@ -317,7 +317,7 @@ Keep.
 
 Maps to:
 - automation pressure
-- transformation pressure
+- mode-of-change context
 
 #### Current Q15: Labor Market Tightness
 
@@ -325,7 +325,7 @@ Keep.
 
 Maps to:
 - substitution pressure
-- adaptation pressure
+- retained-role fit pressure
 
 #### Current Q16: IT Infrastructure
 
@@ -335,10 +335,10 @@ Maps to:
 - adoption speed
 - automation feasibility
 
-## Section 6: Adaptation Capacity
+## Section 6: Personalization Fit
 
 Purpose:
-- estimate whether the worker can stay inside the transformed bundle or shift into an adjacent role
+- estimate whether the worker's stated scope, skills, and work mix fit the retained version of the role
 
 ### Reuse current questions
 
@@ -347,14 +347,14 @@ Purpose:
 Keep.
 
 Maps to:
-- `adaptation_capacity`
+- `personalization_fit`
 
 #### Current Q18: Adaptability / Learning
 
 Keep.
 
 Maps to:
-- `adaptation_capacity`
+- `personalization_fit`
 
 #### Current Q19: Job Performance
 
@@ -378,7 +378,7 @@ Recommended `2.0` public grouping:
 - `Exposure`
 - `Bundle Integrity`
 - `Adoption Context`
-- `Adaptation`
+- `Fit`
 
 Recommended internal migration approach:
 - keep old IDs temporarily in code
@@ -408,9 +408,9 @@ Depends on:
 - Q10 residual bundle fragility
 - Q11 human judgment and relationships
 - C1 residual distinct-role question
-- adaptation section
+- personalization-fit section
 
-### top_exposed_task_cluster
+### top_exposed_work
 
 Depends on:
 - occupation task-cluster priors
@@ -425,7 +425,7 @@ Depends on:
 - Q1-Q6 and Q8 exposure conditions
 - task evidence priors
 
-### automation_vs_augmentation_balance
+### mode_of_change
 
 Depends on:
 - Q3 benchmark clarity
@@ -436,7 +436,7 @@ Depends on:
 - Q12 physical presence
 - current AI/tool support question in T3
 
-### residual_role_viability
+### residual_role_strength
 
 Depends on:
 - T2 role-defining tasks
@@ -447,29 +447,13 @@ Depends on:
 - Q12 physical presence
 - C1 residual distinct-role question
 
-### adaptation_capacity
+### personalization_fit
 
 Depends on:
 - Q17 transferability
 - Q18 adaptability / learning
 - Q19 performance
 - occupation adaptation priors
-
-### transformation_pressure_2030
-
-Depends on:
-- exposure share
-- automation/augmentation balance
-- adoption context
-- occupation prior
-
-### secondary_hazard
-
-Depends on:
-- transformation pressure
-- residual viability weakness
-- adoption speed
-- adaptation weakness
 
 ## Keep / Change / Drop Summary
 
@@ -539,8 +523,26 @@ If only a few new inputs can be added at first, prioritize:
 2. top task families / time share
 3. direct residual-role viability question
 4. current AI/tool support question
+5. one explicit fit / scope question that helps distinguish retained-role fit from occupation-average fit
 
 These add more `2.0` signal than renaming legacy questions alone.
+
+## Source Alignment
+
+The questionnaire should be designed around the active public evidence stack:
+
+- `O*NET`
+  - defines occupation anchoring and baseline task structure
+- `Anthropic Economic Index 2026-01-15`
+  - defines exposure and augmentation/automation interpretation at the task level
+- `BLS`
+  - informs labor-market context only and should not dictate questionnaire scoring
+
+The questionnaire should not be designed around:
+- `Manning / Aguirre`
+- `METR` timing logic
+- `OECD / PIAAC` launch-time scoring requirements
+- `AIOE` or `ILO` benchmark inputs as direct public scoring drivers
 
 ## Next Dependency
 
