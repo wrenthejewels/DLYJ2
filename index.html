@@ -174,7 +174,7 @@
                     <div class="card-header">
                         <div class="section-title--with-actions">
                             <div>
-                                <h2 class="card-title">Optional role refinement</h2>
+                                <h2 class="card-title">Role refinement</h2>
                                 <p class="card-description">Use this if you want to refine how your version of the occupation actually works: what must stay human, what is easier to delegate, and where accountability still sits.</p>
                             </div>
                             <label class="task-bucket-toggle" style="margin-left:auto;">
@@ -187,468 +187,48 @@
                     <div class="v2-refinement-intro">
                         <p>Start with a short core set. Expand only if you want a deeper read on retained function, authority, workflow structure, and adoption context.</p>
                     </div>
+                    <div class="v2-outlook-grid" style="margin-bottom: 20px;">
+                        <div class="v2-score-card" style="padding: 16px; border-radius: 10px; background: var(--surface-alt, #f5f5f5);">
+                            <div class="v2-section-label">Current role-refinement readout</div>
+                            <p class="card-description" id="v2-refinement-summary" style="margin-top: 8px; margin-bottom: 14px;">Answer the core questions to see how this version of the role is likely to retain function, sign-off, and substitution resistance.</p>
+                            <div class="v2-outlook-notes">
+                                <div class="v2-outlook-note">
+                                    <span>Function retention</span>
+                                    <strong id="v2-refinement-function">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Human sign-off</span>
+                                    <strong id="v2-refinement-signoff">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Workflow decomposability</span>
+                                    <strong id="v2-refinement-workflow">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Adoption readiness</span>
+                                    <strong id="v2-refinement-adoption">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Substitution pressure</span>
+                                    <strong id="v2-refinement-pressure">-</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="v2-core-refinement">
                         <div class="v2-core-refinement-header">
-                            <div class="v2-section-label">Core role refinement</div>
+                            <div class="v2-section-label">Core questions</div>
                             <p class="card-description">These six questions do the most to determine whether AI mainly assists your role, compresses it, or leaves a human-retained core because of function, sign-off, and context.</p>
                         </div>
                         <div class="question-grid" id="v2-core-refinement-grid"></div>
                     </div>
                     <details class="v2-advanced-refinement" id="v2-advanced-refinement">
                         <summary class="v2-advanced-summary">
-                            <span>Advanced refinement</span>
+                            <span>Optional deeper modules</span>
                             <span class="v2-advanced-helper" id="v2-advanced-helper">Remaining questions</span>
                         </summary>
                         <div class="v2-advanced-body" id="v2-advanced-refinement-body"></div>
                     </details>
-
-                <div class="category">
-                    <div class="category-header">
-                        <div class="category-title">
-                            Exposure And Evidence
-                            <span class="category-count">4 questions</span>
-                        </div>
-                        <div class="category-toggle">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="category-content">
-                        <div class="question-grid">
-                    <div class="question">
-                        <h5>1. AI observability in this work</h5>
-                        <p>How visible and legible is the work to current AI systems through prompts, artifacts, outputs, or structured traces?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q1-1" name="q1" value="1">
-                                <label for="q1-1">Very Poor</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q1-2" name="q1" value="2">
-                                <label for="q1-2">Limited</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q1-3" name="q1" value="3" checked>
-                                <label for="q1-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q1-4" name="q1" value="4">
-                                <label for="q1-4">Good</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q1-5" name="q1" value="5">
-                                <label for="q1-5">Near-Human</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>2. Evidence and work trail</h5>
-                        <p>How much role-relevant work trail exists for imitation, benchmarking, training, or structured review?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q2-1" name="q2" value="1">
-                                <label for="q2-1">Very Limited</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q2-2" name="q2" value="2">
-                                <label for="q2-2">Limited</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q2-3" name="q2" value="3" checked>
-                                <label for="q2-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q2-4" name="q2" value="4">
-                                <label for="q2-4">Abundant</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q2-5" name="q2" value="5">
-                                <label for="q2-5">Very Abundant</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>3. Human review and sign-off clarity</h5>
-                        <p>How clearly can a human reviewer tell whether the work is acceptable, and how formal is the review or approval burden?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q3-1" name="q3" value="1">
-                                <label for="q3-1">Very Hard</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q3-2" name="q3" value="2">
-                                <label for="q3-2">Difficult</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q3-3" name="q3" value="3" checked>
-                                <label for="q3-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q3-4" name="q3" value="4">
-                                <label for="q3-4">Fairly Easy</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q3-5" name="q3" value="5">
-                                <label for="q3-5">Very Easy</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>4. Work digitization and machine readability</h5>
-                        <p>What share of the work inputs, context, and outputs already live in digital or system-readable form?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q4-1" name="q4" value="1">
-                                <label for="q4-1">0-20%</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q4-2" name="q4" value="2">
-                                <label for="q4-2">21-40%</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q4-3" name="q4" value="3" checked>
-                                <label for="q4-3">41-60%</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q4-4" name="q4" value="4">
-                                <label for="q4-4">61-80%</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q4-5" name="q4" value="5">
-                                <label for="q4-5">81-100%</label>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                    </div><!-- End category-content -->
-                </div><!-- End category -->
-
-                <div class="category">
-                    <div class="category-header">
-                        <div class="category-title">
-                            Role Structure
-                            <span class="category-count">5 questions</span>
-                        </div>
-                        <div class="category-toggle">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="category-content">
-                        <div class="question-grid">
-                    <div class="question">
-                        <h5>5. Workflow decomposability</h5>
-                        <p>Can the work be cleanly split into independent units, or does it need to stay bundled in a larger sequence?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q5-1" name="q5" value="1">
-                                <label for="q5-1">Very Complex</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q5-2" name="q5" value="2">
-                                <label for="q5-2">Complex</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q5-3" name="q5" value="3" checked>
-                                <label for="q5-3">Mixed</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q5-4" name="q5" value="4">
-                                <label for="q5-4">Structured</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q5-5" name="q5" value="5">
-                                <label for="q5-5">Highly Structured</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>6. Procedure standardization</h5>
-                        <p>How standardized are the procedures, templates, and workflow steps in this role?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q6-1" name="q6" value="1">
-                                <label for="q6-1">Highly Variable</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q6-2" name="q6" value="2">
-                                <label for="q6-2">Variable</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q6-3" name="q6" value="3" checked>
-                                <label for="q6-3">Somewhat Standard</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q6-4" name="q6" value="4">
-                                <label for="q6-4">Standardized</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q6-5" name="q6" value="5">
-                                <label for="q6-5">Highly Standardized</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>7. Context and exception load</h5>
-                        <p>How much does good performance depend on local context, exception handling, unwritten norms, or situation-specific judgment?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q7-1" name="q7" value="5">
-                                <label for="q7-1">Critical</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q7-2" name="q7" value="4">
-                                <label for="q7-2">Very Important</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q7-3" name="q7" value="3" checked>
-                                <label for="q7-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q7-4" name="q7" value="2">
-                                <label for="q7-4">Some Needed</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q7-5" name="q7" value="1">
-                                <label for="q7-5">Minimal</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>8. Review loop speed</h5>
-                        <p>How quickly does the work get reviewed, corrected, or accepted in ways that AI systems could learn from?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q8-1" name="q8" value="1">
-                                <label for="q8-1">Months/Years</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q8-2" name="q8" value="2">
-                                <label for="q8-2">Weeks</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q8-3" name="q8" value="3" checked>
-                                <label for="q8-3">Days</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q8-4" name="q8" value="4">
-                                <label for="q8-4">Hours</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q8-5" name="q8" value="5">
-                                <label for="q8-5">Minutes/Instant</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>9. Tacit rules and unwritten context</h5>
-                        <p>How much of the expertise in this role is learned through experience rather than fully documented in explicit procedures?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q9-1" name="q9" value="5">
-                                <label for="q9-1">Mostly Tacit</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q9-2" name="q9" value="4">
-                                <label for="q9-2">Largely Tacit</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q9-3" name="q9" value="3" checked>
-                                <label for="q9-3">Mixed</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q9-4" name="q9" value="2">
-                                <label for="q9-4">Largely Documented</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q9-5" name="q9" value="1">
-                                <label for="q9-5">Fully Documented</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    </div>
-                    </div><!-- End category-content -->
-                </div><!-- End category -->
-
-                <div class="category">
-                    <div class="category-header">
-                        <div class="category-title">
-                            Function And Authority
-                            <span class="category-count">2 questions</span>
-                        </div>
-                        <div class="category-toggle">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="category-content">
-                        <div class="question-grid">
-                    <div class="question">
-                        <h5>11. Human sign-off and relationship ownership</h5>
-                        <p>How much does the role depend on trust, stakeholder ownership, negotiation, approval, or a human being accountable for the final call?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q11-1" name="q11" value="5">
-                                <label for="q11-1">Essential</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q11-2" name="q11" value="4">
-                                <label for="q11-2">Very Important</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q11-3" name="q11" value="3" checked>
-                                <label for="q11-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q11-4" name="q11" value="2">
-                                <label for="q11-4">Some Needed</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q11-5" name="q11" value="1">
-                                <label for="q11-5">Minimal</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>12. External trust or on-site dependence</h5>
-                        <p>How much does the role depend on physical presence, site-specific work, or trust-bearing interaction that cannot be fully abstracted away?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q12-1" name="q12" value="5">
-                                <label for="q12-1">Essential</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q12-2" name="q12" value="4">
-                                <label for="q12-2">Very Important</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q12-3" name="q12" value="3" checked>
-                                <label for="q12-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q12-4" name="q12" value="2">
-                                <label for="q12-4">Some</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q12-5" name="q12" value="1">
-                                <label for="q12-5">None</label>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                    </div><!-- End category-content -->
-                </div><!-- End category -->
-
-                <div class="category">
-                    <div class="category-header">
-                        <div class="category-title">
-                            Adoption And Embedding
-                            <span class="category-count">3 questions</span>
-                        </div>
-                        <div class="category-toggle">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="category-content">
-                        <div class="question-grid">
-                    <div class="question">
-                        <h5>13. Organization AI adoption readiness</h5>
-                        <p>How prepared is your organization to integrate AI into actual workflows, not just experiment with demos?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q13-1" name="q13" value="1">
-                                <label for="q13-1">Resistant</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q13-2" name="q13" value="2">
-                                <label for="q13-2">Cautious</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q13-3" name="q13" value="3" checked>
-                                <label for="q13-3">Exploring</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q13-4" name="q13" value="4">
-                                <label for="q13-4">Adopting</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q13-5" name="q13" value="5">
-                                <label for="q13-5">Leading Edge</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>14. Pressure to delegate or compress work</h5>
-                        <p>How strong is the pressure to reduce labor cost, delegate execution, or increase output without adding headcount?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q14-1" name="q14" value="1">
-                                <label for="q14-1">Not Sensitive</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q14-2" name="q14" value="2">
-                                <label for="q14-2">Somewhat</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q14-3" name="q14" value="3" checked>
-                                <label for="q14-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q14-4" name="q14" value="4">
-                                <label for="q14-4">Very Sensitive</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q14-5" name="q14" value="5">
-                                <label for="q14-5">Extremely Sensitive</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>16. Workflow integration readiness</h5>
-                        <p>How ready is the organization to plug new AI systems into the tools, data, and review loops this work depends on?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q16-1" name="q16" value="1">
-                                <label for="q16-1">Very Outdated</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q16-2" name="q16" value="2">
-                                <label for="q16-2">Outdated</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q16-3" name="q16" value="3" checked>
-                                <label for="q16-3">Current</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q16-4" name="q16" value="4">
-                                <label for="q16-4">Modern</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q16-5" name="q16" value="5">
-                                <label for="q16-5">Cutting Edge</label>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                    </div><!-- End category-content -->
-                </div><!-- End category -->
-
 
                 </div><!-- End card -->
             </div><!-- End setup-section -->

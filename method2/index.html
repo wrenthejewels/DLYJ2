@@ -121,9 +121,9 @@
                     </div>
                     <div class="equation-callout">
                         <span class="callout-label">Composite signals</span>
-                        <div class="equation-display">$$\text{capabilitySignal} = \operatorname{avg}(q_1,q_4,q_8)$$</div>
-                        <div class="equation-display">$$\text{couplingProtection} = \operatorname{avg}(q_7,q_9,q_{11},q_{12})$$</div>
-                        <div class="equation-display">$$\text{adoptionPressure} = \operatorname{avg}(q_{13},q_{14},q_{16})$$</div>
+                        <div class="equation-display">$$\text{aiObservability} = \operatorname{avg}(q_1,q_4,q_8)$$</div>
+                        <div class="equation-display">$$\text{functionRetention} = \operatorname{avg}(q_7,q_9,q_{11},q_{12})$$</div>
+                        <div class="equation-display">$$\text{adoptionReadiness} = \operatorname{avg}(q_{13},q_{14},q_{16})$$</div>
                     </div>
                     <div class="equation-callout">
                         <span class="callout-label">Friction dimensions</span>
@@ -138,12 +138,12 @@
                     <h2>How The Model Decides Which Work Is Easier To Absorb</h2>
                     <p>Each task family gets an automation-difficulty score. This is not just “AI can do the task” versus “AI cannot.” It is the model's estimate of how hard it is for organizations to actually absorb that work into software and workflows.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Intrinsic friction</span>
+                        <span class="callout-label">Absorption friction</span>
                         <div class="equation-display">$$F_i = 0.25f^{\text{accountability}}_i + 0.22f^{\text{judgment}}_i + 0.22f^{\text{tacit}}_i + 0.18f^{\text{exception}}_i + 0.13(1-f^{\text{document}}_i)$$</div>
                     </div>
                     <div class="equation-callout">
                         <span class="callout-label">Difficulty score</span>
-                        <div class="equation-display">$$D_i = \operatorname{clamp}\!\left(0.40F_i + 0.25(0.35h_i) + 0.25R_i + 0.10\cdot\text{couplingProtection},\,0.02,\,0.98\right)$$</div>
+                        <div class="equation-display">$$D_i = \operatorname{clamp}\!\left(0.40F_i + 0.25(0.35h_i) + 0.25R_i + 0.10\cdot\text{functionRetention},\,0.02,\,0.98\right)$$</div>
                         <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.10B_i + 0.05C_i + 0.04\max(0,V_i-0.5) - 0.07A_i + 0.08K_i,\,0.02,\,0.98\right)$$</div>
                     </div>
                     <p><code>h_i</code> is human advantage, <code>R_i</code> is empirical resistance, <code>B_i</code> is bargaining-power weight, <code>C_i</code> is core-task share, <code>V_i</code> is value centrality, <code>A_i</code> is AI-support observability, and <code>K_i</code> indicates a role-critical family.</p>
@@ -230,8 +230,8 @@
                     <p>The page also shows a secondary recomposition panel. This is not the same as the final fate label. It is a narrower estimate of how much exposed work looks technically compressible and how much of that compression may convert into fewer labor hours in firms.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Current formulas</span>
-                        <div class="equation-display">$$W = \operatorname{clamp}\!\left(\text{currentWaveAbsorbed}(1-0.20\cdot\text{couplingProtection}),\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$O = \operatorname{clamp}\!\left(0.30\text{adoptionPressure} + 0.25(1-\text{couplingProtection}) + 0.20\text{currentWaveAbsorbed} + 0.10(1-f^{\text{accountability}}) + 0.08(1-f^{\text{judgment}}) + 0.07f^{\text{document}},\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$W = \operatorname{clamp}\!\left(\text{currentWaveAbsorbed}(1-0.20\cdot\text{functionRetention}),\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$O = \operatorname{clamp}\!\left(0.30\text{adoptionReadiness} + 0.25(1-\text{functionRetention}) + 0.20\text{currentWaveAbsorbed} + 0.10(1-f^{\text{accountability}}) + 0.08(1-f^{\text{judgment}}) + 0.07f^{\text{document}},\,0,\,1\right)$$</div>
                         <div class="equation-display">$$S = W \cdot O, \qquad G = W - S$$</div>
                     </div>
                 </section>

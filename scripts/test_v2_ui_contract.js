@@ -7,6 +7,12 @@ function assertIncludes(haystack, needle, label) {
   }
 }
 
+function assertExcludes(haystack, needle, label) {
+  if (haystack.includes(needle)) {
+    throw new Error(`Expected ${label} to exclude ${needle}`);
+  }
+}
+
 function main() {
   const root = path.resolve(__dirname, '..');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
@@ -31,6 +37,8 @@ function main() {
     'populateV2TaskInputs',
     'syncV2TaskSelectionState',
     'buildRoleFateMap',
+    'QUESTIONNAIRE_MODULES',
+    'buildQuestionNode',
     "renderV2ClusterList('v2-bargaining-bundle'",
     "renderV2ClusterList('v2-direct-bundle'",
     "renderV2ClusterList('v2-indirect-bundle'"
@@ -38,11 +46,14 @@ function main() {
     assertIncludes(app, token, 'app.js');
   });
 
+  assertExcludes(html, 'id="q1-1"', 'index.html');
+
   console.log(JSON.stringify({
     status: 'ok',
     checked: {
       taskInputs: 5,
-      roleFateColumns: 5
+      roleFateColumns: 5,
+      questionnaireRenderedFromSchema: true
     }
   }, null, 2));
 }
