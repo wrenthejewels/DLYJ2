@@ -12,7 +12,10 @@
         '/method': 'method/index.html',
         '/main2': 'main2/index.html',
         '/guide2': 'guide2/index.html',
-        '/method2': 'method2/index.html'
+        '/method2': 'method2/index.html',
+        '/model3': 'model3/index.html',
+        '/guide3': 'guide3/index.html',
+        '/method3': 'method3/index.html'
     };
 
     // Initialize navigation on page load
