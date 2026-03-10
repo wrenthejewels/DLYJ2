@@ -460,6 +460,10 @@
         return normalized;
     }
 
+    function hasProvidedQuestionnaireProfile(questionnaireProfile) {
+        return !!(questionnaireProfile && typeof questionnaireProfile === 'object' && Object.keys(questionnaireProfile).length);
+    }
+
     function toNumber(rawValue, fallback) {
         if (fallback === undefined) {
             fallback = 0;
@@ -1117,9 +1121,13 @@
     function deriveQuestionnaireSignals(answers, options) {
         answers = answers || {};
         var seniority = clamp((toNumber(options.seniorityLevel, 3) - 1) / 4, 0, 1);
-        var legacyProfile = buildQuestionnaireProfileFromAnswers(answers || {}, options || {});
-        var questionnaireProfile = normalizeQuestionnaireProfile(options.questionnaireProfile, legacyProfile);
-        var profileSource = options.questionnaireProfile ? 'structured_profile' : 'legacy_answers';
+        var hasNativeProfile = hasProvidedQuestionnaireProfile(options.questionnaireProfile);
+        var hasLegacyAnswers = Object.keys(answers).length > 0;
+        var fallbackProfile = hasLegacyAnswers
+            ? buildQuestionnaireProfileFromAnswers(answers || {}, options || {})
+            : getDefaultQuestionnaireProfile();
+        var questionnaireProfile = normalizeQuestionnaireProfile(options.questionnaireProfile, fallbackProfile);
+        var profileSource = hasNativeProfile ? 'native_profile' : (hasLegacyAnswers ? 'legacy_answers' : 'default_profile');
 
         var q1 = normalizeAnswer(answers.Q1);
         var q2 = normalizeAnswer(answers.Q2);

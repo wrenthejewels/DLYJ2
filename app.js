@@ -19,14 +19,36 @@ const V2_TASK_INPUT_CONFIG = [
 
 // ─── 2. Questionnaire schema ────────────────────────────────────────────────
 
-const ACTIVE_REFINEMENT_QUESTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 16];
-const CORE_REFINEMENT_QUESTIONS = [1, 5, 7, 11, 13, 16];
+const ACTIVE_REFINEMENT_FACTORS = [
+    'ai_observability_of_work',
+    'evidence_trail_strength',
+    'review_signoff_clarity',
+    'digital_workflow_readiness',
+    'workflow_decomposability',
+    'process_standardization',
+    'exception_and_context_load',
+    'feedback_loop_speed',
+    'tacit_knowledge_load',
+    'human_signoff_requirement',
+    'external_trust_requirement',
+    'organizational_adoption_readiness',
+    'delegation_pressure',
+    'workflow_integration_readiness'
+];
+const CORE_REFINEMENT_FACTORS = [
+    'ai_observability_of_work',
+    'workflow_decomposability',
+    'exception_and_context_load',
+    'human_signoff_requirement',
+    'organizational_adoption_readiness',
+    'workflow_integration_readiness'
+];
 const QUESTIONNAIRE_MODULES = [
     {
         title: 'Exposure And Evidence',
         questions: [
             {
-                number: 1,
+                id: 'ai_observability_of_work',
                 title: 'AI observability in this work',
                 prompt: 'How visible and legible is the work to current AI systems through prompts, artifacts, outputs, or structured traces?',
                 options: [
@@ -38,7 +60,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 2,
+                id: 'evidence_trail_strength',
                 title: 'Evidence and work trail',
                 prompt: 'How much role-relevant work trail exists for imitation, benchmarking, training, or structured review?',
                 options: [
@@ -50,7 +72,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 3,
+                id: 'review_signoff_clarity',
                 title: 'Human review and sign-off clarity',
                 prompt: 'How clearly can a human reviewer tell whether the work is acceptable, and how formal is the review or approval burden?',
                 options: [
@@ -62,7 +84,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 4,
+                id: 'digital_workflow_readiness',
                 title: 'Work digitization and machine readability',
                 prompt: 'What share of the work inputs, context, and outputs already live in digital or system-readable form?',
                 options: [
@@ -79,7 +101,7 @@ const QUESTIONNAIRE_MODULES = [
         title: 'Role Structure',
         questions: [
             {
-                number: 5,
+                id: 'workflow_decomposability',
                 title: 'Workflow decomposability',
                 prompt: 'Can the work be cleanly split into independent units, or does it need to stay bundled in a larger sequence?',
                 options: [
@@ -91,7 +113,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 6,
+                id: 'process_standardization',
                 title: 'Procedure standardization',
                 prompt: 'How standardized are the procedures, templates, and workflow steps in this role?',
                 options: [
@@ -103,7 +125,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 7,
+                id: 'exception_and_context_load',
                 title: 'Context and exception load',
                 prompt: 'How much does good performance depend on local context, exception handling, unwritten norms, or situation-specific judgment?',
                 options: [
@@ -115,7 +137,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 8,
+                id: 'feedback_loop_speed',
                 title: 'Review loop speed',
                 prompt: 'How quickly does the work get reviewed, corrected, or accepted in ways that AI systems could learn from?',
                 options: [
@@ -127,7 +149,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 9,
+                id: 'tacit_knowledge_load',
                 title: 'Tacit rules and unwritten context',
                 prompt: 'How much of the expertise in this role is learned through experience rather than fully documented in explicit procedures?',
                 options: [
@@ -144,7 +166,7 @@ const QUESTIONNAIRE_MODULES = [
         title: 'Function And Authority',
         questions: [
             {
-                number: 11,
+                id: 'human_signoff_requirement',
                 title: 'Human sign-off and relationship ownership',
                 prompt: 'How much does the role depend on trust, stakeholder ownership, negotiation, approval, or a human being accountable for the final call?',
                 options: [
@@ -156,7 +178,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 12,
+                id: 'external_trust_requirement',
                 title: 'External trust or on-site dependence',
                 prompt: 'How much does the role depend on physical presence, site-specific work, or trust-bearing interaction that cannot be fully abstracted away?',
                 options: [
@@ -173,7 +195,7 @@ const QUESTIONNAIRE_MODULES = [
         title: 'Adoption And Embedding',
         questions: [
             {
-                number: 13,
+                id: 'organizational_adoption_readiness',
                 title: 'Organization AI adoption readiness',
                 prompt: 'How prepared is your organization to integrate AI into actual workflows, not just experiment with demos?',
                 options: [
@@ -185,7 +207,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 14,
+                id: 'delegation_pressure',
                 title: 'Pressure to delegate or compress work',
                 prompt: 'How strong is the pressure to reduce labor cost, delegate execution, or increase output without adding headcount?',
                 options: [
@@ -197,7 +219,7 @@ const QUESTIONNAIRE_MODULES = [
                 ]
             },
             {
-                number: 16,
+                id: 'workflow_integration_readiness',
                 title: 'Workflow integration readiness',
                 prompt: 'How ready is the organization to plug new AI systems into the tools, data, and review loops this work depends on?',
                 options: [
@@ -251,28 +273,28 @@ function formatProfileBand(value) {
 
 // ─── 4. Questionnaire functions ──────────────────────────────────────────────
 
-function getQuestionValue(questionNum) {
-    const checked = document.querySelector(`input[name="q${questionNum}"]:checked`);
+function getRefinementValue(factorId) {
+    const checked = document.querySelector(`input[name="rf-${factorId}"]:checked`);
     return checked ? parseFloat(checked.value) : 3;
 }
 
-function getCurrentQuestionnaireAnswers() {
-    const answers = {};
-    ACTIVE_REFINEMENT_QUESTIONS.forEach((questionNum) => {
-        answers[`Q${questionNum}`] = getQuestionValue(questionNum);
+function getCurrentRefinementResponses() {
+    const responses = {};
+    ACTIVE_REFINEMENT_FACTORS.forEach((factorId) => {
+        responses[factorId] = getRefinementValue(factorId);
     });
-    return answers;
+    return responses;
 }
 
-function buildStructuredQuestionnaireProfile(answers, seniorityLevel) {
+function buildStructuredQuestionnaireProfile(responses, seniorityLevel) {
     const presets = window.WWILMJ_PRESETS;
-    if (!presets || typeof presets.buildQuestionnaireProfileFromLegacyAnswers !== 'function') {
+    if (!presets || typeof presets.buildQuestionnaireProfileFromResponses !== 'function') {
         return null;
     }
     try {
-        return presets.buildQuestionnaireProfileFromLegacyAnswers(answers, seniorityLevel);
+        return presets.buildQuestionnaireProfileFromResponses(responses, seniorityLevel);
     } catch (error) {
-        console.warn('[buildStructuredQuestionnaireProfile] Failed to build profile from current answers', error);
+        console.warn('[buildStructuredQuestionnaireProfile] Failed to build profile from current refinement responses', error);
         return null;
     }
 }
@@ -305,21 +327,22 @@ function renderQuestionnaireProfileSummary(profile) {
 
 function refreshQuestionnaireProfileSummary() {
     const seniorityLevel = parseFloat(document.getElementById('hierarchy-select')?.value || '1');
-    const answers = getCurrentQuestionnaireAnswers();
-    const profile = buildStructuredQuestionnaireProfile(answers, seniorityLevel);
+    const responses = getCurrentRefinementResponses();
+    const profile = buildStructuredQuestionnaireProfile(responses, seniorityLevel);
     renderQuestionnaireProfileSummary(profile);
     return profile;
 }
 
-function buildQuestionOption(questionNumber, option, optionIndex) {
+function buildQuestionOption(factorId, option, optionIndex) {
     const radioOption = document.createElement('div');
     radioOption.className = 'radio-option';
 
     const input = document.createElement('input');
     input.type = 'radio';
-    input.id = `q${questionNumber}-${optionIndex + 1}`;
-    input.name = `q${questionNumber}`;
+    input.id = `rf-${factorId}-${optionIndex + 1}`;
+    input.name = `rf-${factorId}`;
     input.value = String(option.value);
+    input.dataset.refinementId = factorId;
     if (option.checked) {
         input.checked = true;
     }
@@ -346,7 +369,7 @@ function buildQuestionNode(question) {
     const radioGroup = document.createElement('div');
     radioGroup.className = 'radio-group';
     question.options.forEach((option, index) => {
-        radioGroup.appendChild(buildQuestionOption(question.number, option, index));
+        radioGroup.appendChild(buildQuestionOption(question.id, option, index));
     });
 
     questionNode.appendChild(heading);
@@ -403,8 +426,8 @@ function buildAdvancedModuleNode(module) {
 
 function applyQuestionPreset() {
     const presets = window.WWILMJ_PRESETS;
-    if (!presets || typeof presets.buildQuestionPreset !== 'function') {
-        console.warn('[applyQuestionPreset] WWILMJ_PRESETS.buildQuestionPreset missing');
+    if (!presets || typeof presets.buildRefinementPreset !== 'function') {
+        console.warn('[applyQuestionPreset] WWILMJ_PRESETS.buildRefinementPreset missing');
         return;
     }
     if (!selectedRole) {
@@ -413,11 +436,10 @@ function applyQuestionPreset() {
     }
 
     const seniorityLevel = document.getElementById('hierarchy-select')?.value || '1';
-    const answerMap = presets.buildQuestionPreset(selectedRole, parseInt(seniorityLevel));
+    const responseMap = presets.buildRefinementPreset(selectedRole, parseInt(seniorityLevel));
 
-    Object.entries(answerMap || {}).forEach(([qid, value]) => {
-        const qNum = qid.replace('Q', '');
-        const radio = document.querySelector(`input[name="q${qNum}"][value="${value}"]`);
+    Object.entries(responseMap || {}).forEach(([factorId, value]) => {
+        const radio = document.querySelector(`input[name="rf-${factorId}"][value="${value}"]`);
         if (radio) {
             radio.checked = true;
         }
@@ -427,10 +449,10 @@ function applyQuestionPreset() {
 
 function resetQuestionsToNeutral() {
     const presets = window.WWILMJ_PRESETS;
-    const neutral = presets && presets.NEUTRAL_ANSWERS ? presets.NEUTRAL_ANSWERS : {};
-    for (const i of ACTIVE_REFINEMENT_QUESTIONS) {
-        const target = neutral[`Q${i}`] ?? 3;
-        const radio = document.querySelector(`input[name="q${i}"][value="${target}"]`);
+    const neutral = presets && presets.NEUTRAL_REFINEMENT_RESPONSES ? presets.NEUTRAL_REFINEMENT_RESPONSES : {};
+    for (const factorId of ACTIVE_REFINEMENT_FACTORS) {
+        const target = neutral[factorId] ?? 3;
+        const radio = document.querySelector(`input[name="rf-${factorId}"][value="${target}"]`);
         if (radio) {
             radio.checked = true;
         }
@@ -452,8 +474,8 @@ function initializeRefinementLayout() {
     advancedBody.innerHTML = '';
 
     QUESTIONNAIRE_MODULES.forEach((module) => {
-        const coreQuestions = module.questions.filter((question) => CORE_REFINEMENT_QUESTIONS.includes(question.number));
-        const advancedQuestions = module.questions.filter((question) => !CORE_REFINEMENT_QUESTIONS.includes(question.number));
+        const coreQuestions = module.questions.filter((question) => CORE_REFINEMENT_FACTORS.includes(question.id));
+        const advancedQuestions = module.questions.filter((question) => !CORE_REFINEMENT_FACTORS.includes(question.id));
 
         coreQuestions.forEach((question) => {
             coreGrid.appendChild(buildQuestionNode(question));
@@ -1045,9 +1067,13 @@ function renderV2EvidenceSummary(summary) {
         ? `${Math.round((directRows / totalRows) * 100)}% of the mapped task rows use direct Anthropic task evidence; the remaining ${fallbackRows} rows fall back to task-family estimates.`
         : 'Task-row coverage appears once a mapped occupation is loaded.';
     const questionnaireProfile = summary?.questionnaire_profile;
-    const profileSource = summary?.questionnaire_profile_source === 'structured_profile'
-        ? 'Structured role-refinement profile'
-        : 'Role-refinement answers';
+    const profileSource = summary?.questionnaire_profile_source === 'native_profile'
+        ? 'Native role-refinement profile'
+        : summary?.questionnaire_profile_source === 'structured_profile'
+            ? 'Structured role-refinement profile'
+            : summary?.questionnaire_profile_source === 'default_profile'
+                ? 'Default role-refinement profile'
+                : 'Legacy-answer compatibility profile';
     const profileNote = questionnaireProfile
         ? `${profileSource}: function retention ${formatProfileBand(questionnaireProfile.function_centrality)}, sign-off ${formatProfileBand(questionnaireProfile.human_signoff_requirement)}, adoption readiness ${formatProfileBand(questionnaireProfile.organizational_adoption_readiness)}, augmentation fit ${formatProfileBand(questionnaireProfile.augmentation_fit)}, and substitution pressure ${formatProfileBand(questionnaireProfile.substitution_risk_modifier)}.`
         : '';
@@ -1400,9 +1426,9 @@ async function updateV2Results(options = {}) {
         return null;
     }
 
-    const answers = getCurrentQuestionnaireAnswers();
+    const responses = getCurrentRefinementResponses();
     const seniorityLevel = parseFloat(document.getElementById('hierarchy-select')?.value || '1');
-    const questionnaireProfile = buildStructuredQuestionnaireProfile(answers, seniorityLevel);
+    const questionnaireProfile = buildStructuredQuestionnaireProfile(responses, seniorityLevel);
     const directInputs = getDirectV2Inputs();
 
     let result;
@@ -1410,7 +1436,6 @@ async function updateV2Results(options = {}) {
         const computeOptions = {
             roleCategory: roleCategory,
             occupationId: selectedOccupationId,
-            answers: answers,
             seniorityLevel: seniorityLevel,
             dominantTaskIds: directInputs.dominantTaskIds,
             criticalTaskIds: directInputs.roleCriticalTaskIds,
@@ -1535,7 +1560,7 @@ document.addEventListener('change', function(event) {
     if (target.type !== 'radio') {
         return;
     }
-    if (!/^q\d+$/.test(target.name || '')) {
+    if (!/^rf-/.test(target.name || '')) {
         return;
     }
     analyzeRole();

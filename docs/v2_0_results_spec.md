@@ -134,7 +134,7 @@ type V2Result = {
     augmentation_fit: number
     substitution_risk_modifier: number
   }
-  questionnaire_profile_source: 'legacy_answers' | 'structured_profile'
+  questionnaire_profile_source: 'native_profile' | 'legacy_answers' | 'default_profile'
 
   occupation_assignment: {
     role_category: string
@@ -296,12 +296,12 @@ Still not implemented as first-class result objects:
 - source drill-down at the task-row UI level
 - weighted user-entered task shares
 
-Still implemented as transitional legacy surfaces:
+Still implemented as transitional compatibility surfaces:
 - `role_outlook`
 - `role_outlook_label`
 - wave trajectory cards
 - legacy transformation cluster lists
-- legacy-answer questionnaire compatibility path
+- legacy-answer questionnaire compatibility fallback
 
 Current explanation surface:
 - the engine now returns an occupation-level explanation summary drawn from the normalized explanation layer
@@ -324,4 +324,4 @@ Recommended next changes:
 - return `role_fate_map` directly from the engine rather than rebuilding it in the client
 - add source drill-down and task-level citations
 - add weighted task-share controls so users can do more than tag a handful of tasks
-- move the questionnaire contract from the legacy-answer bridge to a native factor-based payload
+- reduce or remove the legacy-answer compatibility fallback as external callers migrate

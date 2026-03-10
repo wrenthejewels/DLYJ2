@@ -15,7 +15,7 @@ The live intake is now a hybrid:
 - occupation anchoring
 - five structured task selectors
 - a questionnaire UI that renders as core questions plus optional deeper modules
-- a structured role-refinement profile derived through a legacy-answer compatibility bridge
+- a native role-refinement profile authored from named refinement factors
 
 ## Current Intake Flow
 
@@ -113,32 +113,27 @@ The visible UI now presents a role-refinement surface:
 - core questions
 - optional deeper modules
 
-Under the hood, the engine still accepts this legacy answer set and converts it into the new structured profile:
-- `Q1`
-- `Q2`
-- `Q3`
-- `Q4`
-- `Q5`
-- `Q6`
-- `Q7`
-- `Q8`
-- `Q9`
-- `Q11`
-- `Q12`
-- `Q13`
-- `Q14`
-- `Q16`
+The live UI now authors named refinement responses directly:
+- `ai_observability_of_work`
+- `evidence_trail_strength`
+- `review_signoff_clarity`
+- `digital_workflow_readiness`
+- `workflow_decomposability`
+- `process_standardization`
+- `exception_and_context_load`
+- `feedback_loop_speed`
+- `tacit_knowledge_load`
+- `human_signoff_requirement`
+- `external_trust_requirement`
+- `organizational_adoption_readiness`
+- `delegation_pressure`
+- `workflow_integration_readiness`
 
-Questions not currently active in the live engine:
-- `Q10`
-- `Q15`
-- `Q17`
-- `Q18`
-- `Q19`
+The engine still accepts legacy `Q*` answers as a compatibility fallback for external callers, but that is no longer the active runtime path used by the live app.
 
 ## Current Structured Questionnaire Profile
 
-The current bridge maps legacy answers into a structured role-refinement profile with fields including:
+The live intake now maps named refinement responses into a structured role-refinement profile with fields including:
 - `function_centrality`
 - `human_signoff_requirement`
 - `liability_and_regulatory_burden`
@@ -253,7 +248,9 @@ This drives:
 
 Current live fields:
 - hierarchy
-- `Q13`, `Q14`, `Q16`
+- `organizational_adoption_readiness`
+- `delegation_pressure`
+- `workflow_integration_readiness`
 
 These drive:
 - `adoptionPressure`
@@ -273,7 +270,6 @@ The live UI now enforces these behaviors:
 
 Still missing from the intake relative to the broader redesign:
 - weighted task-share buckets
-- native factor-authored questionnaire payloads instead of the current legacy-answer bridge
 - explicit `AI-danger task` selection separate from `value-defining task`
 - user-authored dependency links between chosen tasks
 - direct residual-role-distinctiveness question
@@ -283,7 +279,7 @@ Still missing from the intake relative to the broader redesign:
 
 Recommended next changes:
 
-1. replace the legacy-answer bridge with a native factor-based questionnaire contract
-2. replace single task picks with rough weighted task buckets
-3. add explicit `if AI got very good at this task, would bargaining power break?` prompts
-4. let users declare a small number of dependency links between their chosen tasks
+1. replace single task picks with rough weighted task buckets
+2. add explicit `if AI got very good at this task, would bargaining power break?` prompts
+3. let users declare a small number of dependency links between their chosen tasks
+4. decide whether the legacy `Q*` fallback should remain for external compatibility or be removed entirely

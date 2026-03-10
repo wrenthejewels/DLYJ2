@@ -24,12 +24,39 @@
     'custom':                { friction: 1.20, reliabilityBase: 0.92 },
   };
 
-  // Baseline (neutral) answers for 14 legacy questions (v2.1 compatibility path)
-  const NEUTRAL_ANSWERS = {
-    Q1: 3, Q2: 3, Q3: 3, Q4: 3, Q5: 3,
-    Q6: 3, Q7: 3, Q8: 3, Q9: 3,
-    Q11: 3, Q12: 3, Q13: 3, Q14: 3,
-    Q16: 3,
+  const REFINEMENT_TO_LEGACY_QUESTION = {
+    ai_observability_of_work: 'Q1',
+    evidence_trail_strength: 'Q2',
+    review_signoff_clarity: 'Q3',
+    digital_workflow_readiness: 'Q4',
+    workflow_decomposability: 'Q5',
+    process_standardization: 'Q6',
+    exception_and_context_load: 'Q7',
+    feedback_loop_speed: 'Q8',
+    tacit_knowledge_load: 'Q9',
+    human_signoff_requirement: 'Q11',
+    external_trust_requirement: 'Q12',
+    organizational_adoption_readiness: 'Q13',
+    delegation_pressure: 'Q14',
+    workflow_integration_readiness: 'Q16',
+  };
+
+  // Baseline neutral refinement responses used by the live runtime.
+  const NEUTRAL_REFINEMENT_RESPONSES = {
+    ai_observability_of_work: 3,
+    evidence_trail_strength: 3,
+    review_signoff_clarity: 3,
+    digital_workflow_readiness: 3,
+    workflow_decomposability: 3,
+    process_standardization: 3,
+    exception_and_context_load: 3,
+    feedback_loop_speed: 3,
+    tacit_knowledge_load: 3,
+    human_signoff_requirement: 3,
+    external_trust_requirement: 3,
+    organizational_adoption_readiness: 3,
+    delegation_pressure: 3,
+    workflow_integration_readiness: 3,
   };
 
   const NEUTRAL_PROFILE = {
@@ -50,74 +77,102 @@
     substitution_risk_modifier: 0.50,
   };
 
-  // Baseline per-role answers for Q1-Q14,Q16 (v2.1, derived from role_preset_template.md)
-  const ROLE_QUESTION_PRESETS = {
+  // Baseline per-role named refinement responses for the live runtime.
+  const ROLE_REFINEMENT_PRESETS = {
     'software': {
-      Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 3, Q9: 2,
-      Q11: 1, Q12: 2, Q13: 4, Q14: 3, Q16: 4,
+      ai_observability_of_work: 5, evidence_trail_strength: 5, review_signoff_clarity: 4, digital_workflow_readiness: 5,
+      workflow_decomposability: 4, process_standardization: 4, exception_and_context_load: 2, feedback_loop_speed: 3,
+      tacit_knowledge_load: 2, human_signoff_requirement: 1, external_trust_requirement: 2,
+      organizational_adoption_readiness: 4, delegation_pressure: 3, workflow_integration_readiness: 4,
     },
     'admin': {
-      Q1: 3, Q2: 4, Q3: 3, Q4: 4, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2,
-      Q11: 2, Q12: 3, Q13: 3, Q14: 4, Q16: 3,
+      ai_observability_of_work: 3, evidence_trail_strength: 4, review_signoff_clarity: 3, digital_workflow_readiness: 4,
+      workflow_decomposability: 4, process_standardization: 4, exception_and_context_load: 2, feedback_loop_speed: 4,
+      tacit_knowledge_load: 2, human_signoff_requirement: 2, external_trust_requirement: 3,
+      organizational_adoption_readiness: 3, delegation_pressure: 4, workflow_integration_readiness: 3,
     },
     'data-analysis': {
-      Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2,
-      Q11: 1, Q12: 2, Q13: 3, Q14: 3, Q16: 4,
+      ai_observability_of_work: 5, evidence_trail_strength: 5, review_signoff_clarity: 4, digital_workflow_readiness: 5,
+      workflow_decomposability: 4, process_standardization: 4, exception_and_context_load: 2, feedback_loop_speed: 4,
+      tacit_knowledge_load: 2, human_signoff_requirement: 1, external_trust_requirement: 2,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 4,
     },
     'finance': {
-      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2,
-      Q11: 1, Q12: 4, Q13: 3, Q14: 4, Q16: 3,
+      ai_observability_of_work: 4, evidence_trail_strength: 4, review_signoff_clarity: 4, digital_workflow_readiness: 5,
+      workflow_decomposability: 4, process_standardization: 4, exception_and_context_load: 2, feedback_loop_speed: 4,
+      tacit_knowledge_load: 2, human_signoff_requirement: 1, external_trust_requirement: 4,
+      organizational_adoption_readiness: 3, delegation_pressure: 4, workflow_integration_readiness: 3,
     },
     'sales': {
-      Q1: 3, Q2: 3, Q3: 2, Q4: 3, Q5: 3, Q6: 2, Q7: 4, Q8: 3, Q9: 4,
-      Q11: 3, Q12: 3, Q13: 3, Q14: 3, Q16: 3,
+      ai_observability_of_work: 3, evidence_trail_strength: 3, review_signoff_clarity: 2, digital_workflow_readiness: 3,
+      workflow_decomposability: 3, process_standardization: 2, exception_and_context_load: 4, feedback_loop_speed: 3,
+      tacit_knowledge_load: 4, human_signoff_requirement: 3, external_trust_requirement: 3,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
     'creative': {
-      Q1: 4, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 2, Q7: 3, Q8: 3, Q9: 3,
-      Q11: 2, Q12: 2, Q13: 3, Q14: 3, Q16: 3,
+      ai_observability_of_work: 4, evidence_trail_strength: 3, review_signoff_clarity: 3, digital_workflow_readiness: 4,
+      workflow_decomposability: 3, process_standardization: 2, exception_and_context_load: 3, feedback_loop_speed: 3,
+      tacit_knowledge_load: 3, human_signoff_requirement: 2, external_trust_requirement: 2,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
     'legal': {
-      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 4, Q8: 2, Q9: 4,
-      Q11: 2, Q12: 5, Q13: 2, Q14: 3, Q16: 3,
+      ai_observability_of_work: 3, evidence_trail_strength: 3, review_signoff_clarity: 3, digital_workflow_readiness: 4,
+      workflow_decomposability: 3, process_standardization: 3, exception_and_context_load: 4, feedback_loop_speed: 2,
+      tacit_knowledge_load: 4, human_signoff_requirement: 2, external_trust_requirement: 5,
+      organizational_adoption_readiness: 2, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
     'product-management': {
-      Q1: 3, Q2: 3, Q3: 2, Q4: 4, Q5: 3, Q6: 3, Q7: 4, Q8: 3, Q9: 4,
-      Q11: 2, Q12: 3, Q13: 3, Q14: 3, Q16: 3,
+      ai_observability_of_work: 3, evidence_trail_strength: 3, review_signoff_clarity: 2, digital_workflow_readiness: 4,
+      workflow_decomposability: 3, process_standardization: 3, exception_and_context_load: 4, feedback_loop_speed: 3,
+      tacit_knowledge_load: 4, human_signoff_requirement: 2, external_trust_requirement: 3,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
     'consulting': {
-      Q1: 3, Q2: 3, Q3: 2, Q4: 4, Q5: 3, Q6: 2, Q7: 4, Q8: 3, Q9: 4,
-      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q16: 3,
+      ai_observability_of_work: 3, evidence_trail_strength: 3, review_signoff_clarity: 2, digital_workflow_readiness: 4,
+      workflow_decomposability: 3, process_standardization: 2, exception_and_context_load: 4, feedback_loop_speed: 3,
+      tacit_knowledge_load: 4, human_signoff_requirement: 3, external_trust_requirement: 4,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
     'hr': {
-      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 3,
-      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q16: 3,
+      ai_observability_of_work: 3, evidence_trail_strength: 3, review_signoff_clarity: 3, digital_workflow_readiness: 4,
+      workflow_decomposability: 3, process_standardization: 3, exception_and_context_load: 3, feedback_loop_speed: 3,
+      tacit_knowledge_load: 3, human_signoff_requirement: 3, external_trust_requirement: 4,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
     'content-writing': {
-      Q1: 4, Q2: 4, Q3: 3, Q4: 5, Q5: 4, Q6: 3, Q7: 2, Q8: 4, Q9: 2,
-      Q11: 1, Q12: 2, Q13: 3, Q14: 4, Q16: 3,
+      ai_observability_of_work: 4, evidence_trail_strength: 4, review_signoff_clarity: 3, digital_workflow_readiness: 5,
+      workflow_decomposability: 4, process_standardization: 3, exception_and_context_load: 2, feedback_loop_speed: 4,
+      tacit_knowledge_load: 2, human_signoff_requirement: 1, external_trust_requirement: 2,
+      organizational_adoption_readiness: 3, delegation_pressure: 4, workflow_integration_readiness: 3,
     },
     'journalism': {
-      Q1: 4, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 3,
-      Q11: 2, Q12: 3, Q13: 2, Q14: 4, Q16: 3,
+      ai_observability_of_work: 4, evidence_trail_strength: 3, review_signoff_clarity: 3, digital_workflow_readiness: 4,
+      workflow_decomposability: 3, process_standardization: 3, exception_and_context_load: 3, feedback_loop_speed: 3,
+      tacit_knowledge_load: 3, human_signoff_requirement: 2, external_trust_requirement: 3,
+      organizational_adoption_readiness: 2, delegation_pressure: 4, workflow_integration_readiness: 3,
     },
     'engineering': {
-      Q1: 4, Q2: 4, Q3: 4, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 4,
-      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q16: 3,
+      ai_observability_of_work: 4, evidence_trail_strength: 4, review_signoff_clarity: 4, digital_workflow_readiness: 4,
+      workflow_decomposability: 3, process_standardization: 3, exception_and_context_load: 3, feedback_loop_speed: 3,
+      tacit_knowledge_load: 4, human_signoff_requirement: 3, external_trust_requirement: 4,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
     'operations': {
-      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 4, Q6: 4, Q7: 3, Q8: 4, Q9: 3,
-      Q11: 2, Q12: 3, Q13: 3, Q14: 3, Q16: 3,
+      ai_observability_of_work: 3, evidence_trail_strength: 3, review_signoff_clarity: 3, digital_workflow_readiness: 4,
+      workflow_decomposability: 4, process_standardization: 4, exception_and_context_load: 3, feedback_loop_speed: 4,
+      tacit_knowledge_load: 3, human_signoff_requirement: 2, external_trust_requirement: 3,
+      organizational_adoption_readiness: 3, delegation_pressure: 3, workflow_integration_readiness: 3,
     },
-    'custom': { ...NEUTRAL_ANSWERS },
+    'custom': { ...NEUTRAL_REFINEMENT_RESPONSES },
   };
 
   // Additive deltas by seniority level (Level 1..5 → Entry..Executive)
-  const SENIORITY_Q_DELTAS = {
+  const SENIORITY_REFINEMENT_DELTAS = {
     1: {},                   // Entry: neutral deltas
     2: {},                   // Mid: neutral deltas
-    3: { Q7: +1, Q9: +1, Q12: +1 }, // Senior: more context/tacit/trust
-    4: { Q7: +1, Q9: +1, Q12: +1 }, // Lead: more context/tacit/trust
-    5: { Q7: +2, Q9: +2, Q12: +2 }, // Executive: highest context/tacit/trust
+    3: { exception_and_context_load: +1, tacit_knowledge_load: +1, external_trust_requirement: +1 },
+    4: { exception_and_context_load: +1, tacit_knowledge_load: +1, external_trust_requirement: +1 },
+    5: { exception_and_context_load: +2, tacit_knowledge_load: +2, external_trust_requirement: +2 },
   };
 
   // Additive reliability adjustments by seniority index (1..5 -> 0..4)
@@ -132,40 +187,61 @@
 
   const toLegacyAnswer = (value) => clamp(Math.round((clamp(value, 0, 1) * 4) + 1), 1, 5);
 
-  function buildQuestionnaireProfileFromLegacyAnswers(answers, seniorityLevel){
-    const q1 = normalizeAnswer(answers.Q1);
-    const q2 = normalizeAnswer(answers.Q2);
-    const q3 = normalizeAnswer(answers.Q3);
-    const q4 = normalizeAnswer(answers.Q4);
-    const q5 = normalizeAnswer(answers.Q5);
-    const q6 = normalizeAnswer(answers.Q6);
-    const q7 = normalizeAnswer(answers.Q7);
-    const q8 = normalizeAnswer(answers.Q8);
-    const q9 = normalizeAnswer(answers.Q9);
-    const q11 = normalizeAnswer(answers.Q11);
-    const q12 = normalizeAnswer(answers.Q12);
-    const q13 = normalizeAnswer(answers.Q13);
-    const q14 = normalizeAnswer(answers.Q14);
-    const q16 = normalizeAnswer(answers.Q16);
+  function buildQuestionnaireProfileFromResponses(responses, seniorityLevel){
+    const observability = normalizeAnswer(responses.ai_observability_of_work);
+    const evidenceTrail = normalizeAnswer(responses.evidence_trail_strength);
+    const reviewClarity = normalizeAnswer(responses.review_signoff_clarity);
+    const digitalReadiness = normalizeAnswer(responses.digital_workflow_readiness);
+    const decomposability = normalizeAnswer(responses.workflow_decomposability);
+    const standardization = normalizeAnswer(responses.process_standardization);
+    const exceptionLoad = normalizeAnswer(responses.exception_and_context_load);
+    const feedbackSpeed = normalizeAnswer(responses.feedback_loop_speed);
+    const tacitLoad = normalizeAnswer(responses.tacit_knowledge_load);
+    const signoffRequirement = normalizeAnswer(responses.human_signoff_requirement);
+    const externalTrust = normalizeAnswer(responses.external_trust_requirement);
+    const adoptionReadiness = normalizeAnswer(responses.organizational_adoption_readiness);
+    const delegationPressure = normalizeAnswer(responses.delegation_pressure);
+    const workflowIntegration = normalizeAnswer(responses.workflow_integration_readiness);
     const seniority = clamp(((Number(seniorityLevel) || 3) - 1) / 4, 0, 1);
 
     return {
-      function_centrality: clamp((q11 * 0.35) + (q7 * 0.25) + (q9 * 0.20) + (seniority * 0.20), 0, 1),
-      human_signoff_requirement: clamp((q11 * 0.50) + (q7 * 0.20) + (seniority * 0.30), 0, 1),
-      liability_and_regulatory_burden: clamp((q11 * 0.35) + (q7 * 0.30) + ((1 - q5) * 0.20) + (seniority * 0.15), 0, 1),
-      relationship_ownership: clamp((q11 * 0.45) + (q7 * 0.20) + (q9 * 0.20) + (seniority * 0.15), 0, 1),
-      exception_and_context_load: clamp(((1 - q5) * 0.30) + ((1 - q6) * 0.15) + (q7 * 0.30) + (q9 * 0.25), 0, 1),
-      workflow_decomposability: clamp((q5 * 0.40) + (q6 * 0.30) + (q4 * 0.30), 0, 1),
-      organizational_adoption_readiness: clamp((q13 * 0.45) + (q14 * 0.20) + (q16 * 0.35), 0, 1),
-      ai_observability_of_work: clamp((q1 * 0.25) + (q2 * 0.15) + (q3 * 0.15) + (q4 * 0.30) + (q8 * 0.15), 0, 1),
-      dependency_bottleneck_strength: clamp(((1 - q5) * 0.30) + (q7 * 0.30) + (q11 * 0.25) + (seniority * 0.15), 0, 1),
-      handoff_and_coordination_complexity: clamp(((1 - q5) * 0.25) + (q7 * 0.25) + (q11 * 0.20) + (seniority * 0.30), 0, 1),
-      external_trust_requirement: clamp((q11 * 0.45) + (q12 * 0.15) + (q7 * 0.20) + (seniority * 0.20), 0, 1),
-      stakeholder_alignment_burden: clamp((q11 * 0.35) + (q7 * 0.20) + (seniority * 0.45), 0, 1),
-      execution_vs_judgment_mix: clamp((q5 * 0.25) + (q6 * 0.25) + ((1 - q11) * 0.25) + ((1 - q7) * 0.25), 0, 1),
-      augmentation_fit: clamp((q1 * 0.35) + (q11 * 0.20) + (q7 * 0.20) + ((1 - q13) * 0.10) + (seniority * 0.15), 0, 1),
-      substitution_risk_modifier: clamp((q1 * 0.30) + (q4 * 0.20) + (q5 * 0.20) + (q6 * 0.15) + ((1 - q11) * 0.15), 0, 1),
+      function_centrality: clamp((signoffRequirement * 0.35) + (exceptionLoad * 0.25) + (tacitLoad * 0.20) + (seniority * 0.20), 0, 1),
+      human_signoff_requirement: clamp((signoffRequirement * 0.65) + (reviewClarity * 0.15) + (seniority * 0.20), 0, 1),
+      liability_and_regulatory_burden: clamp((signoffRequirement * 0.30) + (externalTrust * 0.25) + (exceptionLoad * 0.20) + ((1 - decomposability) * 0.10) + (seniority * 0.15), 0, 1),
+      relationship_ownership: clamp((signoffRequirement * 0.35) + (externalTrust * 0.20) + (exceptionLoad * 0.20) + (tacitLoad * 0.10) + (seniority * 0.15), 0, 1),
+      exception_and_context_load: clamp((exceptionLoad * 0.45) + (tacitLoad * 0.25) + ((1 - decomposability) * 0.20) + ((1 - standardization) * 0.10), 0, 1),
+      workflow_decomposability: clamp((decomposability * 0.45) + (standardization * 0.25) + (digitalReadiness * 0.15) + (workflowIntegration * 0.15), 0, 1),
+      organizational_adoption_readiness: clamp((adoptionReadiness * 0.50) + (workflowIntegration * 0.35) + (delegationPressure * 0.15), 0, 1),
+      ai_observability_of_work: clamp((observability * 0.35) + (evidenceTrail * 0.20) + (reviewClarity * 0.15) + (digitalReadiness * 0.20) + (feedbackSpeed * 0.10), 0, 1),
+      dependency_bottleneck_strength: clamp(((1 - decomposability) * 0.30) + (exceptionLoad * 0.25) + (signoffRequirement * 0.20) + (tacitLoad * 0.10) + (seniority * 0.15), 0, 1),
+      handoff_and_coordination_complexity: clamp(((1 - decomposability) * 0.25) + (exceptionLoad * 0.20) + (signoffRequirement * 0.15) + (workflowIntegration * 0.10) + (seniority * 0.30), 0, 1),
+      external_trust_requirement: clamp((externalTrust * 0.60) + (signoffRequirement * 0.20) + (exceptionLoad * 0.10) + (seniority * 0.10), 0, 1),
+      stakeholder_alignment_burden: clamp((signoffRequirement * 0.30) + (exceptionLoad * 0.20) + (externalTrust * 0.15) + (delegationPressure * 0.10) + (seniority * 0.25), 0, 1),
+      execution_vs_judgment_mix: clamp((decomposability * 0.25) + (standardization * 0.25) + ((1 - signoffRequirement) * 0.20) + ((1 - exceptionLoad) * 0.20) + (delegationPressure * 0.10), 0, 1),
+      augmentation_fit: clamp((observability * 0.25) + (signoffRequirement * 0.20) + (exceptionLoad * 0.15) + (reviewClarity * 0.10) + ((1 - adoptionReadiness) * 0.10) + (seniority * 0.20), 0, 1),
+      substitution_risk_modifier: clamp((delegationPressure * 0.30) + (observability * 0.20) + (digitalReadiness * 0.15) + (decomposability * 0.20) + (standardization * 0.10) + ((1 - signoffRequirement) * 0.05), 0, 1),
     };
+  }
+
+  function buildQuestionnaireProfileFromLegacyAnswers(answers, seniorityLevel){
+    return buildQuestionnaireProfileFromResponses(mapLegacyAnswersToRefinementResponses(answers), seniorityLevel);
+  }
+
+  function mapLegacyAnswersToRefinementResponses(answers){
+    const mapped = { ...NEUTRAL_REFINEMENT_RESPONSES };
+    Object.entries(REFINEMENT_TO_LEGACY_QUESTION).forEach(([factorId, qid]) => {
+      if (answers && answers[qid] !== undefined) {
+        mapped[factorId] = clamp(Number(answers[qid]) || 3, 1, 5);
+      }
+    });
+    return mapped;
+  }
+
+  function buildLegacyAnswersFromRefinementResponses(responses){
+    return Object.entries(REFINEMENT_TO_LEGACY_QUESTION).reduce((acc, [factorId, qid]) => {
+      acc[qid] = clamp(Number(responses?.[factorId]) || 3, 1, 5);
+      return acc;
+    }, {});
   }
 
   function buildLegacyAnswersFromQuestionnaireProfile(profile){
@@ -203,29 +279,29 @@
     const level = Number(seniorityLevel) || 1;
 
     // Avoid minutes/instant as default feedback speed
-    if (preset.Q8 && preset.Q8 > 4) {
-      preset.Q8 = 4;
+    if (preset.feedback_loop_speed && preset.feedback_loop_speed > 4) {
+      preset.feedback_loop_speed = 4;
     }
 
     // Software/tech: days at entry, weeks at the highest hierarchy
     if (['software', 'engineering'].includes(roleKey)) {
-      preset.Q8 = level >= 5 ? 2 : 3;
+      preset.feedback_loop_speed = level >= 5 ? 2 : 3;
     }
 
     // Finance execs: dial digitization to 61-80% (not 81-100%)
     if (roleKey === 'finance' && level >= 4) {
-      preset.Q4 = 4;
+      preset.digital_workflow_readiness = 4;
     }
 
     // Senior journalists: heavy human judgment/relationships and tacit knowledge
     if (roleKey === 'journalism' && level >= 4) {
-      preset.Q11 = 5; // Essential
-      preset.Q9 = 5;  // Mostly tacit
+      preset.human_signoff_requirement = 5;
+      preset.tacit_knowledge_load = 5;
     }
 
     // Consulting/strategy execs: moderate physical presence
     if (roleKey === 'consulting' && level >= 4) {
-      preset.Q12 = 3; // Moderate physical presence
+      preset.external_trust_requirement = 3;
     }
 
     // Final clamp to keep all answers within bounds
@@ -237,42 +313,68 @@
   }
 
   // Helper: build recommended answers for a role + seniority (clamped 1..5)
-  function buildQuestionPreset(roleKey, seniorityLevel){
-    const base = ROLE_QUESTION_PRESETS[roleKey] || ROLE_QUESTION_PRESETS.custom || NEUTRAL_ANSWERS;
-    const deltas = SENIORITY_Q_DELTAS[seniorityLevel] || {};
+  function buildRefinementPreset(roleKey, seniorityLevel){
+    const base = ROLE_REFINEMENT_PRESETS[roleKey] || ROLE_REFINEMENT_PRESETS.custom || NEUTRAL_REFINEMENT_RESPONSES;
+    const deltas = SENIORITY_REFINEMENT_DELTAS[seniorityLevel] || {};
     const preset = {};
 
-    for (const [qid, baseVal] of Object.entries(base)) {
-      const delta = deltas[qid] || 0;
+    for (const [factorId, baseVal] of Object.entries(base)) {
+      const delta = deltas[factorId] || 0;
       const nextVal = Number.isFinite(baseVal) ? baseVal + delta : 3;
-      preset[qid] = clamp(nextVal, 1, 5);
+      preset[factorId] = clamp(nextVal, 1, 5);
     }
 
     return applyRoleHierarchyOverrides(preset, roleKey, seniorityLevel);
   }
 
-  const ROLE_FACTOR_PRESETS = Object.keys(ROLE_QUESTION_PRESETS).reduce((acc, roleKey) => {
-    acc[roleKey] = buildQuestionnaireProfileFromLegacyAnswers(ROLE_QUESTION_PRESETS[roleKey], 3);
+  const ROLE_FACTOR_PRESETS = Object.keys(ROLE_REFINEMENT_PRESETS).reduce((acc, roleKey) => {
+    acc[roleKey] = buildQuestionnaireProfileFromResponses(ROLE_REFINEMENT_PRESETS[roleKey], 3);
     return acc;
   }, {});
 
   function buildQuestionnaireProfilePreset(roleKey, seniorityLevel){
-    const legacyPreset = buildQuestionPreset(roleKey, seniorityLevel);
-    return buildQuestionnaireProfileFromLegacyAnswers(legacyPreset, seniorityLevel);
+    const refinementPreset = buildRefinementPreset(roleKey, seniorityLevel);
+    return buildQuestionnaireProfileFromResponses(refinementPreset, seniorityLevel);
   }
+
+  const ROLE_QUESTION_PRESETS = Object.keys(ROLE_REFINEMENT_PRESETS).reduce((acc, roleKey) => {
+    acc[roleKey] = buildLegacyAnswersFromRefinementResponses(ROLE_REFINEMENT_PRESETS[roleKey]);
+    return acc;
+  }, {});
+
+  const NEUTRAL_ANSWERS = buildLegacyAnswersFromRefinementResponses(NEUTRAL_REFINEMENT_RESPONSES);
+
+  const SENIORITY_Q_DELTAS = Object.keys(SENIORITY_REFINEMENT_DELTAS).reduce((acc, key) => {
+    const entry = {};
+    Object.entries(SENIORITY_REFINEMENT_DELTAS[key]).forEach(([factorId, delta]) => {
+      const qid = REFINEMENT_TO_LEGACY_QUESTION[factorId];
+      if (qid) {
+        entry[qid] = delta;
+      }
+    });
+    acc[key] = entry;
+    return acc;
+  }, {});
 
   window.WWILMJ_PRESETS = {
     ROLE_PRESETS,
+    ROLE_REFINEMENT_PRESETS,
     ROLE_QUESTION_PRESETS,
     ROLE_FACTOR_PRESETS,
+    REFINEMENT_TO_LEGACY_QUESTION,
+    SENIORITY_REFINEMENT_DELTAS,
     SENIORITY_Q_DELTAS,
     SENIORITY_R_DELTAS,
+    NEUTRAL_REFINEMENT_RESPONSES,
     NEUTRAL_ANSWERS,
     NEUTRAL_PROFILE,
     recommendReliability,
-    buildQuestionPreset,
+    buildRefinementPreset,
+    buildQuestionPreset: buildRefinementPreset,
     buildQuestionnaireProfilePreset,
+    buildQuestionnaireProfileFromResponses,
     buildQuestionnaireProfileFromLegacyAnswers,
+    buildLegacyAnswersFromRefinementResponses,
     buildLegacyAnswersFromQuestionnaireProfile,
   };
 })();

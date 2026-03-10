@@ -95,7 +95,7 @@ Current implementation scope:
 - unified task-source comparison rows across Anthropic, GPT task labels, cluster proxies, and stubs, with proxies down-weighted when task-level evidence exists
 - unified occupation prior rows across live aggregates and benchmark sources
 - occupation-level explanation summaries for all `34` modeled occupations
-- first-pass runtime questionnaire redesign with structured role-refinement factors and a legacy-answer compatibility bridge
+- runtime questionnaire redesign with native role-refinement factors and legacy-answer fallback retained only for compatibility
 - reviewed public-job-posting task-gap coverage for all `34` modeled occupations
 - reviewed role-transformation calibration for all `34` modeled occupations:
   - `5` function-heavy pilots
@@ -110,7 +110,7 @@ Known current limits:
 - multi-anchor function coverage exists only for a reviewed subset of the most obviously split roles, not yet for every occupation that may need it
 - transformation scoring still relies on broad role-family defaults and benchmark floors underneath the reviewed overrides
 - task evidence still depends too much on cluster priors for the thinnest-covered occupations even after proxy down-weighting
-- the live questionnaire now renders as core questions plus optional deeper modules, but it is still backed by the legacy-question compatibility bridge rather than a native factor-first payload
+- the live questionnaire now renders as core questions plus optional deeper modules and writes a native factor-based role-refinement profile, but external legacy-answer fallback still exists in the engine for compatibility
 
 ### What Has Been Done So Far
 
@@ -128,8 +128,9 @@ Known current limits:
   - Sales Representatives of Services
 - Added a reviewed supplemental function anchor for Paralegals and Legal Assistants so the role retains a distinct matter-coordination function instead of collapsing into one flat support anchor
 - Added a first-pass runtime questionnaire redesign:
-  - structured role-refinement profile under the hood
-  - legacy `Q1..Q16` compatibility bridge
+  - native role-refinement profile under the hood
+  - named refinement-factor UI and presets
+  - legacy `Q1..Q16` compatibility fallback retained only for external callers
   - runtime scoring tied more directly to retained function, sign-off, substitution pressure, dependency drag, and augmentation fit
   - updated runtime copy so the questionnaire is framed as role refinement rather than generic friction
   - moved the visible UI to a schema-rendered core-questions plus optional-modules surface
@@ -206,13 +207,13 @@ Known current limits:
 
 ### Questionnaire Redesign Status
 
-The questionnaire migration is now in an intermediate implemented state.
+The questionnaire migration is now mostly implemented.
 
 What is live:
-- the runtime engine accepts a structured questionnaire profile
-- legacy numbered answers are translated into the new profile through a compatibility bridge
+- the runtime engine accepts a native structured questionnaire profile
+- the live app authors named refinement-factor inputs directly rather than numeric question IDs
 - runtime scoring now uses retained-function and authority-oriented factors more directly
-- presets expose both legacy answer presets and derived questionnaire-factor presets
+- presets are authored as named refinement-factor presets, with legacy answer presets kept only as compatibility exports
 - the visible UI now presents:
   - a role-refinement readout
   - core questions
@@ -220,10 +221,9 @@ What is live:
   - schema-rendered questionnaire content rather than hardcoded questionnaire markup
 
 What is not finished yet:
-- the questionnaire payload is still internally bridged from legacy question IDs rather than natively authored as factor objects
 - module-level branching and specialized deep paths are still limited
 - guide and methodology copy will still need continued tightening as the model evolves
-- the long-term target should still be a native factor-based questionnaire payload rather than legacy question IDs
+- the long-term cleanup question is whether to keep or fully remove the legacy `Q*` compatibility fallback for external callers
 
 ### What Still Needs To Be Done
 
@@ -231,7 +231,7 @@ What is not finished yet:
 - Improve task-to-function weighting where O*NET still overstates generic admin or workflow tasks
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
 - Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
-- Finish the questionnaire migration by replacing the legacy-answer bridge with a native factor-based runtime contract
+- Decide whether to keep or remove the remaining legacy-answer compatibility fallback in the engine
 - Expand beyond the current `34` modeled occupations once the reviewed workflow is stable
 - Evaluate whether the current output taxonomy needs refinement beyond:
   - `Augmented`
@@ -729,7 +729,7 @@ Success condition:
 1. Extend the reviewed multi-anchor function layer beyond the first high-complexity subset, especially where one anchor still hides distinct advisory, supervisory, or relationship-retention functions.
 2. Replace more cluster-prior proxy dependence with direct task evidence, GPT task-label promotion, or reviewed manual mapping for the highest-proxy occupations.
 3. Use the new occupation explanation layer to run another occupation-by-occupation audit and tighten task-to-function weighting where explanations still look generic.
-4. Finish the questionnaire migration by replacing the remaining legacy-answer bridge with a native factor-based runtime contract.
+4. Decide whether to keep or remove the remaining legacy-answer compatibility fallback after external callers are checked.
 5. Expand the reviewed workflow to occupations beyond the current `34` once the explanation layer is stable.
 
 ## One-Sentence Summary

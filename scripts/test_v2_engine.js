@@ -14,10 +14,22 @@ async function main() {
 
   const result = engine.computeResult({
     roleCategory: 'software',
-    answers: {
-      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 3,
-      Q7: 3, Q8: 4, Q9: 2,
-      Q11: 2, Q12: 1, Q13: 4, Q14: 3, Q16: 4
+    questionnaireProfile: {
+      function_centrality: 0.54,
+      human_signoff_requirement: 0.33,
+      liability_and_regulatory_burden: 0.36,
+      relationship_ownership: 0.29,
+      exception_and_context_load: 0.36,
+      workflow_decomposability: 0.72,
+      organizational_adoption_readiness: 0.72,
+      ai_observability_of_work: 0.83,
+      dependency_bottleneck_strength: 0.43,
+      handoff_and_coordination_complexity: 0.49,
+      external_trust_requirement: 0.14,
+      stakeholder_alignment_burden: 0.44,
+      execution_vs_judgment_mix: 0.59,
+      augmentation_fit: 0.54,
+      substitution_risk_modifier: 0.68
     },
     seniorityLevel: 3,
     dominantTaskClusters: ['cluster_drafting', 'cluster_qa_review'],
@@ -33,8 +45,8 @@ async function main() {
     throw new Error('Expected recomposition_summary in result payload.');
   }
 
-  if (result.questionnaire_profile_source !== 'legacy_answers') {
-    throw new Error(`Expected legacy answer compatibility path, received ${result.questionnaire_profile_source}.`);
+  if (result.questionnaire_profile_source !== 'native_profile') {
+    throw new Error(`Expected native questionnaire profile path, received ${result.questionnaire_profile_source}.`);
   }
   if (!result.questionnaire_profile) {
     throw new Error('Expected questionnaire_profile in result payload.');
@@ -119,11 +131,7 @@ async function main() {
   const taskDrivenResult = engine.computeResult({
     occupationId: result.selected_occupation_id,
     roleCategory: 'software',
-    answers: {
-      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 3,
-      Q7: 3, Q8: 4, Q9: 2,
-      Q11: 2, Q12: 1, Q13: 4, Q14: 3, Q16: 4
-    },
+    questionnaireProfile: result.questionnaire_profile,
     seniorityLevel: 3,
     dominantTaskIds: [taskInventory[0].task_id],
     criticalTaskIds: [taskInventory[1].task_id],
@@ -153,10 +161,22 @@ async function main() {
   const businessOps = engine.computeResult({
     occupationId: 'occ_13_1199_00',
     roleCategory: 'consulting',
-    answers: {
-      Q1: 3, Q2: 3, Q3: 3, Q4: 3, Q5: 3, Q6: 3,
-      Q7: 3, Q8: 3, Q9: 3,
-      Q11: 3, Q12: 3, Q13: 3, Q14: 3, Q16: 3
+    questionnaireProfile: {
+      function_centrality: 0.5,
+      human_signoff_requirement: 0.5,
+      liability_and_regulatory_burden: 0.5,
+      relationship_ownership: 0.5,
+      exception_and_context_load: 0.5,
+      workflow_decomposability: 0.5,
+      organizational_adoption_readiness: 0.5,
+      ai_observability_of_work: 0.5,
+      dependency_bottleneck_strength: 0.5,
+      handoff_and_coordination_complexity: 0.5,
+      external_trust_requirement: 0.5,
+      stakeholder_alignment_burden: 0.5,
+      execution_vs_judgment_mix: 0.5,
+      augmentation_fit: 0.5,
+      substitution_risk_modifier: 0.5
     },
     seniorityLevel: 3
   });
@@ -193,13 +213,28 @@ async function main() {
     seniorityLevel: 3
   });
 
-  if (structuredProfileResult.questionnaire_profile_source !== 'structured_profile') {
-    throw new Error(`Expected structured questionnaire profile path, received ${structuredProfileResult.questionnaire_profile_source}.`);
+  if (structuredProfileResult.questionnaire_profile_source !== 'native_profile') {
+    throw new Error(`Expected native questionnaire profile path, received ${structuredProfileResult.questionnaire_profile_source}.`);
   }
   assertBounded('structuredProfileResult.role_fate_confidence', structuredProfileResult.role_fate_confidence);
   assertBounded('structuredProfileResult.diagnostics.function_retention', structuredProfileResult.diagnostics.function_retention);
   assertBounded('structuredProfileResult.diagnostics.augmentation_fit', structuredProfileResult.diagnostics.augmentation_fit);
   assertBounded('structuredProfileResult.diagnostics.substitution_risk_modifier', structuredProfileResult.diagnostics.substitution_risk_modifier);
+
+  const legacyCompatibilityResult = engine.computeResult({
+    occupationId: result.selected_occupation_id,
+    roleCategory: 'software',
+    answers: {
+      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 3,
+      Q7: 3, Q8: 4, Q9: 2,
+      Q11: 2, Q12: 1, Q13: 4, Q14: 3, Q16: 4
+    },
+    seniorityLevel: 3
+  });
+
+  if (legacyCompatibilityResult.questionnaire_profile_source !== 'legacy_answers') {
+    throw new Error(`Expected explicit legacy fallback path, received ${legacyCompatibilityResult.questionnaire_profile_source}.`);
+  }
 
   console.log(JSON.stringify({
     summary: {
