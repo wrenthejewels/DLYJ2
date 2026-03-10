@@ -158,9 +158,9 @@ This file summarizes, in plain English, what is currently driving each occupatio
 - Main pressure signals: `direct task pressure` and `core-function pressure`
 - Main counterweight: `demand expansion`
 - Function anchors: decision_intelligence (75%); stakeholder_translation (25%)
-- Evidence mix: direct 0% | reviewed 0% | benchmark 71% | proxy 29%
-- Review priority: `medium`
-- Summary: Data Scientists currently reads as augmented core role because direct task pressure and core-function pressure are the strongest pressure signals, while demand expansion is the main counterweight. Function mix: decision_intelligence (75%); stakeholder_translation (25%). Evidence mix: direct 0% | reviewed 0% | benchmark 71% | proxy 29%.
+- Evidence mix: direct 0% | reviewed 15% | benchmark 65% | proxy 20%
+- Review priority: `low`
+- Summary: Data Scientists currently reads as augmented core role because direct task pressure and core-function pressure are the strongest pressure signals, while demand expansion is the main counterweight. Function mix: decision_intelligence (75%); stakeholder_translation (25%). Evidence mix: direct 0% | reviewed 15% | benchmark 65% | proxy 20%.
 
 ## Electronics Engineers, Except Computer
 
@@ -197,10 +197,10 @@ This file summarizes, in plain English, what is currently driving each occupatio
 - Current output: `workflow recomposition`
 - Main pressure signals: `direct task pressure` and `headcount displacement risk`
 - Main counterweight: `human accountability`
-- Function anchors: legal_support (95%)
-- Evidence mix: direct 14% | reviewed 0% | benchmark 57% | proxy 28%
-- Review priority: `medium`
-- Summary: Paralegals and Legal Assistants currently reads as workflow recomposition because direct task pressure and headcount displacement risk are the strongest pressure signals, while human accountability is the main counterweight. Function mix: legal_support (95%). Evidence mix: direct 14% | reviewed 0% | benchmark 57% | proxy 28%.
+- Function anchors: legal_support (75%); matter_coordination (25%)
+- Evidence mix: direct 13% | reviewed 21% | benchmark 50% | proxy 16%
+- Review priority: `low`
+- Summary: Paralegals and Legal Assistants currently reads as workflow recomposition because direct task pressure and headcount displacement risk are the strongest pressure signals, while human accountability is the main counterweight. Function mix: legal_support (75%); matter_coordination (25%). Evidence mix: direct 13% | reviewed 21% | benchmark 50% | proxy 16%.
 
 ## Graphic Designers
 
@@ -278,9 +278,9 @@ This file summarizes, in plain English, what is currently driving each occupatio
 - Main pressure signals: `direct task pressure` and `headcount displacement risk`
 - Main counterweight: `human accountability`
 - Function anchors: revenue_creation (72%); account_stewardship (28%)
-- Evidence mix: direct 11% | reviewed 0% | benchmark 59% | proxy 30%
-- Review priority: `medium`
-- Summary: Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel currently reads as workflow recomposition because direct task pressure and headcount displacement risk are the strongest pressure signals, while human accountability is the main counterweight. Function mix: revenue_creation (72%); account_stewardship (28%). Evidence mix: direct 11% | reviewed 0% | benchmark 59% | proxy 30%.
+- Evidence mix: direct 10% | reviewed 23% | benchmark 51% | proxy 16%
+- Review priority: `low`
+- Summary: Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel currently reads as workflow recomposition because direct task pressure and headcount displacement risk are the strongest pressure signals, while human accountability is the main counterweight. Function mix: revenue_creation (72%); account_stewardship (28%). Evidence mix: direct 10% | reviewed 23% | benchmark 51% | proxy 16%.
 
 ## Bookkeeping, Accounting, and Auditing Clerks
 

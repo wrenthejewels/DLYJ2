@@ -122,6 +122,11 @@ Known current limits:
 - Added occupation-by-occupation explanation outputs so each transformation row has a plain-English audit summary
 - Reduced proxy overreach by down-weighting cluster-prior task evidence when direct task evidence or benchmark task labels already exist
 - Added a reviewed task-scoring layer for the highest-proxy occupation gap so Business Operations Specialists no longer reads as pure proxy coverage
+- Extended the reviewed task-scoring layer to the remaining medium-priority evidence gaps:
+  - Data Scientists
+  - Paralegals and Legal Assistants
+  - Sales Representatives of Services
+- Added a reviewed supplemental function anchor for Paralegals and Legal Assistants so the role retains a distinct matter-coordination function instead of collapsing into one flat support anchor
 - Added a first-pass runtime questionnaire redesign:
   - structured role-refinement profile under the hood
   - legacy `Q1..Q16` compatibility bridge
