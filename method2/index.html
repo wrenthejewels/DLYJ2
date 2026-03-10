@@ -60,50 +60,61 @@
         <article class="article">
             <header class="article-hero">
                 <div class="eyebrow">V2.0 Methodology</div>
-                <h1>Current Role-Fate Math</h1>
-                <p class="lede">This page documents the live <code>2.0</code> model as currently implemented in <code>v2_engine.js</code>. It describes the shipped role-fate system: occupation anchoring, task-graph scoring, wave trajectory, role-fate classification, and the client-side role-fate map.</p>
+                <h1>How The Current Model Works</h1>
+                <p class="lede">This page explains the live <code>2.0</code> model in user terms. The model tries to answer a practical question: as AI gets better, which parts of your role come under pressure first, which parts still carry bargaining power, and what does that imply for the role as a whole?</p>
             </header>
 
             <div class="article-body">
                 <section>
-                    <h2>Runtime Contract</h2>
-                    <p>The engine scores a concrete mapped occupation, then applies optional task picks and questionnaire answers.</p>
+                    <h2>In Plain English</h2>
+                    <p>The model works in five steps.</p>
+                    <ul class="detail-list">
+                        <li>First, it anchors you to a real occupation so it starts from a concrete role rather than a vague job title.</li>
+                        <li>Second, it builds a rough picture of what that role is made of: core tasks, support tasks, and higher-value judgment or relationship work.</li>
+                        <li>Third, it asks which parts of that work look directly exposed to AI and which parts only matter because they support exposed work.</li>
+                        <li>Fourth, it checks whether the remaining work still hangs together as a real role with bargaining power.</li>
+                        <li>Finally, it maps that structure into a fate label such as <code>Augmented</code>, <code>Split</code>, or <code>Compressed</code>.</li>
+                    </ul>
+                    <p>Under the hood, the page still runs on a formal scoring model. The live input tuple is:</p>
                     <div class="equation-callout">
                         <span class="callout-label">Input tuple</span>
                         <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{answers}_{\{1,2,3,4,5,6,7,8,9,11,12,13,14,16\}},\ \text{seniorityLevel},\ \text{dominantTaskIds},\ \text{criticalTaskIds},\ \text{aiSupportTaskIds},\ \text{supportTaskIds})$$</div>
                     </div>
-                    <p>The page populates those task ids from the structured selectors: primary task, secondary task, value-defining task, AI-assisted task, and support/spillover task.</p>
+                    <p>The task ids come from the five structured selectors on the main page: primary task, secondary task, value-defining task, AI-assisted task, and support/spillover task.</p>
                 </section>
 
                 <section>
-                    <h2>Data Stack</h2>
+                    <h2>What The Model Looks At</h2>
+                    <p>The model does not guess from your job title alone. It combines several kinds of information:</p>
                     <ul class="detail-list">
-                        <li>occupation anchor: <code>occupations.csv</code>, <code>occupation_selector_index.csv</code></li>
-                        <li>bundle priors: <code>occupation_task_clusters.csv</code></li>
-                        <li>task-role graph: <code>occupation_task_inventory.csv</code>, <code>task_dependency_edges.csv</code>, <code>occupation_task_role_profiles.csv</code></li>
-                        <li>evidence mapping: <code>task_cluster_membership.csv</code>, <code>task_exposure_evidence.csv</code></li>
-                        <li>empirical priors: <code>task_augmentation_automation_priors.csv</code>, <code>occupation_exposure_priors.csv</code></li>
-                        <li>context: <code>occupation_adaptation_priors.csv</code>, <code>occupation_labor_market_context.csv</code></li>
+                        <li>a mapped occupation baseline</li>
+                        <li>a task inventory for that occupation</li>
+                        <li>links between tasks, so support work can lose value when exposed core work changes</li>
+                        <li>task-level evidence about where AI already seems useful or automatable</li>
+                        <li>context about adoption pressure, hierarchy, and demand growth</li>
                     </ul>
+                    <p>So the page is not asking only “can AI do this task?” It is also asking “if AI gets good at this work, what happens to the rest of the role around it?”</p>
                 </section>
 
                 <section>
-                    <h2>Bundle Construction</h2>
-                    <p>The role starts as a blend of cluster-level occupation priors and task-inventory summaries.</p>
+                    <h2>How It Builds Your Role</h2>
+                    <p>The model starts with a baseline version of the occupation and then bends it toward your answers. If you mark a task as primary or value-defining, the model increases the weight of that kind of work inside the role instead of treating all workers in that occupation as identical.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Baseline blend</span>
                         <div class="equation-display">$$\tilde s_i = 0.65\, s_i^{\text{cluster}} + 0.35\, s_i^{\text{inventory}}, \qquad s_i^{(0)} = \frac{\tilde s_i}{\sum_j \tilde s_j}$$</div>
                     </div>
-                    <p>Selected task families then tilt the occupation bundle:</p>
+                    <p>That baseline is then tilted by your selected task mix:</p>
                     <div class="equation-callout">
                         <span class="callout-label">Override mass</span>
                         <div class="equation-display">$$o_i = w_i^{\text{explicit}} + 0.16\mathbf{1}[i\in \text{dominant}] + 0.10\mathbf{1}[i\in \text{critical}]$$</div>
                         <div class="equation-display">$$s_i = \frac{s_i^{(0)} + o_i}{\sum_j (s_j^{(0)} + o_j)}$$</div>
                     </div>
+                    <p>Qualitatively, this is the model's answer to “what is your version of this occupation actually made of?”</p>
                 </section>
 
                 <section>
-                    <h2>Questionnaire Signals</h2>
+                    <h2>How Your Answers Matter</h2>
+                    <p>The questionnaire does not directly output a job verdict. It changes the conditions around the work: how observable the work is, how much context it needs, how quickly an organization could adopt AI into it, and how much judgment or accountability still matters.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Normalization</span>
                         <div class="equation-display">$$q_k = \operatorname{clamp}\!\left(\frac{Q_k-1}{4},0,1\right), \qquad s = \operatorname{clamp}\!\left(\frac{\text{seniorityLevel}-1}{4},0,1\right)$$</div>
@@ -120,11 +131,12 @@
                         <div class="equation-display">$$f^{\text{exception}}=\operatorname{avg}(1-q_5,1-q_6,q_7,q_9), \quad f^{\text{accountability}}=\operatorname{avg}(q_7,q_{11})$$</div>
                         <div class="equation-display">$$f^{\text{judgment}}=\operatorname{avg}(q_7,q_9,q_{11}), \quad f^{\text{document}}=\operatorname{avg}(q_2,q_3,q_4,q_8), \quad f^{\text{tacit}}=\operatorname{avg}(q_7,q_9,q_{12})$$</div>
                     </div>
+                    <p>In plain English: the questionnaire tells the model whether your role is the kind of work AI can slide into cleanly, or the kind of work where context, accountability, and messy exceptions still slow that down.</p>
                 </section>
 
                 <section>
-                    <h2>Cluster Automation Difficulty</h2>
-                    <p>Each task family is scored on automation difficulty, using friction, human advantage, empirical priors, and task-inventory attributes.</p>
+                    <h2>How The Model Decides Which Work Is Easier To Absorb</h2>
+                    <p>Each task family gets an automation-difficulty score. This is not just “AI can do the task” versus “AI cannot.” It is the model's estimate of how hard it is for organizations to actually absorb that work into software and workflows.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Intrinsic friction</span>
                         <div class="equation-display">$$F_i = 0.25f^{\text{accountability}}_i + 0.22f^{\text{judgment}}_i + 0.22f^{\text{tacit}}_i + 0.18f^{\text{exception}}_i + 0.13(1-f^{\text{document}}_i)$$</div>
@@ -134,7 +146,8 @@
                         <div class="equation-display">$$D_i = \operatorname{clamp}\!\left(0.40F_i + 0.25(0.35h_i) + 0.25R_i + 0.10\cdot\text{couplingProtection},\,0.02,\,0.98\right)$$</div>
                         <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.10B_i + 0.05C_i + 0.04\max(0,V_i-0.5) - 0.07A_i + 0.08K_i,\,0.02,\,0.98\right)$$</div>
                     </div>
-                    <p><code>h_i</code> is built-in human advantage, <code>R_i</code> is empirical resistance after shrinkage toward occupation priors, <code>B_i</code> is mean bargaining-weight, <code>C_i</code> is core-task share, <code>V_i</code> is mean value centrality, <code>A_i</code> is mean AI-support observability, and <code>K_i</code> indicates a role-critical family.</p>
+                    <p><code>h_i</code> is human advantage, <code>R_i</code> is empirical resistance, <code>B_i</code> is bargaining-power weight, <code>C_i</code> is core-task share, <code>V_i</code> is value centrality, <code>A_i</code> is AI-support observability, and <code>K_i</code> indicates a role-critical family.</p>
+                    <p>After that, each task family is placed into an approximate timing bucket: current wave, next wave, or distant wave.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Wave assignment</span>
                         <div class="equation-display">$$\text{wave}_i =
@@ -147,8 +160,13 @@
                 </section>
 
                 <section>
-                    <h2>Task-Role Graph</h2>
-                    <p>The task graph is a live scoring layer. User-selected tasks change task share, direct pressure, spillover, and retained leverage.</p>
+                    <h2>How Direct Risk And Spillover Work</h2>
+                    <p>This is the part most users care about. The model distinguishes between two kinds of risk:</p>
+                    <ul class="detail-list">
+                        <li><strong>Direct pressure:</strong> AI gets good at the task itself.</li>
+                        <li><strong>Indirect spillover:</strong> the task is not easy to automate, but it exists mainly to support work that is under pressure.</li>
+                    </ul>
+                    <p>The task graph is how the model captures that second effect. If a support task mainly exists because another task exists, then automating the core task can still reduce the need for the support task.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Task share</span>
                         <div class="equation-display">$$s_t^{\text{raw}} = s_{c(t)} \cdot \frac{\text{timeSharePrior}_t}{\sum_{j \in c(t)} \text{timeSharePrior}_j}$$</div>
@@ -172,11 +190,22 @@
                         <li><code>residual_role_integrity</code></li>
                     </ul>
                     </p>
+                    <p>Those four signals do most of the real explanatory work on the page.</p>
                 </section>
 
                 <section>
-                    <h2>Role Fate Classifier</h2>
-                    <p>The live engine classifies the role into one of seven states using a rule-based tree over the structural scores.</p>
+                    <h2>How The Final Fate Label Is Chosen</h2>
+                    <p>Once the model knows what work is exposed, what work spills over, and what work still carries leverage, it maps the role into one of seven organizational outcomes:</p>
+                    <ul class="detail-list">
+                        <li><code>Augmented</code>: AI speeds up the work, but the role still clearly exists.</li>
+                        <li><code>Compressed</code>: the role still exists, but firms may need fewer people doing it.</li>
+                        <li><code>Elevated</code>: the execution layer shrinks and the retained role becomes more judgment-heavy.</li>
+                        <li><code>Split</code>: lower-cost execution separates from a smaller higher-judgment core.</li>
+                        <li><code>Expanded</code>: AI increases output or span of control enough that demand grows.</li>
+                        <li><code>Collapsed</code>: the role's core reason to exist weakens sharply.</li>
+                        <li><code>Mixed transition</code>: no single path dominates.</li>
+                    </ul>
+                    <p>The live classifier is a rule-based tree over the structural scores:</p>
                     <div class="equation-callout">
                         <span class="callout-label">Demand modifier</span>
                         <div class="equation-display">$$M_{\text{demand}} = \operatorname{clamp}\!\left(\frac{\text{projectionGrowthPct}+2}{10},\,0,\,1\right)$$</div>
@@ -198,7 +227,7 @@
 
                 <section>
                     <h2>Recomposition Layer</h2>
-                    <p>The page still shows a secondary recomposition panel. It is not the headline role-fate label, but it estimates how much exposed work looks technically compressible and how much of that compression may convert into fewer labor hours.</p>
+                    <p>The page also shows a secondary recomposition panel. This is not the same as the final fate label. It is a narrower estimate of how much exposed work looks technically compressible and how much of that compression may convert into fewer labor hours in firms.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Current formulas</span>
                         <div class="equation-display">$$W = \operatorname{clamp}\!\left(\text{currentWaveAbsorbed}(1-0.20\cdot\text{couplingProtection}),\,0,\,1\right)$$</div>
@@ -208,8 +237,16 @@
                 </section>
 
                 <section>
-                    <h2>Client-Side Role Fate Map</h2>
-                    <p>The homepage builds the visible `Role Fate Map` from the task table returned by the engine. The five columns are top-k rankings over different task-level signals:</p>
+                    <h2>Why The Page Looks The Way It Does</h2>
+                    <p>The visible <code>Role Fate Map</code> is built from the underlying task table. Each column answers a different user question:</p>
+                    <ul class="detail-list">
+                        <li><strong>Current role:</strong> what takes up the role today?</li>
+                        <li><strong>Bargaining power:</strong> what most explains why this role exists?</li>
+                        <li><strong>Direct pressure:</strong> what AI pressures first?</li>
+                        <li><strong>Indirect spillover:</strong> what shrinks because it depends on exposed work?</li>
+                        <li><strong>Retained leverage:</strong> what still justifies the role after AI gets better?</li>
+                    </ul>
+                    <p>Formally, the page ranks tasks by different task-level signals:</p>
                     <div class="equation-callout">
                         <span class="callout-label">Client rankings</span>
                         <div class="equation-display">$$\text{Current role} = \operatorname{TopK}_t(s_t)$$</div>
@@ -221,13 +258,14 @@
                 </section>
 
                 <section>
-                    <h2>Evidence And Limits</h2>
-                    <p>The engine emits descriptive confidence and coverage fields, not a full posterior distribution. It also still carries some legacy wave machinery internally.</p>
+                    <h2>What This Model Does Not Do</h2>
+                    <p>This model is useful, but it is not magic. It emits descriptive confidence and coverage fields, not a full probability distribution over the future.</p>
                     <ul class="detail-list">
                         <li><strong>Role-fate confidence</strong> is a margin-style score from the current rule set, not a calibrated probability.</li>
                         <li><strong>Task evidence coverage</strong> still varies by occupation and task family.</li>
                         <li><strong>User task input</strong> is still selector-based rather than weighted by rough percentage buckets.</li>
                         <li><strong>The classifier</strong> is calibrated heuristically against anchor occupations, not trained on a labeled dataset.</li>
+                        <li><strong>The wave system</strong> still exists internally, so role fate currently sits on top of the wave engine rather than fully replacing it.</li>
                     </ul>
                 </section>
             </div>
