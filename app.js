@@ -587,7 +587,7 @@ async function getV2Engine() {
     }
 
     if (!v2EnginePromise) {
-        v2EnginePromise = window.DLYJV2.create({ basePath: '' });
+        v2EnginePromise = window.DLYJV2.create({ basePath: window.DLYJ_BASE_PATH || '' });
     }
 
     return v2EnginePromise;
