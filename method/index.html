@@ -61,9 +61,9 @@
                     <p>Under the hood, the page still runs on a formal scoring model. The live input tuple is roughly:</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Input tuple</div>
-                        <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{answers},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{dominantTaskIds},\ \text{criticalTaskIds},\ \text{aiSupportTaskIds},\ \text{supportTaskIds})$$</div>
+                        <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{dominantTaskIds},\ \text{criticalTaskIds},\ \text{aiSupportTaskIds},\ \text{supportTaskIds})$$</div>
                     </div>
-                    <p>The task ids come from the five structured selectors on the main page: primary task, secondary task, value-defining task, AI-assisted task, and support/spillover task. The questionnaire answers are also converted into a structured role-refinement profile before scoring.</p>
+                    <p>The task ids come from the five structured selectors on the main page: primary task, secondary task, value-defining task, AI-assisted task, and support/spillover task. The role-refinement panel now writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
                 </section>
 
                 <!-- 2. What it looks at -->
@@ -72,10 +72,11 @@
                     <p>The model does not guess from your title alone. It combines several layers of data:</p>
                     <ul>
                         <li>A mapped occupation baseline from the launch occupation set</li>
-                        <li>An occupation task inventory built from O*NET tasks plus reviewed role-graph expansions</li>
+                        <li>An occupation task inventory built from O*NET tasks plus reviewed job-description expansions</li>
+                        <li>A role-function layer, so the model tracks what the role is for, not just what tasks appear on the page</li>
                         <li>Task dependency edges, so support work can lose value when exposed core work changes</li>
-                        <li>Task-level evidence, with direct evidence where available and cluster-level fallback where it is not</li>
-                        <li>Occupation priors, adaptation priors, and labor-market context such as projected growth and unemployment series</li>
+                        <li>Task-level evidence, combining direct task evidence, reviewed task estimates, benchmark task labels, and only then cluster-level fallback</li>
+                        <li>Occupation priors, benchmark layers such as AIOE, Webb, SML, and GPTs-are-GPTs, plus labor-market context such as projected growth and unemployment series</li>
                         <li>Your task selections, hierarchy level, and role-refinement profile</li>
                     </ul>
                     <p>So the page is not asking only "can AI do this task?" It is also asking "if AI gets good at this work, what happens to the rest of the role around it, and does a coherent human role still remain?"</p>
@@ -84,7 +85,7 @@
                 <!-- 3. How it builds your role -->
                 <section id="builds-your-role" class="r-method-section">
                     <h2>How it builds your role</h2>
-                    <p>The model starts from the selected occupation's task inventory and a task-family blend. That gives it a default picture of what the role is usually made of before personalization.</p>
+                    <p>The model starts from the selected occupation's task inventory and a task-family blend. It then links those tasks into one or more reviewed role functions, so the baseline is not just a flat task list. That gives it a default picture of what the role is usually made of and what the role is trying to accomplish before personalization.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Baseline blend</div>
                         <div class="equation-display">$$\tilde s_i = 0.65\, s_i^{\text{cluster}} + 0.35\, s_i^{\text{inventory}}, \qquad s_i^{(0)} = \frac{\tilde s_i}{\sum_j \tilde s_j}$$</div>
@@ -95,7 +96,7 @@
                         <div class="equation-display">$$o_i = w_i^{\text{explicit}} + 0.16\mathbf{1}[i\in \text{dominant}] + 0.10\mathbf{1}[i\in \text{critical}]$$</div>
                         <div class="equation-display">$$s_i = \frac{s_i^{(0)} + o_i}{\sum_j (s_j^{(0)} + o_j)}$$</div>
                     </div>
-                    <p>In plain English, this is the model's answer to "what is your version of this occupation actually made of?"</p>
+                    <p>In plain English, this is the model's answer to "what is your version of this occupation actually made of?" The extra function layer matters because two roles can have exposed tasks but still differ sharply in whether the human role survives as the accountable core.</p>
                 </section>
 
                 <!-- 4. How your answers matter -->
@@ -104,9 +105,10 @@
                     <p>The role-refinement layer does not directly output the final verdict. It changes the conditions around the work: how observable the work is, how much of the function must still stay human, how much sign-off or liability remains, how bottlenecked the workflow is, and how quickly an organization could embed AI into it.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Normalization</div>
-                        <div class="equation-display">$$q_k = \operatorname{clamp}\!\left(\frac{Q_k-1}{4},0,1\right), \qquad s = \operatorname{clamp}\!\left(\frac{\text{seniorityLevel}-1}{4},0,1\right)$$</div>
+                        <div class="equation-display">$$r_k = \operatorname{clamp}\!\left(\frac{R_k-1}{4},0,1\right), \qquad s = \operatorname{clamp}\!\left(\frac{\text{seniorityLevel}-1}{4},0,1\right)$$</div>
                     </div>
-                    <p>The current UI still starts from question answers, but the engine turns those into a structured profile with fields such as <code>function_centrality</code>, <code>human_signoff_requirement</code>, <code>liability_and_regulatory_burden</code>, <code>relationship_ownership</code>, <code>exception_and_context_load</code>, <code>workflow_decomposability</code>, <code>organizational_adoption_readiness</code>, <code>ai_observability_of_work</code>, <code>dependency_bottleneck_strength</code>, <code>augmentation_fit</code>, and <code>substitution_risk_modifier</code>.</p>
+                    <p>The live UI now captures named role-refinement responses directly, then turns them into a structured profile with fields such as <code>function_centrality</code>, <code>human_signoff_requirement</code>, <code>liability_and_regulatory_burden</code>, <code>relationship_ownership</code>, <code>exception_and_context_load</code>, <code>workflow_decomposability</code>, <code>organizational_adoption_readiness</code>, <code>ai_observability_of_work</code>, <code>dependency_bottleneck_strength</code>, <code>augmentation_fit</code>, and <code>substitution_risk_modifier</code>.</p>
+                    <p>The visible prompts are still simple, but under the hood the important distinction is this: the questionnaire is trying to measure what part of the role stays human-retained even if AI helps with more of the underlying work.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Composite signals</div>
                         <div class="equation-display">$$\text{functionRetention} = \operatorname{avg}(\text{functionCentrality},\ \text{signoff},\ \text{liability},\ \text{relationshipOwnership})$$</div>
@@ -127,7 +129,7 @@
                 <!-- 5. Absorption -->
                 <section id="absorption" class="r-method-section">
                     <h2>How the model decides which work is easier to absorb</h2>
-                    <p>Each task family gets an automation-difficulty score. This is not just "AI can do the task" versus "AI cannot." It is the model's estimate of how hard it is for organizations to actually absorb that work into workflows at scale.</p>
+                    <p>Each task family gets an automation-difficulty score. This is not just "AI can do the task" versus "AI cannot." It is the model's estimate of how hard it is for organizations to actually absorb that work into workflows at scale, after accounting for retained function, evidence strength, and workflow friction.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Task-family friction</div>
                         <div class="equation-display">$$F_i = 0.25f^{\text{accountability}}_i + 0.22f^{\text{judgment}}_i + 0.22f^{\text{tacit}}_i + 0.18f^{\text{exception}}_i + 0.13(1-f^{\text{document}}_i)$$</div>
@@ -138,6 +140,7 @@
                         <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.10B_i + 0.05C_i + 0.04\max(0,V_i-0.5) - 0.07A_i + 0.08K_i,\,0.02,\,0.98\right)$$</div>
                     </div>
                     <p><code>h_i</code> is human advantage, <code>R_i</code> is empirical resistance, <code>B_i</code> is bargaining-power weight, <code>C_i</code> is core-task share, <code>V_i</code> is value centrality, <code>A_i</code> is AI-support observability, and <code>K_i</code> indicates a role-critical family. Lower difficulty means the task family is easier to absorb sooner.</p>
+                    <p>The evidence underneath those estimates is layered. The model prefers direct task evidence when it has it, then reviewed task estimates and benchmark task labels, and only then broader proxy estimates. That is why some occupations are better supported than others.</p>
                     <p>After that, each task family is placed into an approximate timing bucket: current wave, next wave, or distant wave.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Wave assignment</div>
@@ -183,7 +186,7 @@
                         <li><code>exposed_core_share</code> and <code>retained_core_share</code></li>
                         <li><code>direct_coverage_ratio</code>, which shows how much of the task graph has direct task evidence rather than fallback estimates</li>
                     </ul>
-                    <p>Those task-graph signals do most of the real explanatory work on the page.</p>
+                    <p>Those task-graph signals do most of the real explanatory work on the page. The occupation explanation panel is built from this same layer, so the app can now say not just what the label is, but what the main pressure and counterweight actually are.</p>
                 </section>
 
                 <!-- 7. Fate label -->
@@ -200,6 +203,7 @@
                         <li><strong><code>Mixed transition</code></strong> &mdash; no single path dominates.</li>
                     </ul>
                     <p>The live classifier is a rule-based tree rather than a trained neural model. It mainly looks at direct exposure pressure, dependency spillover, retained leverage, residual role integrity, exposed versus retained core share, next-wave retained share and coherence, and a simple demand modifier from BLS growth.</p>
+                    <p>That matters because the model is trying to separate three different ideas that often get confused: tasks that are exposed, roles that get recomposed, and roles whose human-retained function actually weakens enough to collapse.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Demand modifier</div>
                         <div class="equation-display">$$M_{\text{demand}} = \operatorname{clamp}\!\left(\frac{\text{projectionGrowthPct}+2}{10},\,0,\,1\right)$$</div>
@@ -248,8 +252,9 @@
                     <p>This model is useful, but it is not magic. It emits descriptive confidence and coverage fields, not a full probability distribution over the future.</p>
                     <ul>
                         <li><strong>Role-fate confidence</strong> is a margin-style score from the current rule set, not a calibrated probability.</li>
-                        <li><strong>Task evidence coverage</strong> still varies by occupation and task family.</li>
+                        <li><strong>Task evidence coverage</strong> still varies by occupation and task family, even after the reviewed evidence expansion.</li>
                         <li><strong>User task input</strong> is still selector-based rather than weighted by rough percentage buckets.</li>
+                        <li><strong>Multi-function roles</strong> are modeled better than before, but not every occupation yet has a fully reviewed multi-anchor function graph.</li>
                         <li><strong>The classifier</strong> is calibrated heuristically against anchor occupations, not trained on a labeled dataset.</li>
                         <li><strong>The wave system</strong> still exists internally, so role fate currently sits on top of the wave engine rather than fully replacing it.</li>
                     </ul>
