@@ -90,10 +90,10 @@ Status:
 - scaffold CSVs added under `data/normalized/`
 - seeded role-graph generator added at `scripts/data/build_task_role_graph.ps1`
 - current seeded outputs:
-  - `669` task inventory rows
-  - `893` dependency edges
+  - `710` task inventory rows
+  - `986` dependency edges
   - `34` occupation role profiles
-  - `8` occupations still flagged for thin or missing task coverage
+  - all `34` launch occupations now have task inventory coverage
 
 ### 3. Intake redesign
 
@@ -120,8 +120,8 @@ Replace the current wave-first scoring with a role-fate model driven by:
 - demand expansion modifier
 
 Status:
-- approved conceptually
-- implementation not started
+- task-role graph is now wired into `v2_engine.js`
+- direct and indirect pressure now affect task breakdown, dependency penalty, and residual-role diagnostics
 
 ### 5. Documentation rewrite
 
@@ -176,13 +176,15 @@ Do not make these headline scoring inputs in the first pass:
   - added normalized CSV scaffolds for the task-role graph layer
   - added and ran a seeded role-graph build script to populate the new normalized files
   - extended normalized-data validation to cover the new role-graph files
+  - added manual role-graph task and dependency expansions for previously thin occupations
+  - wired `v2_engine.js` to consume the role-graph inventory and dependency edges during scoring
 - changed decisions:
   - `Role Fate` replaces the old public five-card framing
   - explicit indirect task risk is now a first-class requirement
   - task coverage quality is now a blocker for trustworthy role-fate outputs
 - new blockers:
-  - normalized task coverage is thin for several launch occupations
-  - the engine has no explicit task dependency graph yet
   - the intake does not yet collect value-defining tasks or support-task dependencies
+  - the public UI still renders the older briefing contract rather than the full role-fate surface
+  - role-graph weights remain seeded heuristics and still need review or calibration
 - next recommended step:
-  - extend the normalized layer with task role-graph fields, starting with the undercovered occupations
+  - redesign the intake and result surface so users can select value-defining work and see direct pressure, indirect spillover, bargaining-power tasks, and retained leverage explicitly

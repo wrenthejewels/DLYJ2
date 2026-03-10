@@ -3177,7 +3177,7 @@
 
         .v2-map-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
             gap: 18px;
         }
 
@@ -3186,6 +3186,7 @@
             border-radius: 18px;
             background: #ffffff;
             padding: 16px;
+            min-height: 100%;
         }
 
         .v2-map-column h4 {

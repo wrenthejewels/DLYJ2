@@ -10,6 +10,8 @@ if (-not $OutputDir) {
     $OutputDir = Join-Path $Root 'data\normalized'
 }
 
+$metadataDir = Join-Path $Root 'data\metadata'
+
 function Clamp([double]$Value, [double]$Min, [double]$Max) {
     return [Math]::Max($Min, [Math]::Min($Max, $Value))
 }
@@ -31,8 +33,42 @@ $occupationTasks = Import-Csv (Join-Path $OutputDir 'occupation_tasks.csv')
 $taskMembership = Import-Csv (Join-Path $OutputDir 'task_cluster_membership.csv')
 $taskPriors = Import-Csv (Join-Path $OutputDir 'task_augmentation_automation_priors.csv')
 $occupations = Import-Csv (Join-Path $OutputDir 'occupations.csv')
+$manualTaskExpansionPath = Join-Path $metadataDir 'manual_task_inventory_expansions.csv'
+$manualDependencyPath = Join-Path $metadataDir 'manual_task_dependency_overrides.csv'
+$manualTaskExpansions = if (Test-Path $manualTaskExpansionPath) { Import-Csv $manualTaskExpansionPath } else { @() }
+$manualDependencyOverrides = if (Test-Path $manualDependencyPath) { Import-Csv $manualDependencyPath } else { @() }
 
 $occupationIds = $occupations | Select-Object -ExpandProperty occupation_id
+
+$allTasks = New-Object System.Collections.Generic.List[object]
+foreach ($task in $occupationTasks) {
+    $allTasks.Add([PSCustomObject]@{
+        occupation_id = $task.occupation_id
+        onet_task_id = $task.onet_task_id
+        task_statement = $task.task_statement
+        task_type = $task.task_type
+        importance = $task.importance
+        frequency = $task.frequency
+        source_mix = $task.source_mix
+        notes = $task.notes
+        seeded_task_cluster_id = ''
+        is_manual = '0'
+    })
+}
+foreach ($task in $manualTaskExpansions) {
+    $allTasks.Add([PSCustomObject]@{
+        occupation_id = $task.occupation_id
+        onet_task_id = $task.onet_task_id
+        task_statement = $task.task_statement
+        task_type = $task.task_type
+        importance = $task.importance
+        frequency = $task.frequency
+        source_mix = $task.source_mix
+        notes = $task.notes
+        seeded_task_cluster_id = $task.task_family_id
+        is_manual = '1'
+    })
+}
 
 $membershipByTask = @{}
 foreach ($row in $taskMembership) {
@@ -120,7 +156,7 @@ $dependencyTypeByClusterPair = @{
 }
 
 $weightedTasksByOccupation = @{}
-foreach ($task in $occupationTasks) {
+foreach ($task in $allTasks) {
     $importance = [double]$task.importance
     $frequency = [double]$task.frequency
     $taskWeight = [Math]::Max(0.05, $importance * [Math]::Max(0.20, $frequency))
@@ -134,10 +170,20 @@ $inventory = New-Object System.Collections.Generic.List[object]
 $tasksByOccCluster = @{}
 $taskIdsByOccupation = @{}
 
-foreach ($task in $occupationTasks) {
+foreach ($task in $allTasks) {
     $membershipKey = "$($task.occupation_id)|$($task.onet_task_id)"
     $membership = $null
-    if ($membershipByTask.ContainsKey($membershipKey)) {
+    if ($task.seeded_task_cluster_id) {
+        $membership = [PSCustomObject]@{
+            occupation_id = $task.occupation_id
+            onet_task_id = $task.onet_task_id
+            task_cluster_id = $task.seeded_task_cluster_id
+            membership_weight = '1.00'
+            mapping_method = 'manual_role_graph_review'
+            mapping_confidence = '0.92'
+            notes = 'manual_role_graph_expansion'
+        }
+    } elseif ($membershipByTask.ContainsKey($membershipKey)) {
         $membership = $membershipByTask[$membershipKey] |
             Sort-Object @{ Expression = { [double]$_.mapping_confidence }; Descending = $true } |
             Select-Object -First 1
@@ -178,7 +224,7 @@ foreach ($task in $occupationTasks) {
     $sourceMix = $task.source_mix
     if ([string]::IsNullOrWhiteSpace($sourceMix)) {
         $sourceMix = 'src_v2_role_graph_seed_2026_03'
-    } else {
+    } elseif ($sourceMix -notlike '*src_v2_role_graph_seed_2026_03*' -and $sourceMix -notlike '*src_manual_role_graph_review_2026_03*') {
         $sourceMix = "$sourceMix|src_v2_role_graph_seed_2026_03"
     }
 
@@ -212,6 +258,11 @@ foreach ($task in $occupationTasks) {
         $taskIdsByOccupation[$task.occupation_id] = New-Object System.Collections.Generic.List[string]
     }
     $taskIdsByOccupation[$task.occupation_id].Add($taskId)
+}
+
+$taskRefToTaskId = @{}
+foreach ($row in $inventory) {
+    $taskRefToTaskId["$($row.occupation_id)|$($row.onet_task_id)"] = $row.task_id
 }
 
 $edges = New-Object System.Collections.Generic.List[object]
@@ -279,6 +330,31 @@ foreach ($occupationId in $tasksByOccCluster.Keys) {
             }
         }
     }
+}
+
+foreach ($edge in $manualDependencyOverrides) {
+    $fromTaskId = $taskRefToTaskId["$($edge.occupation_id)|$($edge.from_onet_task_id)"]
+    $toTaskId = $taskRefToTaskId["$($edge.occupation_id)|$($edge.to_onet_task_id)"]
+    if ([string]::IsNullOrWhiteSpace($fromTaskId) -or [string]::IsNullOrWhiteSpace($toTaskId)) {
+        continue
+    }
+
+    $edgeKey = "$($edge.occupation_id)|$fromTaskId|$toTaskId"
+    if ($edgeSeen.ContainsKey($edgeKey)) {
+        continue
+    }
+
+    $edges.Add([PSCustomObject]@{
+        occupation_id = $edge.occupation_id
+        from_task_id = $fromTaskId
+        to_task_id = $toTaskId
+        dependency_type = if ($edge.dependency_type) { $edge.dependency_type } else { 'supports' }
+        dependency_strength = Format-Decimal -Value (Clamp ([double]$edge.dependency_strength) 0.01 0.99) -Digits 4
+        edge_source = 'src_manual_role_graph_review_2026_03'
+        edge_confidence = Format-Decimal -Value (Clamp ([double]$edge.edge_confidence) 0.20 0.99) -Digits 4
+        notes = if ($edge.notes) { $edge.notes } else { 'manual_role_graph_dependency' }
+    })
+    $edgeSeen[$edgeKey] = $true
 }
 
 $profiles = foreach ($occupationId in $occupationIds) {

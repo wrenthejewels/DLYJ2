@@ -119,70 +119,50 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <h2 class="card-title">Optional task mix and role fit</h2>
-                            <p class="card-description">Use these only if your version of the occupation differs meaningfully from the default role. Otherwise the model will infer from the occupation and keep a neutral questionnaire baseline.</p>
+                            <h2 class="card-title">Optional task detail</h2>
+                            <p class="card-description">Tag the tasks that actually define your week if the occupation baseline is too generic. Keep it light with one or two picks, or add more detail if you want the fate map to react to specific bargaining-power and spillover tasks.</p>
                         </div>
                     </div>
 
                     <div class="v2-input-grid">
                         <div class="v2-input-field">
-                            <label for="v2-task-primary">Primary task family</label>
+                            <label for="v2-task-primary">Primary current task</label>
                             <select id="v2-task-primary" class="plane-dropdown v2-direct-input">
-                                <option value="">Infer from role</option>
-                                <option value="cluster_analysis">Analysis</option>
-                                <option value="cluster_drafting">Drafting</option>
-                                <option value="cluster_research_synthesis">Research synthesis</option>
-                                <option value="cluster_coordination">Coordination</option>
-                                <option value="cluster_client_interaction">Client interaction</option>
-                                <option value="cluster_qa_review">QA / review</option>
-                                <option value="cluster_decision_support">Decision support</option>
-                                <option value="cluster_execution_routine">Routine execution</option>
-                                <option value="cluster_oversight_strategy">Oversight / strategy</option>
-                                <option value="cluster_relationship_management">Relationship management</option>
-                                <option value="cluster_documentation">Documentation</option>
-                                <option value="cluster_workflow_admin">Workflow administration</option>
+                                <option value="">Select occupation first</option>
                             </select>
-                            <p>Choose the task family that dominates your actual week, not the one that sounds most prestigious.</p>
+                            <p>Choose the concrete task that takes the biggest share of your actual week.</p>
                         </div>
 
                         <div class="v2-input-field">
-                            <label for="v2-task-secondary">Secondary task family</label>
+                            <label for="v2-task-secondary">Secondary current task</label>
                             <select id="v2-task-secondary" class="plane-dropdown v2-direct-input">
-                                <option value="">None / infer from role</option>
-                                <option value="cluster_analysis">Analysis</option>
-                                <option value="cluster_drafting">Drafting</option>
-                                <option value="cluster_research_synthesis">Research synthesis</option>
-                                <option value="cluster_coordination">Coordination</option>
-                                <option value="cluster_client_interaction">Client interaction</option>
-                                <option value="cluster_qa_review">QA / review</option>
-                                <option value="cluster_decision_support">Decision support</option>
-                                <option value="cluster_execution_routine">Routine execution</option>
-                                <option value="cluster_oversight_strategy">Oversight / strategy</option>
-                                <option value="cluster_relationship_management">Relationship management</option>
-                                <option value="cluster_documentation">Documentation</option>
-                                <option value="cluster_workflow_admin">Workflow administration</option>
+                                <option value="">Select occupation first</option>
                             </select>
-                            <p>Use a second task family only if it represents a meaningful part of the role rather than occasional overflow work.</p>
+                            <p>Use this only if another task meaningfully shares your week.</p>
                         </div>
 
                         <div class="v2-input-field">
-                            <label for="v2-task-critical">Value-defining task family</label>
+                            <label for="v2-task-critical">Value-defining task</label>
                             <select id="v2-task-critical" class="plane-dropdown v2-direct-input">
-                                <option value="">Infer from occupation</option>
-                                <option value="cluster_analysis">Analysis</option>
-                                <option value="cluster_drafting">Drafting</option>
-                                <option value="cluster_research_synthesis">Research synthesis</option>
-                                <option value="cluster_coordination">Coordination</option>
-                                <option value="cluster_client_interaction">Client interaction</option>
-                                <option value="cluster_qa_review">QA / review</option>
-                                <option value="cluster_decision_support">Decision support</option>
-                                <option value="cluster_execution_routine">Routine execution</option>
-                                <option value="cluster_oversight_strategy">Oversight / strategy</option>
-                                <option value="cluster_relationship_management">Relationship management</option>
-                                <option value="cluster_documentation">Documentation</option>
-                                <option value="cluster_workflow_admin">Workflow administration</option>
+                                <option value="">Select occupation first</option>
                             </select>
-                            <p>Pick the task family that most explains why the role exists, even if it is not the largest share of your week.</p>
+                            <p>Pick the task that most explains why the role exists, even if it is not the largest share of your week.</p>
+                        </div>
+
+                        <div class="v2-input-field">
+                            <label for="v2-task-supported">Task already helped by AI</label>
+                            <select id="v2-task-supported" class="plane-dropdown v2-direct-input">
+                                <option value="">Select occupation first</option>
+                            </select>
+                            <p>Use this for work where AI mostly speeds you up rather than threatening your bargaining power.</p>
+                        </div>
+
+                        <div class="v2-input-field">
+                            <label for="v2-task-spillover">Support task tied to exposed work</label>
+                            <select id="v2-task-spillover" class="plane-dropdown v2-direct-input">
+                                <option value="">Select occupation first</option>
+                            </select>
+                            <p>Choose a support task that could shrink because the core work it serves gets automated or commoditized.</p>
                         </div>
 
                     </div>
@@ -691,7 +671,7 @@
             <div class="v2-results-panel">
                 <div class="v2-results-header">
                     <div class="v2-results-copy">
-                        <div class="v2-results-kicker">V2.1 Wave-Based Role Briefing</div>
+                        <div class="v2-results-kicker">V2.1 Role Fate Briefing</div>
                         <h3 id="v2-role-state-label">Select a category to begin</h3>
                         <p id="v2-role-summary">Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.</p>
                     </div>
@@ -705,7 +685,7 @@
 
                 <div class="v2-briefing-layout">
                     <section class="v2-outlook-panel">
-                        <div class="v2-section-label">At a glance</div>
+                        <div class="v2-section-label">Role fate</div>
                         <div class="v2-outlook-grid">
                             <div>
                                 <div class="v2-outlook-kicker">Primary outlook</div>
@@ -713,19 +693,19 @@
                                 <p class="v2-outlook-summary" id="v2-outlook-summary-copy">This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.</p>
                                 <div class="v2-outlook-notes">
                                     <div class="v2-outlook-note">
-                                        <span>Top exposed work</span>
+                                        <span>Task under direct pressure</span>
                                         <strong id="v2-top-cluster">-</strong>
                                     </div>
                                     <div class="v2-outlook-note">
-                                        <span>Displacement wave</span>
+                                        <span>Pressure timing</span>
                                         <strong id="v2-balance">-</strong>
                                     </div>
                                     <div class="v2-outlook-note">
-                                        <span>Residual role strength</span>
+                                        <span>Retained leverage</span>
                                         <strong id="v2-viability">-</strong>
                                     </div>
                                     <div class="v2-outlook-note">
-                                        <span>Personalization fit</span>
+                                        <span>Your fit to the retained role</span>
                                         <strong id="v2-adaptation">-</strong>
                                     </div>
                                 </div>
@@ -797,9 +777,9 @@
 
                 <div class="v2-map-panel">
                     <div class="v2-map-header">
-                        <div class="v2-section-label">Task-derived map</div>
-                        <h3 class="chart-title">Role Transformation Map</h3>
-                        <p class="chart-subtitle" id="v2-map-subtitle">This map is derived from the live task rows below. It ranks the occupation&apos;s mapped tasks by current share, exposed share, and retained share after your inputs are applied.</p>
+                        <div class="v2-section-label">Role fate map</div>
+                        <h3 class="chart-title">Current Work And AI Pressure</h3>
+                        <p class="chart-subtitle" id="v2-map-subtitle">This map starts with the current task mix, then shows which tasks hold bargaining power, face direct AI pressure, lose value through spillover, or still anchor the retained role.</p>
                     </div>
                     <div class="v2-map-grid">
                         <div class="v2-map-column">
@@ -807,11 +787,19 @@
                             <div class="v2-cluster-list" id="v2-current-bundle"></div>
                         </div>
                         <div class="v2-map-column">
-                            <h4>Exposed tasks</h4>
-                            <div class="v2-cluster-list" id="v2-exposed-bundle"></div>
+                            <h4>Bargaining-power tasks</h4>
+                            <div class="v2-cluster-list" id="v2-bargaining-bundle"></div>
                         </div>
                         <div class="v2-map-column">
-                            <h4>Residual role</h4>
+                            <h4>Direct AI pressure</h4>
+                            <div class="v2-cluster-list" id="v2-direct-bundle"></div>
+                        </div>
+                        <div class="v2-map-column">
+                            <h4>Indirect spillover</h4>
+                            <div class="v2-cluster-list" id="v2-indirect-bundle"></div>
+                        </div>
+                        <div class="v2-map-column">
+                            <h4>Retained leverage</h4>
                             <div class="v2-cluster-list" id="v2-residual-bundle"></div>
                         </div>
                     </div>
@@ -821,10 +809,10 @@
                     <div class="v2-map-header">
                         <div class="v2-section-label">Task-level view</div>
                         <h3 class="chart-title">Live Task Breakdown</h3>
-                        <p class="chart-subtitle" id="v2-task-note">This view reorders the selected occupation&apos;s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.</p>
+                        <p class="chart-subtitle" id="v2-task-note">This view reorders the selected occupation&apos;s task inventory as your task picks and questionnaire answers change the underlying role share, direct pressure, spillover risk, and retained leverage.</p>
                     </div>
                     <div class="v2-task-summary">
-                        <p class="v2-task-summary-copy" id="v2-task-summary-copy">Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.</p>
+                        <p class="v2-task-summary-copy" id="v2-task-summary-copy">Choose a mapped occupation to load its task inventory and the blended role-fate breakdown.</p>
                         <div class="v2-task-stats">
                             <div class="v2-task-stat">
                                 <span>Tasks shown</span>

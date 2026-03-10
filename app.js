@@ -9,6 +9,14 @@ let lastV2Result = null;
 let v2EnginePromise = null;
 let v2TaskBreakdownExpanded = false;
 
+const V2_TASK_INPUT_CONFIG = [
+    { id: 'v2-task-primary', placeholder: 'No task override' },
+    { id: 'v2-task-secondary', placeholder: 'No secondary task override' },
+    { id: 'v2-task-critical', placeholder: 'Infer value-defining task' },
+    { id: 'v2-task-supported', placeholder: 'No explicit AI-assisted task' },
+    { id: 'v2-task-spillover', placeholder: 'No explicit spillover task' }
+];
+
 // ─── 2. Question Labels ──────────────────────────────────────────────────────
 
 const QUESTION_LABELS = {
@@ -333,6 +341,79 @@ async function populateOccupationCandidates(roleCategory, preserveCurrent = true
     return candidates;
 }
 
+function truncateV2TaskLabel(label, maxLength = 88) {
+    const value = String(label || '').trim();
+    if (!value) return 'Unknown task';
+    if (value.length <= maxLength) return value;
+    return `${value.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+async function populateV2TaskInputs(occupationId, preserveSelection = true) {
+    const selects = V2_TASK_INPUT_CONFIG
+        .map((config) => document.getElementById(config.id))
+        .filter(Boolean);
+
+    const setEmptyState = (placeholder) => {
+        V2_TASK_INPUT_CONFIG.forEach((config) => {
+            const select = document.getElementById(config.id);
+            if (!select) return;
+            select.disabled = true;
+            select.innerHTML = `<option value="">${placeholder || 'Select occupation first'}</option>`;
+        });
+    };
+
+    if (!occupationId) {
+        setEmptyState('Select occupation first');
+        return [];
+    }
+
+    let engine;
+    try {
+        engine = await getV2Engine();
+    } catch (error) {
+        console.error('[V2] Failed to load task inventory for direct inputs:', error);
+        setEmptyState('Task inventory unavailable');
+        return [];
+    }
+
+    const tasks = engine.getTaskInventory(occupationId) || [];
+    if (!tasks.length) {
+        setEmptyState('No task inventory for this role yet');
+        return [];
+    }
+
+    V2_TASK_INPUT_CONFIG.forEach((config) => {
+        const select = document.getElementById(config.id);
+        if (!select) return;
+
+        const previousValue = preserveSelection ? (select.value || '') : '';
+        select.disabled = false;
+        select.innerHTML = '';
+
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = config.placeholder;
+        select.appendChild(placeholderOption);
+
+        tasks.forEach((task) => {
+            const option = document.createElement('option');
+            option.value = task.task_id;
+            option.textContent = `${truncateV2TaskLabel(task.task_statement)} · ${Math.round((Number(task.time_share_prior) || 0) * 100)}% baseline`;
+            option.title = task.task_statement || '';
+            option.dataset.family = task.task_family_id || '';
+            option.dataset.statement = task.task_statement || '';
+            option.dataset.roleCriticality = task.role_criticality || '';
+            select.appendChild(option);
+        });
+
+        select.value = previousValue && tasks.some((task) => task.task_id === previousValue)
+            ? previousValue
+            : '';
+    });
+
+    return tasks;
+}
+
 // initializeOccupationSearch is defined inside the DOMContentLoaded handler
 // because it references the occupationSearchLookup Map and DOM elements
 // scoped to that closure.
@@ -535,6 +616,81 @@ function buildTaskDrivenTransformationMap(taskBreakdown) {
     };
 }
 
+function buildRoleFateSignalRows(taskBreakdown, signal) {
+    const rows = Array.isArray(taskBreakdown?.tasks) ? taskBreakdown.tasks.slice() : [];
+    if (!rows.length) {
+        return [];
+    }
+
+    const scoredRows = rows.map((task) => {
+        let signalShare = 0;
+        let secondaryLabel = task?.task_cluster_label || 'Mapped task family';
+        let likelyMode = task?.likely_mode || null;
+
+        if (signal === 'current') {
+            signalShare = Number(task?.share_of_role) || 0;
+            secondaryLabel = `${secondaryLabel} · current role share`;
+        } else if (signal === 'bargaining') {
+            signalShare = (Number(task?.share_of_role) || 0) * Math.max(
+                Number(task?.bargaining_power_weight) || 0,
+                Number(task?.value_centrality) || 0
+            );
+            secondaryLabel = `${secondaryLabel} · bargaining leverage`;
+        } else if (signal === 'direct') {
+            signalShare = (Number(task?.share_of_role) || 0) * (Number(task?.direct_exposure_pressure) || 0);
+            secondaryLabel = `${secondaryLabel} · direct AI pressure`;
+            likelyMode = 'pressure';
+        } else if (signal === 'indirect') {
+            signalShare = (Number(task?.share_of_role) || 0) * (Number(task?.indirect_dependency_pressure) || 0);
+            secondaryLabel = `${secondaryLabel} · spillover risk`;
+            likelyMode = 'spillover';
+        } else if (signal === 'retained') {
+            signalShare = (Number(task?.retained_share) || 0) * (Number(task?.retained_leverage) || 0);
+            secondaryLabel = `${secondaryLabel} · retained leverage`;
+            likelyMode = 'retained';
+        }
+
+        if (task?.is_user_selected_critical) {
+            secondaryLabel += ' · user-tagged core task';
+        } else if (task?.is_user_selected_support_task) {
+            secondaryLabel += ' · user-tagged support task';
+        } else if (task?.is_user_selected_ai_support) {
+            secondaryLabel += ' · user-tagged AI assist';
+        }
+
+        return {
+            label: task?.task_statement || 'Unknown task',
+            full_label: task?.task_statement || 'Unknown task',
+            secondary_label: secondaryLabel,
+            likely_mode: likelyMode,
+            evidence_confidence: Number(task?.evidence_confidence) || 0,
+            evidence_badge: task?.has_direct_evidence ? 'Direct evidence' : 'Fallback estimate',
+            signal_share: Number(signalShare.toFixed(4)),
+            share_of_role: Number(task?.share_of_role) || 0
+        };
+    });
+
+    return scoredRows
+        .filter((task) => task.signal_share >= 0.01)
+        .sort((left, right) => {
+            if (right.signal_share !== left.signal_share) {
+                return right.signal_share - left.signal_share;
+            }
+            return right.share_of_role - left.share_of_role;
+        })
+        .slice(0, 5);
+}
+
+function buildRoleFateMap(taskBreakdown) {
+    return {
+        current_role: buildRoleFateSignalRows(taskBreakdown, 'current'),
+        bargaining_power: buildRoleFateSignalRows(taskBreakdown, 'bargaining'),
+        direct_pressure: buildRoleFateSignalRows(taskBreakdown, 'direct'),
+        indirect_spillover: buildRoleFateSignalRows(taskBreakdown, 'indirect'),
+        retained_leverage: buildRoleFateSignalRows(taskBreakdown, 'retained')
+    };
+}
+
 function renderV2EvidenceSummary(summary) {
     const directRows = Number(summary?.source_coverage?.direct_task_evidence_rows) || 0;
     const fallbackRows = Number(summary?.source_coverage?.fallback_task_rows) || 0;
@@ -612,7 +768,7 @@ function renderV2OccupationAssignment(assignment) {
         parts.push(`Occupation anchor strength combines the occupation-prior confidence with the launch selector anchor${assignment.category_candidate_rank ? `; this occupation is candidate ${assignment.category_candidate_rank} of ${assignment.category_candidate_count} inside the selected category` : ''}.`);
     }
     if (assignment && totalCount) {
-        parts.push(`Task coverage means ${directCoveragePct}% of the ${totalCount} mapped O*NET tasks have direct Anthropic task evidence; the remaining ${fallbackCount} rows use task-family fallback estimates.`);
+        parts.push(`Task coverage means ${directCoveragePct}% of the ${totalCount} mapped role tasks have direct Anthropic task evidence; the remaining ${fallbackCount} rows use task-family fallback estimates.`);
     }
     if (assignment?.questionnaire_effect) {
         parts.push(assignment.questionnaire_effect);
@@ -680,16 +836,31 @@ function createV2TaskBreakdownItem(task) {
     meta.appendChild(createV2TaskChip(task?.task_cluster_label || 'Unknown cluster', 'accent'));
     meta.appendChild(createV2TaskChip(`${formatV2Label(task?.exposure_level)} exposure`, task?.exposure_level === 'high' ? 'warning' : (task?.exposure_level === 'moderate' ? 'accent' : '')));
     meta.appendChild(createV2TaskChip(formatV2Label(task?.likely_mode || 'mixed'), task?.likely_mode === 'automation' ? 'warning' : 'success'));
+    meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.direct_exposure_pressure) || 0) * 100)}% direct pressure`, 'warning'));
+    meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.indirect_dependency_pressure) || 0) * 100)}% spillover`, 'accent'));
+    meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.retained_leverage) || 0) * 100)}% retained leverage`, 'success'));
     meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.evidence_confidence) || 0) * 100)}% confidence`));
     meta.appendChild(createV2TaskChip(task?.has_direct_evidence ? 'Direct task evidence' : 'Cluster fallback'));
 
     if (task?.is_role_critical) {
-        meta.appendChild(createV2TaskChip('Role-defining family', 'accent'));
+        meta.appendChild(createV2TaskChip('Role-defining task', 'accent'));
+    }
+    if (task?.is_user_selected_dominant) {
+        meta.appendChild(createV2TaskChip('Selected current task'));
+    }
+    if (task?.is_user_selected_critical) {
+        meta.appendChild(createV2TaskChip('Selected bargaining-power task', 'accent'));
+    }
+    if (task?.is_user_selected_ai_support) {
+        meta.appendChild(createV2TaskChip('Selected AI-assisted task', 'success'));
+    }
+    if (task?.is_user_selected_support_task) {
+        meta.appendChild(createV2TaskChip('Selected spillover task', 'warning'));
     }
 
     const footnote = document.createElement('div');
     footnote.className = 'v2-task-footnote';
-    footnote.textContent = `${Math.round((Number(task?.exposed_share) || 0) * 100)}% exposed share, ${Math.round((Number(task?.retained_share) || 0) * 100)}% retained after transformation. ${task?.mapping_method ? `Mapped via ${String(task.mapping_method).replace(/_/g, ' ')}.` : ''}`;
+    footnote.textContent = `${Math.round((Number(task?.exposed_share) || 0) * 100)}% exposed share, ${Math.round((Number(task?.retained_share) || 0) * 100)}% retained after transformation, and ${Math.round((Number(task?.indirect_dependency_pressure) || 0) * 100)}% spillover pressure from linked work. ${task?.mapping_method ? `Mapped via ${String(task.mapping_method).replace(/_/g, ' ')}.` : ''}`;
 
     item.appendChild(topline);
     item.appendChild(meter);
@@ -717,8 +888,8 @@ function renderV2TaskBreakdown(taskBreakdown, assignment) {
     safeSetText(
         'v2-task-summary-copy',
         assignment
-            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped O*NET tasks. This list live-updates as your selected occupation, task-family inputs, and questionnaire answers change task shares and exposure estimates inside that occupation anchor. Use “Show model details” if you want the underlying evidence and fallback notes.`
-            : 'Choose a mapped occupation to load its O*NET task list and the blended task-level exposure view.'
+            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped role tasks. This list live-updates as your selected occupation, task picks, and questionnaire answers change role share, direct pressure, spillover pressure, and retained leverage inside that occupation anchor. Use “Show model details” if you want the evidence and fallback notes.`
+            : 'Choose a mapped occupation to load its task inventory and the blended role-fate view.'
     );
 
     if (toggle) {
@@ -747,15 +918,34 @@ function renderV2TaskBreakdown(taskBreakdown, assignment) {
 // ─── 8. V2 Result functions ─────────────────────────────────────────────────
 
 function getDirectV2Inputs() {
-    const primaryCluster = document.getElementById('v2-task-primary')?.value || '';
-    const secondaryCluster = document.getElementById('v2-task-secondary')?.value || '';
-    const criticalCluster = document.getElementById('v2-task-critical')?.value || '';
-    const dominantTaskClusters = [primaryCluster, secondaryCluster].filter(Boolean);
-    const dedupedClusters = Array.from(new Set(dominantTaskClusters));
-    const roleCriticalClusters = criticalCluster ? [criticalCluster] : [];
+    const getSelectState = (id) => {
+        const select = document.getElementById(id);
+        const option = select?.selectedOptions?.[0];
+        return {
+            taskId: select?.value || '',
+            familyId: option?.dataset?.family || ''
+        };
+    };
+
+    const primary = getSelectState('v2-task-primary');
+    const secondary = getSelectState('v2-task-secondary');
+    const critical = getSelectState('v2-task-critical');
+    const supported = getSelectState('v2-task-supported');
+    const spillover = getSelectState('v2-task-spillover');
+
+    const dominantTaskIds = Array.from(new Set([primary.taskId, secondary.taskId].filter(Boolean)));
+    const roleCriticalTaskIds = critical.taskId ? [critical.taskId] : [];
+    const aiSupportTaskIds = supported.taskId ? [supported.taskId] : [];
+    const supportTaskIds = spillover.taskId ? [spillover.taskId] : [];
+    const dominantTaskClusters = Array.from(new Set([primary.familyId, secondary.familyId, spillover.familyId].filter(Boolean)));
+    const roleCriticalClusters = Array.from(new Set([critical.familyId].filter(Boolean)));
 
     return {
-        dominantTaskClusters: dedupedClusters,
+        dominantTaskIds: dominantTaskIds,
+        roleCriticalTaskIds: roleCriticalTaskIds,
+        aiSupportTaskIds: aiSupportTaskIds,
+        supportTaskIds: supportTaskIds,
+        dominantTaskClusters: dominantTaskClusters,
         roleCriticalClusters: roleCriticalClusters
     };
 }
@@ -781,8 +971,8 @@ function resetV2Results(message, detail) {
     safeSetText('v2-task-confidence', '-');
     safeSetText('v2-prior-confidence', '-');
     safeSetText('v2-evidence-notes', 'Choose a mapped occupation to see how evidence strength, personalization signal, occupation anchoring, and task coverage are scored.');
-    safeSetText('v2-map-subtitle', "This map is derived from the live task rows below. It ranks the occupation's mapped tasks by automation difficulty, wave assignment, and retained share.");
-    safeSetText('v2-task-note', 'This view reorders the selected occupation\'s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.');
+    safeSetText('v2-map-subtitle', "This map starts from the current task mix, then shows which tasks hold bargaining power, face direct AI pressure, lose value through spillover, or remain central to the retained role.");
+    safeSetText('v2-task-note', 'This view reorders the selected occupation\'s task inventory as your task picks and questionnaire answers change role share, pressure, spillover, and retained leverage.');
     safeSetText('v2-recomposition-conversion', '-');
     ['current', 'next', 'distant'].forEach(function (w) {
         safeSetText('v2-wave-' + w + '-state', '-');
@@ -792,8 +982,10 @@ function resetV2Results(message, detail) {
     renderV2LaborMarketContext(null, '');
     renderV2OccupationAssignment(null);
     renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped occupation to populate the current bundle.' });
-    renderV2ClusterList('v2-exposed-bundle', [], { emptyText: 'Exposure detail appears once the transformation view is active.' });
-    renderV2ClusterList('v2-residual-bundle', [], { emptyText: 'Residual role detail appears once the transformation view is active.' });
+    renderV2ClusterList('v2-bargaining-bundle', [], { emptyText: 'Bargaining-power tasks appear once the role view is active.' });
+    renderV2ClusterList('v2-direct-bundle', [], { emptyText: 'Direct pressure appears once the role view is active.' });
+    renderV2ClusterList('v2-indirect-bundle', [], { emptyText: 'Spillover tasks appear once the role view is active.' });
+    renderV2ClusterList('v2-residual-bundle', [], { emptyText: 'Retained-leverage tasks appear once the role view is active.' });
     renderV2TaskBreakdown(null, null);
     lastV2Result = null;
 }
@@ -851,6 +1043,10 @@ async function updateV2Results(options = {}) {
             occupationId: selectedOccupationId,
             answers: answers,
             seniorityLevel: seniorityLevel,
+            dominantTaskIds: directInputs.dominantTaskIds,
+            criticalTaskIds: directInputs.roleCriticalTaskIds,
+            aiSupportTaskIds: directInputs.aiSupportTaskIds,
+            supportTaskIds: directInputs.supportTaskIds,
             dominantTaskClusters: directInputs.dominantTaskClusters,
             roleCriticalClusters: directInputs.roleCriticalClusters
         });
@@ -862,18 +1058,20 @@ async function updateV2Results(options = {}) {
 
     lastV2Result = result;
 
-    const topExposedLabel = result.top_exposed_work?.label
-        ? `${result.top_exposed_work.label} · ${result.top_exposed_work.wave_assignment} wave`
-        : '-';
+    const roleFateMap = buildRoleFateMap(result.task_breakdown);
+    const topDirectTask = roleFateMap.direct_pressure[0] || null;
+    const topExposedLabel = topDirectTask?.label
+        ? topDirectTask.label
+        : (result.top_exposed_work?.label ? `${result.top_exposed_work.label} · ${result.top_exposed_work.wave_assignment} wave` : '-');
 
     const wt = result.wave_trajectory || {};
     const waveHeadline = `Primary displacement: ${result.primary_displacement_wave} wave`;
 
-    safeSetText('v2-role-state-label', `${result.selected_occupation_title} · ${result.role_outlook_label}`);
+    safeSetText('v2-role-state-label', `${result.selected_occupation_title} · ${result.role_fate_label || result.role_outlook_label}`);
     safeSetText('v2-role-summary', result.role_summary || 'The wave-based model ranks task clusters by automation difficulty into current, next, and distant waves.');
     safeSetText('v2-outlook-summary-copy', result.role_summary || 'The wave-based model ranks task clusters by automation difficulty.');
-    safeSetText('v2-role-state-card', result.role_outlook_label || '-');
-    safeSetText('v2-score-role-outlook', result.role_outlook_label || '-');
+    safeSetText('v2-role-state-card', result.role_fate_label || result.role_outlook_label || '-');
+    safeSetText('v2-score-role-outlook', result.role_fate_label || result.role_outlook_label || '-');
     safeSetText('v2-top-cluster', topExposedLabel);
     safeSetText('v2-balance', waveHeadline);
     safeSetText('v2-score-mode', waveHeadline);
@@ -888,7 +1086,7 @@ async function updateV2Results(options = {}) {
         if (!ws) return;
         safeSetText('v2-wave-' + waveName + '-state', ws.state_label || formatV2Label(ws.state));
         safeSetText('v2-wave-' + waveName + '-retained', Math.round((ws.retained_share || 0) * 100) + '% retained');
-        safeSetText('v2-wave-' + waveName + '-coherence', formatV2Label(ws.coherence_tier) + ' coherence');
+        safeSetText('v2-wave-' + waveName + '-coherence', formatV2Label(ws.coherence_tier) + ' retained integrity');
     });
     safeSetText('v2-what-changing', result.narrative_summary?.why_this_role_changes || '-');
     safeSetText('v2-what-absorbed', result.narrative_summary?.what_is_under_pressure || '-');
@@ -897,27 +1095,34 @@ async function updateV2Results(options = {}) {
     renderV2EvidenceSummary(result.evidence_summary);
     safeSetText(
         'v2-map-subtitle',
-        `${result.selected_occupation_title}: primary displacement in the ${result.primary_displacement_wave} wave. After the next wave, ${Math.round((wt.next?.retained_share || 0) * 100)}% retained (${wt.next?.coherence_tier || '-'} coherence).`
+        `${result.selected_occupation_title}: current work comes first, then bargaining-power tasks, direct pressure, spillover, and retained leverage. After the next wave, ${Math.round((wt.next?.retained_share || 0) * 100)}% is retained with ${wt.next?.coherence_tier || '-'} retained integrity.`
     );
     safeSetText(
         'v2-task-note',
-        `${result.selected_occupation_title} uses its mapped O*NET task list as the baseline. Each task inherits automation difficulty and wave assignment from its cluster, and updates live as your questionnaire changes the scoring.`
+        `${result.selected_occupation_title} uses its mapped task inventory as the baseline. Each task updates live as your task picks and questionnaire answers change role share, direct pressure, spillover risk, and retained leverage.`
     );
     renderV2RecompositionSummary(result.recomposition_summary);
     renderV2OccupationAssignment(result.occupation_assignment);
     renderV2LaborMarketContext(result.labor_market_context, result.selected_occupation_title);
-    const taskDrivenMap = buildTaskDrivenTransformationMap(result.task_breakdown);
-    renderV2ClusterList('v2-current-bundle', taskDrivenMap.current_bundle, {
-        shareKey: 'share_of_role',
+    renderV2ClusterList('v2-current-bundle', roleFateMap.current_role, {
+        shareKey: 'signal_share',
         emptyText: 'No current task bundle available.'
     });
-    renderV2ClusterList('v2-exposed-bundle', taskDrivenMap.exposed_clusters, {
-        shareKey: 'exposed_share',
-        emptyText: 'No exposed clusters exceeded the display threshold.'
+    renderV2ClusterList('v2-bargaining-bundle', roleFateMap.bargaining_power, {
+        shareKey: 'signal_share',
+        emptyText: 'No bargaining-power tasks exceeded the display threshold.'
     });
-    renderV2ClusterList('v2-residual-bundle', taskDrivenMap.retained_clusters, {
-        shareKey: 'residual_relevance',
-        emptyText: 'No residual bundle clusters exceeded the display threshold.'
+    renderV2ClusterList('v2-direct-bundle', roleFateMap.direct_pressure, {
+        shareKey: 'signal_share',
+        emptyText: 'No direct-pressure tasks exceeded the display threshold.'
+    });
+    renderV2ClusterList('v2-indirect-bundle', roleFateMap.indirect_spillover, {
+        shareKey: 'signal_share',
+        emptyText: 'No spillover tasks exceeded the display threshold.'
+    });
+    renderV2ClusterList('v2-residual-bundle', roleFateMap.retained_leverage, {
+        shareKey: 'signal_share',
+        emptyText: 'No retained-leverage tasks exceeded the display threshold.'
     });
     renderV2TaskBreakdown(result.task_breakdown, result.occupation_assignment);
 
@@ -1060,9 +1265,11 @@ document.addEventListener('DOMContentLoaded', function() {
         syncSearchInputWithOccupation(selectedOccupationId);
         tryShowResults();
         setPrefillState();
-        updateV2Results({ preserveSelection: true }).catch(error => {
-            console.error('[V2] Failed to rerender after occupation change:', error);
-        });
+        populateV2TaskInputs(selectedOccupationId, true)
+            .then(() => updateV2Results({ preserveSelection: true }))
+            .catch(error => {
+                console.error('[V2] Failed to rerender after occupation change:', error);
+            });
     });
 
     // Top occupation select change handler
@@ -1075,9 +1282,11 @@ document.addEventListener('DOMContentLoaded', function() {
         syncSearchInputWithOccupation(selectedOccupationId);
         tryShowResults();
         setPrefillState();
-        updateV2Results({ preserveSelection: true }).catch(error => {
-            console.error('[V2] Failed to rerender after top occupation change:', error);
-        });
+        populateV2TaskInputs(selectedOccupationId, true)
+            .then(() => updateV2Results({ preserveSelection: true }))
+            .catch(error => {
+                console.error('[V2] Failed to rerender after top occupation change:', error);
+            });
     });
 
     // Occupation search input change handler
@@ -1128,7 +1337,11 @@ document.addEventListener('DOMContentLoaded', function() {
         occupationSearchInput.value = matchedOccupation.title;
         tryShowResults();
         setPrefillState();
-        analyzeRole();
+        populateV2TaskInputs(selectedOccupationId, false)
+            .then(() => analyzeRole())
+            .catch((error) => {
+                console.error('[V2] Failed to update task inputs from search selection:', error);
+            });
     });
 
     // v2 direct inputs change handler
@@ -1153,6 +1366,12 @@ document.addEventListener('DOMContentLoaded', function() {
             await populateOccupationCandidates(roleValue, false);
         } catch (error) {
             console.error('[V2] Failed to populate occupations from category change:', error);
+        }
+
+        try {
+            await populateV2TaskInputs(selectedOccupationId, false);
+        } catch (error) {
+            console.error('[V2] Failed to populate task inputs from category change:', error);
         }
 
         syncSearchInputWithOccupation(selectedOccupationId);
@@ -1246,6 +1465,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize occupation search
     initializeOccupationSearch();
+    populateV2TaskInputs(selectedOccupationId, false).catch((error) => {
+        console.error('[V2] Failed to initialize task inputs:', error);
+    });
 
     // Step cards navigation
     document.querySelectorAll('.step-card').forEach(card => {

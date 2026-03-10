@@ -24,6 +24,11 @@ async function main() {
     roleCriticalClusters: ['cluster_oversight_strategy']
   });
 
+  const taskInventory = engine.getTaskInventory(result.selected_occupation_id, 6);
+  if (!taskInventory.length) {
+    throw new Error('Expected getTaskInventory to return seeded role tasks for the selected occupation.');
+  }
+
   if (!result.recomposition_summary) {
     throw new Error('Expected recomposition_summary in result payload.');
   }
@@ -73,10 +78,83 @@ async function main() {
     throw new Error('Expected primary_displacement_wave in result payload.');
   }
 
+  if (!result.task_breakdown?.tasks?.length) {
+    throw new Error('Expected populated task_breakdown.tasks in result payload.');
+  }
+
+  result.task_breakdown.tasks.slice(0, 10).forEach((task, index) => {
+    assertBounded(`task_breakdown.tasks[${index}].direct_exposure_pressure`, task.direct_exposure_pressure);
+    assertBounded(`task_breakdown.tasks[${index}].indirect_dependency_pressure`, task.indirect_dependency_pressure);
+    assertBounded(`task_breakdown.tasks[${index}].retained_leverage`, task.retained_leverage);
+  });
+
+  assertBounded('diagnostics.direct_exposure_pressure', result.diagnostics.direct_exposure_pressure);
+  assertBounded('diagnostics.indirect_dependency_pressure', result.diagnostics.indirect_dependency_pressure);
+  assertBounded('diagnostics.residual_role_integrity', result.diagnostics.residual_role_integrity);
+
+  if (!result.role_fate_label) {
+    throw new Error('Expected role_fate_label in result payload.');
+  }
+
+  const taskDrivenResult = engine.computeResult({
+    occupationId: result.selected_occupation_id,
+    roleCategory: 'software',
+    answers: {
+      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 3,
+      Q7: 3, Q8: 4, Q9: 2,
+      Q11: 2, Q12: 1, Q13: 4, Q14: 3, Q16: 4
+    },
+    seniorityLevel: 3,
+    dominantTaskIds: [taskInventory[0].task_id],
+    criticalTaskIds: [taskInventory[1].task_id],
+    aiSupportTaskIds: [taskInventory[2].task_id],
+    supportTaskIds: [taskInventory[3].task_id]
+  });
+
+  const dominantTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[0].task_id);
+  const criticalTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[1].task_id);
+  const aiSupportTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[2].task_id);
+  const supportTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[3].task_id);
+
+  if (!dominantTask?.is_user_selected_dominant) {
+    throw new Error('Expected selected dominant task to be marked in task_breakdown.');
+  }
+  if (!criticalTask?.is_user_selected_critical) {
+    throw new Error('Expected selected critical task to be marked in task_breakdown.');
+  }
+  if (!aiSupportTask?.is_user_selected_ai_support) {
+    throw new Error('Expected selected AI-supported task to be marked in task_breakdown.');
+  }
+  if (!supportTask?.is_user_selected_support_task) {
+    throw new Error('Expected selected spillover task to be marked in task_breakdown.');
+  }
+  assertBounded('taskDrivenResult.role_fate_confidence', taskDrivenResult.role_fate_confidence);
+
+  const businessOps = engine.computeResult({
+    occupationId: 'occ_13_1199_00',
+    roleCategory: 'consulting',
+    answers: {
+      Q1: 3, Q2: 3, Q3: 3, Q4: 3, Q5: 3, Q6: 3,
+      Q7: 3, Q8: 3, Q9: 3,
+      Q11: 3, Q12: 3, Q13: 3, Q14: 3, Q16: 3
+    },
+    seniorityLevel: 3
+  });
+
+  if (businessOps.selected_occupation_id !== 'occ_13_1199_00') {
+    throw new Error('Expected explicit occupationId to resolve Business Operations Specialists, All Other.');
+  }
+  if (!businessOps.task_breakdown?.tasks?.length) {
+    throw new Error('Expected task breakdown for Business Operations Specialists, All Other.');
+  }
+  assertBounded('businessOps.diagnostics.direct_exposure_pressure', businessOps.diagnostics.direct_exposure_pressure);
+  assertBounded('businessOps.diagnostics.indirect_dependency_pressure', businessOps.diagnostics.indirect_dependency_pressure);
+
   console.log(JSON.stringify({
     summary: {
       occupation: result.selected_occupation_title,
       roleOutlook: result.role_outlook_label,
+      roleFate: result.role_fate_label,
       primaryDisplacementWave: result.primary_displacement_wave,
       topExposed: result.top_exposed_work?.label || null,
       topExposedWave: result.top_exposed_work?.wave_assignment || null,
@@ -101,6 +179,21 @@ async function main() {
       substitutionPotential: result.recomposition_summary.substitution_potential,
       substitutionGap: result.recomposition_summary.substitution_gap,
       confidence: result.recomposition_summary.confidence_label
+    },
+    roleGraph: {
+      directExposurePressure: result.diagnostics.direct_exposure_pressure,
+      indirectDependencyPressure: result.diagnostics.indirect_dependency_pressure,
+      residualRoleIntegrity: result.diagnostics.residual_role_integrity
+    },
+    taskSelection: {
+      inventoryRows: taskInventory.length,
+      roleFate: taskDrivenResult.role_fate_label,
+      selectedTaskCount: taskDrivenResult.task_breakdown.user_selected_task_count
+    },
+    businessOps: {
+      occupation: businessOps.selected_occupation_title,
+      taskCount: businessOps.task_breakdown.total_tasks_considered,
+      topExposed: businessOps.top_exposed_work?.label || null
     }
   }, null, 2));
 }

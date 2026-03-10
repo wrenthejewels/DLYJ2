@@ -131,6 +131,17 @@ sources:
     granularity: occupation_task_graph
     status: active_seed
     notes: 'Derived task-inventory, bargaining-power, and dependency-edge seed built from O*NET tasks, task-cluster membership, and live cluster priors for the Role Fate Map redesign.'
+  - source_id: src_manual_role_graph_review_2026_03
+    name: Manual role-graph review expansions
+    category: occupation_structure
+    version_label: '2026-03-10 first review pass'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_task_graph
+    status: active_targeted_override
+    notes: 'Targeted manual task and dependency additions for thin-coverage occupations in the Role Fate Map redesign.'
   - source_id: src_aioe_2023
     name: AI Occupational Exposure
     category: occupation_prior

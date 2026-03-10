@@ -12,6 +12,9 @@
         selector: 'data/normalized/occupation_selector_index.csv',
         occupationTaskClusters: 'data/normalized/occupation_task_clusters.csv',
         occupationTasks: 'data/normalized/occupation_tasks.csv',
+        occupationTaskInventory: 'data/normalized/occupation_task_inventory.csv',
+        taskDependencyEdges: 'data/normalized/task_dependency_edges.csv',
+        occupationTaskRoleProfiles: 'data/normalized/occupation_task_role_profiles.csv',
         taskMembership: 'data/normalized/task_cluster_membership.csv',
         taskEvidence: 'data/normalized/task_exposure_evidence.csv',
         taskPriors: 'data/normalized/task_augmentation_automation_priors.csv',
@@ -29,6 +32,16 @@
         role_narrows_but_remains_viable: 'Role becomes narrower',
         role_fragments: 'Role fragments',
         high_displacement_risk: 'High displacement risk'
+    };
+
+    var ROLE_FATE_LABELS = {
+        augmented: 'Augmented',
+        compressed: 'Compressed',
+        elevated: 'Elevated',
+        split: 'Split',
+        expanded: 'Expanded',
+        collapsed: 'Collapsed',
+        mixed_transition: 'Mixed transition'
     };
 
     var ELEVATION_CLUSTERS = {
@@ -165,6 +178,19 @@
         });
 
         return totalWeight ? (weightedTotal / totalWeight) : 0;
+    }
+
+    function uniqueStrings(values) {
+        return Array.from(new Set((values || []).filter(Boolean)));
+    }
+
+    function toLookup(values) {
+        return (values || []).reduce(function (map, value) {
+            if (value) {
+                map[value] = true;
+            }
+            return map;
+        }, {});
     }
 
     function shrinkTowardPrior(observedValue, priorValue, reliability, fallback) {
@@ -581,6 +607,421 @@
         });
     }
 
+    function mergeSourceMix(left, right) {
+        var seen = {};
+        var merged = [];
+        parsePipeList(left).concat(parsePipeList(right)).forEach(function (entry) {
+            if (!entry || seen[entry]) {
+                return;
+            }
+            seen[entry] = true;
+            merged.push(entry);
+        });
+        return merged.join('|');
+    }
+
+    function summarizeTaskInventoryByCluster(taskRows) {
+        var clusterMap = {};
+
+        (taskRows || []).forEach(function (row) {
+            var clusterId = row.task_family_id;
+            if (!clusterId) {
+                return;
+            }
+            if (!clusterMap[clusterId]) {
+                clusterMap[clusterId] = {
+                    inventory_share: 0,
+                    weighted_value_centrality: 0,
+                    weighted_bargaining_power: 0,
+                    weighted_ai_support: 0,
+                    weighted_confidence: 0,
+                    core_share: 0,
+                    supporting_share: 0,
+                    source_mix: ''
+                };
+            }
+
+            var share = clamp(toNumber(row.time_share_prior, 0), 0, 1);
+            var valueCentrality = clamp(toNumber(row.value_centrality, 0.5), 0, 1);
+            var bargainingWeight = clamp(toNumber(row.bargaining_power_weight, 0.5), 0, 1);
+            var aiSupport = clamp(toNumber(row.ai_support_observability, 0.3), 0, 1);
+            var sourceConfidence = clamp(toNumber(row.source_confidence, 0.4), 0, 1);
+            var bucket = clusterMap[clusterId];
+
+            bucket.inventory_share += share;
+            bucket.weighted_value_centrality += valueCentrality * share;
+            bucket.weighted_bargaining_power += bargainingWeight * share;
+            bucket.weighted_ai_support += aiSupport * share;
+            bucket.weighted_confidence += sourceConfidence * share;
+            if (row.role_criticality === 'core') {
+                bucket.core_share += share;
+            } else if (row.role_criticality === 'supporting') {
+                bucket.supporting_share += share;
+            }
+            bucket.source_mix = mergeSourceMix(bucket.source_mix, row.source_mix || '');
+        });
+
+        Object.keys(clusterMap).forEach(function (clusterId) {
+            var bucket = clusterMap[clusterId];
+            var total = Math.max(bucket.inventory_share, 0.0001);
+            bucket.mean_value_centrality = bucket.weighted_value_centrality / total;
+            bucket.mean_bargaining_power_weight = bucket.weighted_bargaining_power / total;
+            bucket.mean_ai_support_observability = bucket.weighted_ai_support / total;
+            bucket.mean_source_confidence = bucket.weighted_confidence / total;
+            bucket.core_share = bucket.core_share / total;
+            bucket.supporting_share = bucket.supporting_share / total;
+        });
+
+        return clusterMap;
+    }
+
+    function buildTaskClustersFromInventory(taskRows) {
+        var clusterMap = summarizeTaskInventoryByCluster(taskRows);
+        var clusterIds = Object.keys(clusterMap);
+        var totalInventoryShare = sum(clusterIds.map(function (clusterId) {
+            return clusterMap[clusterId].inventory_share;
+        })) || 1;
+
+        return clusterIds.map(function (clusterId) {
+            var cluster = clusterMap[clusterId];
+            return {
+                task_cluster_id: clusterId,
+                share_prior: cluster.inventory_share / totalInventoryShare,
+                importance_prior: cluster.mean_value_centrality,
+                evidence_confidence: cluster.mean_source_confidence,
+                source_mix: cluster.source_mix,
+                notes: 'role_graph_inventory_fallback'
+            };
+        });
+    }
+
+    function mergeTaskClustersWithInventory(taskClusters, taskRows) {
+        var baseRows = Array.isArray(taskClusters) ? taskClusters.slice() : [];
+        var inventoryRows = Array.isArray(taskRows) ? taskRows : [];
+        var inventoryClusters = buildTaskClustersFromInventory(inventoryRows);
+
+        if (!baseRows.length) {
+            return inventoryClusters;
+        }
+        if (!inventoryClusters.length) {
+            return baseRows;
+        }
+
+        var baseById = indexBy(baseRows, 'task_cluster_id');
+        var inventoryById = indexBy(inventoryClusters, 'task_cluster_id');
+        var clusterIds = {};
+        baseRows.forEach(function (row) { clusterIds[row.task_cluster_id] = true; });
+        inventoryClusters.forEach(function (row) { clusterIds[row.task_cluster_id] = true; });
+
+        var mergedRows = [];
+        var totalShare = 0;
+        Object.keys(clusterIds).forEach(function (clusterId) {
+            var base = baseById[clusterId];
+            var inventory = inventoryById[clusterId];
+            var sharePrior = base && inventory
+                ? ((toNumber(base.share_prior, 0) * 0.65) + (toNumber(inventory.share_prior, 0) * 0.35))
+                : toNumber(base ? base.share_prior : inventory.share_prior, 0);
+            totalShare += sharePrior;
+            mergedRows.push({
+                task_cluster_id: clusterId,
+                share_prior: sharePrior,
+                importance_prior: average([
+                    base ? toNumber(base.importance_prior, null) : null,
+                    inventory ? toNumber(inventory.importance_prior, null) : null
+                ]),
+                evidence_confidence: average([
+                    base ? toNumber(base.evidence_confidence, null) : null,
+                    inventory ? toNumber(inventory.evidence_confidence, null) : null
+                ]),
+                source_mix: mergeSourceMix(base ? base.source_mix : '', inventory ? inventory.source_mix : ''),
+                notes: (base ? (base.notes || '') : 'inventory_only') + (inventory ? '|inventory_blend' : '')
+            });
+        });
+
+        if (totalShare > 0) {
+            mergedRows.forEach(function (row) {
+                row.share_prior = row.share_prior / totalShare;
+            });
+        }
+
+        return mergedRows;
+    }
+
+    function buildTaskRoleGraphBreakdown(options) {
+        var occupationId = options.occupationId;
+        var taskInventoryRows = options.taskInventoryRows || [];
+        var dependencyEdges = options.dependencyEdges || [];
+        var clusterResultsById = options.clusterResultsById || {};
+        var taskEvidenceByKey = options.taskEvidenceByKey || {};
+        var taskMembershipByKey = options.taskMembershipByKey || {};
+        var dominantTaskSet = toLookup(options.dominantTaskIds || []);
+        var criticalTaskSet = toLookup(options.criticalTaskIds || []);
+        var aiSupportTaskSet = toLookup(options.aiSupportTaskIds || []);
+        var supportTaskSet = toLookup(options.supportTaskIds || []);
+
+        if (!taskInventoryRows.length) {
+            return null;
+        }
+
+        var clusterInventorySummary = summarizeTaskInventoryByCluster(taskInventoryRows);
+        var rows = [];
+        var rowsById = {};
+        var directTaskEvidenceCount = 0;
+        var fallbackTaskCount = 0;
+
+        taskInventoryRows.forEach(function (task) {
+            var clusterId = task.task_family_id;
+            var clusterResult = clusterResultsById[clusterId];
+            if (!clusterResult) {
+                return;
+            }
+
+            var clusterInventoryShare = Math.max(toNumber(clusterInventorySummary[clusterId] && clusterInventorySummary[clusterId].inventory_share, 0), 0.0001);
+            var taskWithinClusterShare = clamp(toNumber(task.time_share_prior, 0), 0, 1) / clusterInventoryShare;
+            var taskShare = clusterResult.share_of_role * taskWithinClusterShare;
+            var rowTaskId = task.task_id || taskKey(occupationId, task.onet_task_id);
+            var isUserSelectedDominant = !!dominantTaskSet[rowTaskId];
+            var isUserSelectedCritical = !!criticalTaskSet[rowTaskId];
+            var isUserSelectedAiSupport = !!aiSupportTaskSet[rowTaskId];
+            var isUserSelectedSupportTask = !!supportTaskSet[rowTaskId];
+            var aiSupportObservability = clamp(
+                toNumber(task.ai_support_observability, 0.3) + (isUserSelectedAiSupport ? 0.25 : 0),
+                0, 1
+            );
+            var bargainingPowerWeight = clamp(
+                toNumber(task.bargaining_power_weight, 0.5) + (isUserSelectedCritical ? 0.18 : 0),
+                0, 1
+            );
+            var valueCentrality = clamp(
+                toNumber(task.value_centrality, 0.5) + (isUserSelectedCritical ? 0.10 : 0),
+                0, 1
+            );
+            var directPressure = clamp(
+                ((1 - clusterResult.automation_difficulty) * 0.68) +
+                (clusterResult.absorption_rate * 0.20) +
+                (aiSupportObservability * 0.12) -
+                (isUserSelectedAiSupport ? 0.14 : 0) +
+                (isUserSelectedSupportTask ? 0.03 : 0),
+                0, 1
+            );
+            var shareMultiplier = 1 +
+                (isUserSelectedDominant ? 0.40 : 0) +
+                (isUserSelectedCritical ? 0.12 : 0) +
+                (isUserSelectedSupportTask ? 0.18 : 0);
+
+            var key = taskKey(occupationId, task.onet_task_id);
+            var evidence = String(task.onet_task_id || '').indexOf('manual_') === 0 ? null : (taskEvidenceByKey[key] || null);
+            var membership = taskMembershipByKey[key] || null;
+            var hasDirectEvidence = !!(evidence && evidence.source_id && String(evidence.source_id).indexOf('src_internal_stub') !== 0);
+            var taskEvidenceReliability = hasDirectEvidence ? estimateTaskEvidenceReliability(evidence) : 0;
+            if (hasDirectEvidence) {
+                directTaskEvidenceCount += 1;
+            } else {
+                fallbackTaskCount += 1;
+            }
+
+            var row = {
+                task_id: rowTaskId,
+                onet_task_id: task.onet_task_id,
+                task_statement: task.task_statement,
+                task_type: task.task_type || '',
+                task_cluster_id: clusterId,
+                task_cluster_label: clusterResult.label,
+                share_of_role: Number(taskShare.toFixed(4)),
+                selection_multiplier: Number(shareMultiplier.toFixed(3)),
+                automation_difficulty: Number(clusterResult.automation_difficulty.toFixed(3)),
+                wave_assignment: clusterResult.wave_assignment,
+                direct_exposure_pressure: Number(directPressure.toFixed(3)),
+                indirect_dependency_pressure: 0,
+                value_centrality: valueCentrality,
+                bargaining_power_weight: bargainingPowerWeight,
+                role_criticality: isUserSelectedCritical ? 'core' : (task.role_criticality || 'supporting'),
+                ai_support_observability: aiSupportObservability,
+                evidence_confidence: Number(average([
+                    clusterResult.evidence_confidence,
+                    toNumber(task.source_confidence, 0.45),
+                    evidence ? toNumber(evidence.confidence, 0.55) : null,
+                    membership ? toNumber(membership.mapping_confidence, 0.45) : null
+                ]).toFixed(3)),
+                direct_evidence_reliability: Number(taskEvidenceReliability.toFixed(3)),
+                mapping_method: membership ? membership.mapping_method : (String(task.onet_task_id || '').indexOf('manual_') === 0 ? 'manual_role_graph_review' : 'role_graph_inventory'),
+                mapping_confidence: Number((membership ? toNumber(membership.mapping_confidence, 0.45) : toNumber(task.source_confidence, 0.45)).toFixed(3)),
+                evidence_type: evidence ? evidence.evidence_type : 'role_graph_inventory',
+                evidence_source: evidence ? evidence.source_id : null,
+                observed_usage_share: Number((evidence ? toNumber(evidence.observed_usage_share, 0) : 0).toFixed(4)),
+                has_direct_evidence: hasDirectEvidence,
+                is_role_critical: isUserSelectedCritical || task.role_criticality === 'core',
+                is_user_selected_dominant: isUserSelectedDominant,
+                is_user_selected_critical: isUserSelectedCritical,
+                is_user_selected_ai_support: isUserSelectedAiSupport,
+                is_user_selected_support_task: isUserSelectedSupportTask,
+                friction_dimensions: clusterResult.friction_dimensions,
+                elevation_boost: 0,
+                exposed_share: 0,
+                retained_share: 0,
+                retained_leverage: 0,
+                likely_mode: 'mixed'
+            };
+            rows.push(row);
+            rowsById[row.task_id] = row;
+        });
+
+        var boostedTotalShare = sum(rows.map(function (row) {
+            return row.share_of_role * row.selection_multiplier;
+        }));
+        if (boostedTotalShare > 0) {
+            rows.forEach(function (row) {
+                row.share_of_role = Number(((row.share_of_role * row.selection_multiplier) / boostedTotalShare).toFixed(4));
+            });
+        }
+
+        var bindings = [];
+        var rawDependencyPenalty = 0;
+        dependencyEdges.forEach(function (edge) {
+            var source = rowsById[edge.from_task_id];
+            var target = rowsById[edge.to_task_id];
+            if (!source || !target) {
+                return;
+            }
+
+            var dependencyStrength = clamp(toNumber(edge.dependency_strength, 0), 0, 1);
+            var spillover = dependencyStrength * target.direct_exposure_pressure * Math.max(target.value_centrality, target.bargaining_power_weight);
+            if (source.is_user_selected_support_task) {
+                spillover += dependencyStrength * 0.08;
+            }
+            source.indirect_dependency_pressure = clamp(source.indirect_dependency_pressure + spillover, 0, 1);
+
+            var pairPenalty = dependencyStrength * source.share_of_role * target.direct_exposure_pressure * Math.max(target.value_centrality, target.bargaining_power_weight);
+            if (source.is_user_selected_support_task) {
+                pairPenalty *= 1.15;
+            }
+            rawDependencyPenalty += pairPenalty;
+            bindings.push({
+                source_cluster_id: source.task_cluster_id,
+                source_label: source.task_statement,
+                target_cluster_id: target.task_cluster_id,
+                target_label: target.task_statement,
+                penalty: Number(pairPenalty.toFixed(4))
+            });
+        });
+
+        rows.forEach(function (row) {
+            var clusterResult = clusterResultsById[row.task_cluster_id];
+            if (row.is_user_selected_support_task) {
+                row.indirect_dependency_pressure = clamp(row.indirect_dependency_pressure + 0.12, 0, 1);
+            }
+            var elevationBoostShare = clusterResult && clusterResult.share_of_role > 0
+                ? ((clusterResult.elevation_boost || 0) * (row.share_of_role / clusterResult.share_of_role))
+                : 0;
+            var absorbedRate = clamp(
+                (clusterResult ? clusterResult.absorption_rate : 0.5) * (0.55 + (row.direct_exposure_pressure * 0.45)) +
+                (row.indirect_dependency_pressure * 0.20) -
+                (row.is_user_selected_ai_support ? 0.06 : 0),
+                0, 0.98
+            );
+            var taskAbsorbedShare = row.share_of_role * absorbedRate;
+            var taskRetainedShare = Math.max(0, row.share_of_role - taskAbsorbedShare);
+            var transformedTaskShare = Math.max(0, taskRetainedShare + elevationBoostShare);
+            var retainedLeverage = clamp(
+                (row.bargaining_power_weight * (1 - row.direct_exposure_pressure) * (1 - row.indirect_dependency_pressure)) +
+                (row.is_role_critical ? 0.10 : 0) +
+                (row.is_user_selected_critical ? 0.08 : 0) +
+                (row.is_user_selected_ai_support ? 0.08 : 0) +
+                (elevationBoostShare * 0.60),
+                0, 1
+            );
+
+            row.elevation_boost = Number(elevationBoostShare.toFixed(4));
+            row.exposed_share = Number(taskAbsorbedShare.toFixed(4));
+            row.retained_share = Number(transformedTaskShare.toFixed(4));
+            row.retained_leverage = Number(retainedLeverage.toFixed(3));
+            row.exposure_score = Number(clamp((row.direct_exposure_pressure * 0.75) + (row.indirect_dependency_pressure * 0.25), 0, 1).toFixed(3));
+            row.exposure_level = toTier(row.exposure_score, [0.40, 0.68], ['low', 'moderate', 'high']);
+            row.likely_mode = row.is_user_selected_ai_support
+                ? 'augmentation'
+                : row.direct_exposure_pressure >= 0.68 && row.bargaining_power_weight < 0.55
+                ? 'automation'
+                : (row.ai_support_observability >= 0.45 || row.bargaining_power_weight >= 0.65 ? 'augmentation' : 'mixed');
+            row.indirect_dependency_pressure = Number(row.indirect_dependency_pressure.toFixed(3));
+        });
+
+        rows.sort(function (left, right) {
+            if (right.exposed_share !== left.exposed_share) {
+                return right.exposed_share - left.exposed_share;
+            }
+            if (right.indirect_dependency_pressure !== left.indirect_dependency_pressure) {
+                return right.indirect_dependency_pressure - left.indirect_dependency_pressure;
+            }
+            return right.share_of_role - left.share_of_role;
+        });
+        bindings.sort(function (left, right) {
+            return right.penalty - left.penalty;
+        });
+
+        var directCoverageRatio = rows.length ? (directTaskEvidenceCount / rows.length) : 0.35;
+        var directExposurePressure = weightedAverage(rows, 'direct_exposure_pressure', 'share_of_role');
+        var indirectDependencyPressure = weightedAverage(rows, 'indirect_dependency_pressure', 'share_of_role');
+        var retainedLeverageScore = weightedAverage(rows, 'retained_leverage', 'share_of_role');
+        var exposedCoreShare = sum(rows.filter(function (row) {
+            return row.role_criticality === 'core';
+        }).map(function (row) {
+            return row.share_of_role * Math.max(row.direct_exposure_pressure, row.indirect_dependency_pressure);
+        }));
+        var retainedCoreShare = sum(rows.filter(function (row) {
+            return row.role_criticality === 'core';
+        }).map(function (row) {
+            return row.retained_share;
+        }));
+        var dependencyPenalty = clamp(rawDependencyPenalty * SCORING_CONFIG.dependencyPenaltyScale, 0, 0.5);
+        var residualRoleIntegrity = clamp(
+            (retainedLeverageScore * 0.40) +
+            (Math.min(1, retainedCoreShare) * 0.35) +
+            ((1 - indirectDependencyPressure) * 0.15) +
+            ((1 - dependencyPenalty) * 0.10),
+            0, 1
+        );
+
+        var exposedClusterScores = {};
+        rows.forEach(function (row) {
+            if (!exposedClusterScores[row.task_cluster_id]) {
+                exposedClusterScores[row.task_cluster_id] = 0;
+            }
+            exposedClusterScores[row.task_cluster_id] += row.share_of_role * row.exposure_score * (row.is_role_critical ? 1.25 : 1);
+        });
+
+        var topExposedClusterId = null;
+        var topExposedClusterScore = -1;
+        Object.keys(exposedClusterScores).forEach(function (clusterId) {
+            if (exposedClusterScores[clusterId] > topExposedClusterScore) {
+                topExposedClusterScore = exposedClusterScores[clusterId];
+                topExposedClusterId = clusterId;
+            }
+        });
+
+        return {
+            total_tasks_considered: rows.length,
+            direct_evidence_tasks: directTaskEvidenceCount,
+            cluster_fallback_tasks: fallbackTaskCount,
+            direct_coverage_ratio: Number(directCoverageRatio.toFixed(3)),
+            dependency_penalty: Number(dependencyPenalty.toFixed(3)),
+            binding_dependencies: bindings.slice(0, 3),
+            direct_exposure_pressure: Number(directExposurePressure.toFixed(3)),
+            indirect_dependency_pressure: Number(indirectDependencyPressure.toFixed(3)),
+            retained_leverage_score: Number(retainedLeverageScore.toFixed(3)),
+            residual_role_integrity: Number(residualRoleIntegrity.toFixed(3)),
+            exposed_core_share: Number(clamp(exposedCoreShare, 0, 1).toFixed(3)),
+            retained_core_share: Number(clamp(retainedCoreShare, 0, 1.25).toFixed(3)),
+            user_selected_task_count: uniqueStrings(
+                (options.dominantTaskIds || [])
+                    .concat(options.criticalTaskIds || [])
+                    .concat(options.aiSupportTaskIds || [])
+                    .concat(options.supportTaskIds || [])
+            ).length,
+            top_exposed_cluster_id: topExposedClusterId,
+            tasks: rows
+        };
+    }
+
     function buildTaskOverrides(options) {
         var overrides = {};
         var explicit = options.taskFamilyWeights || {};
@@ -689,7 +1130,7 @@
         var whatStaysCore;
         if (wt && wt.next) {
             if (wt.next.coherence_tier === 'coherent') {
-                whatStaysCore = 'The remaining bundle after the next wave still looks coherent, with enough context-heavy, judgment-heavy, or coordinating work to hold the role together.';
+                whatStaysCore = 'The remaining bundle after the next wave still has strong retained integrity, with enough context-heavy, judgment-heavy, or coordinating work to hold the role together.';
             } else if (wt.next.coherence_tier === 'narrowed') {
                 whatStaysCore = 'The role narrows after the next wave. The stable core becomes smaller and more dependent on the highest-value work.';
             } else {
@@ -716,6 +1157,47 @@
             what_is_under_pressure: whatIsUnderPressure,
             what_stays_core: whatStaysCore,
             personalization_fit_summary: personalizationFitSummary
+        };
+    }
+
+    function classifyRoleFate(metrics) {
+        var directExposure = toNumber(metrics.direct_exposure_pressure, 0);
+        var indirectDependency = toNumber(metrics.indirect_dependency_pressure, 0);
+        var retainedLeverage = toNumber(metrics.retained_leverage_score, 0);
+        var residualRoleIntegrity = toNumber(metrics.residual_role_integrity, 0);
+        var exposedCoreShare = toNumber(metrics.exposed_core_share, 0);
+        var retainedCoreShare = toNumber(metrics.retained_core_share, 0);
+        var nextWaveRetained = toNumber(metrics.next_wave_retained, 0);
+        var elevatedShare = toNumber(metrics.elevated_share, 0);
+        var demandExpansionModifier = toNumber(metrics.demand_expansion_modifier, 0);
+
+        var state = 'mixed_transition';
+        if (exposedCoreShare >= 0.26 && residualRoleIntegrity < 0.40 && nextWaveRetained < 0.35) {
+            state = 'collapsed';
+        } else if (demandExpansionModifier >= 0.62 && retainedLeverage >= 0.58 && directExposure < 0.48) {
+            state = 'expanded';
+        } else if (elevatedShare >= 0.08 && retainedLeverage >= 0.58 && retainedCoreShare >= 0.18 && exposedCoreShare < 0.24) {
+            state = 'elevated';
+        } else if (indirectDependency >= 0.36 && residualRoleIntegrity < 0.58 && retainedCoreShare >= 0.18) {
+            state = 'split';
+        } else if (directExposure >= 0.46 || exposedCoreShare >= 0.18) {
+            state = 'compressed';
+        } else if (retainedLeverage >= 0.58 && residualRoleIntegrity >= 0.54) {
+            state = 'augmented';
+        }
+
+        var confidence = average([
+            Math.abs(directExposure - 0.5),
+            Math.abs(indirectDependency - 0.35),
+            Math.abs(retainedLeverage - 0.5),
+            Math.abs(residualRoleIntegrity - 0.5),
+            Math.abs(exposedCoreShare - 0.18)
+        ]) * 1.6;
+
+        return {
+            state: state,
+            label: ROLE_FATE_LABELS[state],
+            confidence: Number(clamp(confidence, 0.35, 0.92).toFixed(3))
         };
     }
 
@@ -759,9 +1241,29 @@
 
             var occupationId = occupation.occupation_id;
             var roleCategory = input.roleCategory || input.selectedRoleCategory || occupation.role_family;
+            var taskInventoryRows = store.taskInventoryByOcc[occupationId] || [];
+            var dependencyEdges = store.taskDependencyEdgesByOcc[occupationId] || [];
+            var taskRoleProfile = store.taskRoleProfilesByOcc[occupationId] || null;
+            var taskInventoryById = indexBy(taskInventoryRows, 'task_id');
+            var dominantTaskIds = uniqueStrings(input.dominantTaskIds || []);
+            var criticalTaskIds = uniqueStrings(input.criticalTaskIds || []);
+            var aiSupportTaskIds = uniqueStrings(input.aiSupportTaskIds || []);
+            var supportTaskIds = uniqueStrings(input.supportTaskIds || []);
+            var derivedDominantTaskClusters = uniqueStrings(dominantTaskIds.concat(supportTaskIds).map(function (taskId) {
+                return taskInventoryById[taskId] ? taskInventoryById[taskId].task_family_id : null;
+            }));
+            var derivedCriticalTaskClusters = uniqueStrings(criticalTaskIds.map(function (taskId) {
+                return taskInventoryById[taskId] ? taskInventoryById[taskId].task_family_id : null;
+            }));
+            var dominantTaskClusters = uniqueStrings((input.dominantTaskClusters || []).concat(derivedDominantTaskClusters));
+            var roleCriticalClusters = uniqueStrings((input.roleCriticalClusters || []).concat(derivedCriticalTaskClusters));
             var taskClusters = normalizeTaskWeights(
-                store.occupationTaskClustersByOcc[occupationId] || [],
-                buildTaskOverrides(input || {})
+                mergeTaskClustersWithInventory(store.occupationTaskClustersByOcc[occupationId] || [], taskInventoryRows),
+                buildTaskOverrides({
+                    taskFamilyWeights: input.taskFamilyWeights || {},
+                    dominantTaskClusters: dominantTaskClusters,
+                    roleCriticalClusters: roleCriticalClusters
+                })
             );
             var taskPriorsByCluster = indexBy(store.taskPriorsByOcc[occupationId] || [], 'task_cluster_id');
             var occupationPrior = pickOccupationPrior(store.occupationPriorsByOcc[occupationId] || []);
@@ -772,7 +1274,7 @@
                 : [];
             var signals = deriveQuestionnaireSignals(input.answers || {}, input || {});
             var roleCriticalSet = {};
-            (input.roleCriticalClusters || []).forEach(function (clusterId) {
+            roleCriticalClusters.forEach(function (clusterId) {
                 roleCriticalSet[clusterId] = true;
             });
             var occupationAutomation = occupationPrior ? toNumber(occupationPrior.automation_score, 0.25) : 0.25;
@@ -788,6 +1290,7 @@
             var bundlePriorConcentration = taskClusters.length ? toNumber(taskClusters[0].bundle_prior_concentration, 1.35) : 1.35;
             var adoptionRealization = SCORING_CONFIG.adoptionRealizationBase + (signals.adoptionPressure * SCORING_CONFIG.adoptionRealizationScale);
             var waveGroups = { current: [], next: [], distant: [] };
+            var taskInventoryByCluster = summarizeTaskInventoryByCluster(taskInventoryRows);
 
             taskClusters.forEach(function (cluster) {
                 var prior = taskPriorsByCluster[cluster.task_cluster_id] || {};
@@ -796,6 +1299,11 @@
                 var frictionDimensions = deriveClusterFriction(signals, cluster.task_cluster_id);
                 var isRoleCritical = !!roleCriticalSet[cluster.task_cluster_id];
                 var clusterShare = toNumber(cluster.share_prior, 0);
+                var inventoryProfile = taskInventoryByCluster[cluster.task_cluster_id] || null;
+                var graphCoreShare = inventoryProfile ? toNumber(inventoryProfile.core_share, 0) : 0;
+                var graphBargainingWeight = inventoryProfile ? toNumber(inventoryProfile.mean_bargaining_power_weight, 0.5) : 0.5;
+                var graphAiSupport = inventoryProfile ? toNumber(inventoryProfile.mean_ai_support_observability, 0.3) : 0.3;
+                var graphValueCentrality = inventoryProfile ? toNumber(inventoryProfile.mean_value_centrality, 0.5) : 0.5;
                 clusterPriorReliabilities.push(priorReliability);
 
                 var intrinsicFriction =
@@ -825,6 +1333,14 @@
                     signals.couplingProtection * AUTOMATION_DIFFICULTY_WEIGHTS.couplingProtection,
                     0.02, 0.98
                 );
+                automationDifficulty = clamp(
+                    automationDifficulty +
+                    (graphBargainingWeight * 0.10) +
+                    (graphCoreShare * 0.05) +
+                    (Math.max(0, graphValueCentrality - 0.5) * 0.04) -
+                    (graphAiSupport * 0.07),
+                    0.02, 0.98
+                );
 
                 if (isRoleCritical) {
                     automationDifficulty = clamp(automationDifficulty + SCORING_CONFIG.criticalityBoost, 0.02, 0.98);
@@ -840,8 +1356,8 @@
                 }
 
                 var absorptionRate = clamp(
-                    adoptionRealization * (1 - automationDifficulty * 0.3),
-                    0.50, 0.95
+                    adoptionRealization * (1 - automationDifficulty * 0.3) * (0.92 + (graphAiSupport * 0.10) - (graphCoreShare * 0.06)),
+                    0.45, 0.95
                 );
 
                 var clusterResult = {
@@ -863,7 +1379,10 @@
                     prior_reliability: priorReliability,
                     friction_dimensions: frictionDimensions,
                     intrinsic_friction: intrinsicFriction,
-                    empirical_resistance: empiricalResistance
+                    empirical_resistance: empiricalResistance,
+                    graph_core_share: Number(graphCoreShare.toFixed(3)),
+                    graph_bargaining_weight: Number(graphBargainingWeight.toFixed(3)),
+                    graph_ai_support: Number(graphAiSupport.toFixed(3))
                 };
 
                 currentBundle.push(clusterResult);
@@ -874,6 +1393,25 @@
                     roleDefiningWork = clusterResult;
                 }
             });
+
+            if (!roleDefiningWork && currentBundle.length) {
+                roleDefiningWork = currentBundle.slice().sort(function (left, right) {
+                    var leftInventory = taskInventoryByCluster[left.task_cluster_id] || {};
+                    var rightInventory = taskInventoryByCluster[right.task_cluster_id] || {};
+                    var leftScore = left.share_of_role * average([
+                        toNumber(leftInventory.mean_value_centrality, 0.5),
+                        toNumber(leftInventory.mean_bargaining_power_weight, 0.5)
+                    ]);
+                    var rightScore = right.share_of_role * average([
+                        toNumber(rightInventory.mean_value_centrality, 0.5),
+                        toNumber(rightInventory.mean_bargaining_power_weight, 0.5)
+                    ]);
+                    return rightScore - leftScore;
+                })[0] || null;
+                if (roleDefiningWork) {
+                    roleDefiningWork.is_role_critical = true;
+                }
+            }
 
             // --- Wave processing: compute per-wave snapshots ---
             currentBundle.sort(function (left, right) {
@@ -1061,6 +1599,57 @@
                 return rightScore - leftScore;
             })[0] || null;
 
+            var taskGraphSummary = buildTaskRoleGraphBreakdown({
+                occupationId: occupationId,
+                taskInventoryRows: taskInventoryRows,
+                dependencyEdges: dependencyEdges,
+                clusterResultsById: clusterResultsById,
+                taskEvidenceByKey: store.taskEvidenceByKey,
+                taskMembershipByKey: store.taskMembershipByKey,
+                dominantTaskIds: dominantTaskIds,
+                criticalTaskIds: criticalTaskIds,
+                aiSupportTaskIds: aiSupportTaskIds,
+                supportTaskIds: supportTaskIds
+            });
+            if (taskGraphSummary && taskGraphSummary.top_exposed_cluster_id && clusterResultsById[taskGraphSummary.top_exposed_cluster_id]) {
+                topExposed = clusterResultsById[taskGraphSummary.top_exposed_cluster_id];
+            }
+            if (taskGraphSummary) {
+                residualViabilityScore = clamp(
+                    (residualViabilityScore * 0.70) +
+                    (taskGraphSummary.residual_role_integrity * 0.30),
+                    0, 1
+                );
+                personalizationFitScore = clamp(
+                    (personalizationFitScore * 0.80) +
+                    (taskGraphSummary.retained_leverage_score * 0.20),
+                    0, 1
+                );
+                waveResults.next.coherence = Number(clamp(
+                    (waveResults.next.coherence * 0.55) +
+                    (taskGraphSummary.residual_role_integrity * 0.45),
+                    0, 1
+                ).toFixed(3));
+                waveResults.next.coherence_tier = waveResults.next.coherence < 0.35
+                    ? 'fragmented'
+                    : (waveResults.next.coherence < 0.60 ? 'narrowed' : 'coherent');
+                workflowCompression = clamp(
+                    (workflowCompression * 0.75) +
+                    (taskGraphSummary.direct_exposure_pressure * 0.20) -
+                    (taskGraphSummary.indirect_dependency_pressure * 0.05),
+                    0, 1
+                );
+                organizationalConversion = clamp(
+                    (organizationalConversion * 0.70) +
+                    (taskGraphSummary.direct_exposure_pressure * 0.10) +
+                    ((1 - taskGraphSummary.retained_leverage_score) * 0.10) +
+                    (taskGraphSummary.exposed_core_share * 0.10),
+                    0, 1
+                );
+                substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
+                substitutionGap = clamp(workflowCompression - substitutionPotential, 0, 1);
+            }
+
             var viabilityTier = toTier(residualViabilityScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
             var personalizationTier = toTier(personalizationFitScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
             var exposureLevel = topExposed
@@ -1099,117 +1688,51 @@
             });
 
             var exposedTaskShare = clamp(currentWaveAbsorbed + sum(waveGroups.next.map(function (c) { return c.absorbed_share; })), 0, 1);
+            if (taskGraphSummary) {
+                exposedTaskShare = Number(clamp(taskGraphSummary.direct_exposure_pressure + (taskGraphSummary.indirect_dependency_pressure * 0.35), 0, 1).toFixed(3));
+            }
+            var demandExpansionModifier = laborContext
+                ? clamp((toNumber(laborContext.projection_growth_pct, 0) + 2) / 10, 0, 1)
+                : 0.35;
+            var elevatedShare = sum(elevatedClusters.map(function (cluster) {
+                return cluster.elevation_boost;
+            }));
+            var roleFate = classifyRoleFate({
+                direct_exposure_pressure: taskGraphSummary ? taskGraphSummary.direct_exposure_pressure : exposedTaskShare,
+                indirect_dependency_pressure: taskGraphSummary ? taskGraphSummary.indirect_dependency_pressure : dependencyPenalty,
+                retained_leverage_score: taskGraphSummary ? taskGraphSummary.retained_leverage_score : residualViabilityScore,
+                residual_role_integrity: taskGraphSummary ? taskGraphSummary.residual_role_integrity : waveResults.next.coherence,
+                exposed_core_share: taskGraphSummary ? taskGraphSummary.exposed_core_share : exposedTaskShare * 0.5,
+                retained_core_share: taskGraphSummary ? taskGraphSummary.retained_core_share : waveResults.next.retained_share,
+                next_wave_retained: waveResults.next.retained_share,
+                elevated_share: elevatedShare,
+                demand_expansion_modifier: demandExpansionModifier
+            });
 
-            var roleSummary = occupation.title + ': primary displacement pressure arrives in the ' + primaryDisplacementWave + ' wave. After the next wave, ' + Math.round(waveResults.next.retained_share * 100) + '% retained (' + waveResults.next.coherence_tier + ' coherence). Residual role strength looks ' + viabilityTier + '.';
+            var roleSummary = occupation.title + ': the most likely role fate is ' + roleFate.label.toLowerCase() + '. Primary displacement pressure arrives in the ' + primaryDisplacementWave + ' wave. After the next wave, ' + Math.round(waveResults.next.retained_share * 100) + '% is retained (' + waveResults.next.coherence_tier + ' retained integrity). Retained leverage looks ' + viabilityTier + '.';
             if (roleDefiningWork) {
                 roleSummary += ' The role-defining work in ' + roleDefiningWork.label.toLowerCase() + ' (' + roleDefiningWork.wave_assignment + ' wave) carries extra weight.';
             }
+            if (taskGraphSummary) {
+                roleSummary += ' Task-level spillover pressure is ' + toTier(taskGraphSummary.indirect_dependency_pressure, [0.25, 0.5], ['low', 'moderate', 'high']) + '.';
+            }
 
-            var taskRowsByCluster = {};
-            var taskBreakdownRows = [];
-            var directTaskEvidenceCount = 0;
-            var fallbackTaskCount = 0;
-
-            (store.occupationTasksByOcc[occupationId] || []).forEach(function (task) {
-                var key = taskKey(occupationId, task.onet_task_id);
-                var membership = store.taskMembershipByKey[key] || null;
-                var evidence = store.taskEvidenceByKey[key] || null;
-                var clusterId = membership && membership.task_cluster_id
-                    ? membership.task_cluster_id
-                    : (evidence && evidence.task_cluster_id ? evidence.task_cluster_id : null);
-
-                if (!clusterId || !clusterResultsById[clusterId]) {
-                    return;
+            var taskBreakdownRows = taskGraphSummary ? taskGraphSummary.tasks : [];
+            var directTaskEvidenceCount = taskGraphSummary ? taskGraphSummary.direct_evidence_tasks : 0;
+            var fallbackTaskCount = taskGraphSummary ? taskGraphSummary.cluster_fallback_tasks : 0;
+            taskBreakdownRows.forEach(function (row) {
+                if (row.direct_evidence_reliability > 0) {
+                    taskDirectReliabilities.push(row.direct_evidence_reliability);
                 }
-
-                var importanceWeight = clamp(toNumber(task.importance, 0.55), 0, 1);
-                var frequencyWeight = clamp(toNumber(task.frequency, importanceWeight), 0, 1);
-                var observedUsageWeight = evidence ? clamp(toNumber(evidence.observed_usage_share, 0), 0, 1) : 0;
-                var coreBoost = String(task.task_type || '').toLowerCase() === 'core' ? 0.08 : 0;
-                var membershipWeight = membership ? clamp(toNumber(membership.membership_weight, 1), 0.15, 1) : 1;
-                var rawTaskWeight = Math.max(0.04, (importanceWeight * 0.58) + (frequencyWeight * 0.27) + (observedUsageWeight * 0.15) + coreBoost) * membershipWeight;
-
-                if (!taskRowsByCluster[clusterId]) {
-                    taskRowsByCluster[clusterId] = [];
-                }
-
-                taskRowsByCluster[clusterId].push({
-                    task: task,
-                    membership: membership,
-                    evidence: evidence,
-                    raw_weight: rawTaskWeight
-                });
             });
-
-            Object.keys(taskRowsByCluster).forEach(function (clusterId) {
-                var clusterResult = clusterResultsById[clusterId];
-                var rows = taskRowsByCluster[clusterId] || [];
-                var totalRawWeight = sum(rows.map(function (row) {
-                    return row.raw_weight;
-                })) || rows.length || 1;
-
-                rows.forEach(function (row) {
-                    var evidence = row.evidence;
-                    var membership = row.membership;
-                    var taskShare = clusterResult.share_of_role * (row.raw_weight / totalRawWeight);
-                    var taskAbsorbedShare = cumulativeAutomated[clusterId]
-                        ? taskShare * clusterResult.absorption_rate
-                        : 0;
-                    var taskRetainedShare = taskShare - taskAbsorbedShare;
-                    var taskElevationBoost = (clusterResult.elevation_boost || 0) * (row.raw_weight / totalRawWeight);
-                    var transformedTaskShare = Math.max(0, taskRetainedShare + taskElevationBoost);
-                    var hasDirectEvidence = !!(evidence && evidence.source_id && String(evidence.source_id).indexOf('src_internal_stub') !== 0);
-                    var taskEvidenceReliability = hasDirectEvidence ? estimateTaskEvidenceReliability(evidence) : 0;
-
-                    if (hasDirectEvidence) {
-                        directTaskEvidenceCount += 1;
-                        taskDirectReliabilities.push(taskEvidenceReliability);
-                    } else {
-                        fallbackTaskCount += 1;
-                    }
-
-                    taskBreakdownRows.push({
-                        onet_task_id: row.task.onet_task_id,
-                        task_statement: row.task.task_statement,
-                        task_type: row.task.task_type || '',
-                        task_cluster_id: clusterId,
-                        task_cluster_label: clusterResult.label,
-                        share_of_role: Number(taskShare.toFixed(4)),
-                        automation_difficulty: Number(clusterResult.automation_difficulty.toFixed(3)),
-                        wave_assignment: clusterResult.wave_assignment,
-                        exposed_share: Number(taskAbsorbedShare.toFixed(4)),
-                        retained_share: Number(transformedTaskShare.toFixed(4)),
-                        exposure_score: Number((1 - clusterResult.automation_difficulty).toFixed(3)),
-                        exposure_level: toTier(1 - clusterResult.automation_difficulty, [0.40, 0.68], ['low', 'moderate', 'high']),
-                        likely_mode: clusterResult.wave_assignment,
-                        evidence_confidence: Number(average([
-                            clusterResult.evidence_confidence,
-                            evidence ? toNumber(evidence.confidence, 0.55) : null,
-                            membership ? toNumber(membership.mapping_confidence, 0.45) : 0.45
-                        ]).toFixed(3)),
-                        direct_evidence_reliability: Number(taskEvidenceReliability.toFixed(3)),
-                        mapping_method: membership ? membership.mapping_method : 'cluster_fallback',
-                        mapping_confidence: Number((membership ? toNumber(membership.mapping_confidence, 0.45) : 0.45).toFixed(3)),
-                        evidence_type: evidence ? evidence.evidence_type : 'cluster_fallback',
-                        evidence_source: evidence ? evidence.source_id : null,
-                        observed_usage_share: Number((evidence ? toNumber(evidence.observed_usage_share, 0) : 0).toFixed(4)),
-                        has_direct_evidence: hasDirectEvidence,
-                        is_role_critical: !!clusterResult.is_role_critical,
-                        friction_dimensions: clusterResult.friction_dimensions
-                    });
-                });
-            });
-
-            taskBreakdownRows.sort(function (left, right) {
-                if (right.exposed_share !== left.exposed_share) {
-                    return right.exposed_share - left.exposed_share;
-                }
-                return right.share_of_role - left.share_of_role;
-            });
-
             var totalTaskRows = directTaskEvidenceCount + fallbackTaskCount;
-            var directCoverageRatio = totalTaskRows ? (directTaskEvidenceCount / totalTaskRows) : 0.35;
-            var dependencyRead = computeDependencyPenalty(currentBundle);
+            var directCoverageRatio = taskGraphSummary ? taskGraphSummary.direct_coverage_ratio : (totalTaskRows ? (directTaskEvidenceCount / totalTaskRows) : 0.35);
+            var dependencyRead = taskGraphSummary
+                ? {
+                    penalty: taskGraphSummary.dependency_penalty,
+                    bindings: taskGraphSummary.binding_dependencies
+                }
+                : computeDependencyPenalty(currentBundle);
             var dependencyPenalty = clamp(dependencyRead.penalty, 0, 0.5);
             var bindingDependencies = dependencyRead.bindings;
             var recompositionConfidence = clamp(average([
@@ -1268,20 +1791,26 @@
                 assignment_method: input.occupationId
                     ? 'Using the occupation you explicitly selected from the mapped launch set.'
                     : 'Using the top mapped occupation for the selected launch category.',
-                task_assignment_method: 'The model starts from O*NET tasks for the selected occupation, maps those tasks into task clusters, blends in Anthropic task evidence where available, and then reweights the task bundle using your questionnaire.',
-                dominant_task_clusters: (input.dominantTaskClusters || []).map(function (clusterId) {
+                task_assignment_method: 'The model starts from the occupation task inventory, blends O*NET task rows with reviewed role-graph expansions where coverage is thin, maps those tasks into task families, and applies direct plus dependency-driven pressure before reweighting the bundle with your questionnaire.',
+                dominant_task_clusters: dominantTaskClusters.map(function (clusterId) {
                     return {
                         task_cluster_id: clusterId,
                         label: slugToLabel(clusterId)
                     };
                 }),
+                selected_task_inputs: {
+                    dominant_task_ids: dominantTaskIds,
+                    critical_task_ids: criticalTaskIds,
+                    ai_support_task_ids: aiSupportTaskIds,
+                    support_task_ids: supportTaskIds
+                },
                 role_defining_cluster: roleDefiningWork ? {
                     task_cluster_id: roleDefiningWork.task_cluster_id,
                     label: roleDefiningWork.label
                 } : null,
                 direct_task_evidence_count: directTaskEvidenceCount,
                 fallback_task_count: fallbackTaskCount,
-                questionnaire_effect: 'Your task-family choices change role-share weights. Your questionnaire answers shape automation difficulty per cluster and the wave-based displacement trajectory.'
+                questionnaire_effect: 'Your task picks change which work the model treats as current, value-defining, AI-assisted, or vulnerable to spillover. Your questionnaire answers then shape automation difficulty per cluster, the dependency-adjusted task graph, and the wave-based displacement trajectory.'
             };
 
             var evidenceSummary = {
@@ -1304,12 +1833,15 @@
                     exposed_cluster_rows: exposedClusters.length,
                     direct_task_evidence_rows: directTaskEvidenceCount,
                     fallback_task_rows: fallbackTaskCount,
+                    role_graph_task_rows: taskBreakdownRows.length,
+                    dependency_edge_rows: dependencyEdges.length,
                     labor_context_available: !!laborContext
                 },
                 notes: [
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
                     'v2.1 wave-based model: automation difficulty per cluster drives wave assignment (current/next/distant).',
                     'Task-family friction scored across exception burden, accountability load, judgment requirement, document intensity, and tacit/context dependence.',
+                    'Task-role graph scoring now adds task-level bargaining weights and dependency spillover between support work and exposed core work.',
                     'Cluster priors are shrunk toward occupation-level priors using evidence confidence.',
                     'Wave trajectory: current=' + waveResults.current.state + ', next=' + waveResults.next.state + ', distant=' + waveResults.distant.state + '. Primary displacement wave: ' + primaryDisplacementWave + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + ' (wave: ' + roleDefiningWork.wave_assignment + ').') : 'No explicit role-defining task input selected.',
@@ -1326,6 +1858,9 @@
                 selected_occupation_title: occupation.title,
                 role_outlook: roleState,
                 role_outlook_label: ROLE_STATE_LABELS[roleState],
+                role_fate_state: roleFate.state,
+                role_fate_label: roleFate.label,
+                role_fate_confidence: roleFate.confidence,
                 role_summary: roleSummary,
                 occupation_assignment: occupationAssignment,
                 primary_displacement_wave: primaryDisplacementWave,
@@ -1364,6 +1899,7 @@
                     total_tasks_considered: taskBreakdownRows.length,
                     direct_evidence_tasks: directTaskEvidenceCount,
                     cluster_fallback_tasks: fallbackTaskCount,
+                    user_selected_task_count: taskGraphSummary ? taskGraphSummary.user_selected_task_count : 0,
                     tasks: taskBreakdownRows
                 },
                 narrative_summary: null,
@@ -1403,9 +1939,15 @@
                     substitution_gap: Number(substitutionGap.toFixed(3)),
                     recomposition_confidence: Number(recompositionConfidence.toFixed(3)),
                     dependency_penalty: Number(dependencyPenalty.toFixed(3)),
+                    role_fate_confidence: roleFate.confidence,
+                    demand_expansion_modifier: Number(demandExpansionModifier.toFixed(3)),
                     adoption_pressure: Number(signals.adoptionPressure.toFixed(3)),
                     capability_signal: Number(signals.capabilitySignal.toFixed(3)),
                     coupling_protection: Number(signals.couplingProtection.toFixed(3)),
+                    direct_exposure_pressure: taskGraphSummary ? Number(taskGraphSummary.direct_exposure_pressure.toFixed(3)) : null,
+                    indirect_dependency_pressure: taskGraphSummary ? Number(taskGraphSummary.indirect_dependency_pressure.toFixed(3)) : null,
+                    residual_role_integrity: taskGraphSummary ? Number(taskGraphSummary.residual_role_integrity.toFixed(3)) : null,
+                    task_coverage_gap: taskRoleProfile ? (String(taskRoleProfile.coverage_gap_flag || '').toLowerCase() === 'true' ? 1 : 0) : null,
                     exception_burden: Number(bundleFriction.exception_burden.toFixed(3)),
                     accountability_load: Number(bundleFriction.accountability_load.toFixed(3)),
                     judgment_requirement: Number(bundleFriction.judgment_requirement.toFixed(3)),
@@ -1504,6 +2046,23 @@
             getOccupationById: function (occupationId) {
                 return store.occupationsById[occupationId] || null;
             },
+            getTaskInventory: function (occupationId, limit) {
+                var rows = (store.taskInventoryByOcc[occupationId] || []).slice().sort(function (left, right) {
+                    var rightScore = average([
+                        toNumber(right.time_share_prior, 0),
+                        toNumber(right.bargaining_power_weight, 0),
+                        toNumber(right.value_centrality, 0)
+                    ]);
+                    var leftScore = average([
+                        toNumber(left.time_share_prior, 0),
+                        toNumber(left.bargaining_power_weight, 0),
+                        toNumber(left.value_centrality, 0)
+                    ]);
+                    return rightScore - leftScore;
+                });
+
+                return typeof limit === 'number' && limit > 0 ? rows.slice(0, limit) : rows;
+            },
             computeResult: computeResult,
             getDataSummary: function () {
                 return {
@@ -1540,6 +2099,9 @@
             occupationTaskClusters: loaded.occupationTaskClusters,
             occupationTaskClustersByOcc: groupBy(loaded.occupationTaskClusters, 'occupation_id'),
             occupationTasksByOcc: groupBy(loaded.occupationTasks, 'occupation_id'),
+            taskInventoryByOcc: groupBy(loaded.occupationTaskInventory, 'occupation_id'),
+            taskDependencyEdgesByOcc: groupBy(loaded.taskDependencyEdges, 'occupation_id'),
+            taskRoleProfilesByOcc: indexBy(loaded.occupationTaskRoleProfiles, 'occupation_id'),
             taskMembershipByKey: loaded.taskMembership.reduce(function (map, row) {
                 var key = taskKey(row.occupation_id, row.onet_task_id);
                 var current = map[key];
@@ -1569,6 +2131,7 @@
     return {
         create: create,
         ROLE_STATE_LABELS: ROLE_STATE_LABELS,
+        ROLE_FATE_LABELS: ROLE_FATE_LABELS,
         WAVE_STATE_LABELS: WAVE_STATE_LABELS,
         DATA_FILES: DATA_FILES
     };
