@@ -781,7 +781,7 @@ function resetV2Results(message, detail) {
     safeSetText('v2-task-confidence', '-');
     safeSetText('v2-prior-confidence', '-');
     safeSetText('v2-evidence-notes', 'Choose a mapped occupation to see how evidence strength, personalization signal, occupation anchoring, and task coverage are scored.');
-    safeSetText(‘v2-map-subtitle’, ‘This map is derived from the live task rows below. It ranks the occupation\’s mapped tasks by automation difficulty, wave assignment, and retained share.’);
+    safeSetText('v2-map-subtitle', "This map is derived from the live task rows below. It ranks the occupation's mapped tasks by automation difficulty, wave assignment, and retained share.");
     safeSetText('v2-task-note', 'This view reorders the selected occupation\'s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.');
     safeSetText('v2-recomposition-conversion', '-');
     ['current', 'next', 'distant'].forEach(function (w) {
