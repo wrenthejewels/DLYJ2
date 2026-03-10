@@ -1,10 +1,17 @@
 # V2.0 Release Plan
 
+## Status
+
+This file is no longer the main planning document.
+
+The canonical planning and handoff doc is:
+- `docs/role_transformation_overhaul_plan.md`
+
+Use this file only as a short release snapshot for the currently shipped surface.
+
 ## Purpose
 
-This document is the current source of truth for the `2.0` role-fate rollout state.
-
-It replaces the older redesign-plan version of this file and reflects what is now live in the repo.
+This document gives a concise snapshot of what is live in the repo right now.
 
 ## Product Goal
 
@@ -81,6 +88,11 @@ Current state:
   - AI-assisted task
   - support/spillover task
 - duplicate task picks are blocked in the client
+- the visible questionnaire now renders as:
+  - core questions
+  - optional deeper modules
+  - a live role-refinement readout
+- the engine still uses the legacy-answer bridge under the hood to derive the structured role-refinement profile
 
 Still open:
 - weighted task-share buckets
@@ -95,10 +107,14 @@ Status:
 
 Current state:
 - cluster shares blend occupation task-cluster priors with task-inventory summaries
-- questionnaire answers map into:
+- questionnaire answers are first converted into a structured role-refinement profile
+- runtime scoring then uses:
+  - `functionRetention`
   - `capabilitySignal`
   - `couplingProtection`
   - `adoptionPressure`
+  - `augmentationFit`
+  - `substitutionRiskModifier`
   - friction dimensions
 - task-role graph scoring now produces:
   - `direct_exposure_pressure`
@@ -120,15 +136,16 @@ Still open:
 ### 5. Documentation rewrite
 
 Status:
-- implemented for v2 docs and methodology
+- implemented baseline, still evolving
 
 Current state:
 - `docs/v2_0_results_spec.md` updated to the live contract
 - `docs/v2_0_questionnaire_spec.md` updated to the live intake
-- `method2/index.html` updated to describe the live math and functional flow
+- `method/index.html` updated to describe the live math and functional flow
+- `docs/role_transformation_overhaul_plan.md` is now the canonical planning doc
 
 Still open:
-- align `guide2` with the calibrated role-fate surface
+- continue tightening `guide/index.html` and `method/index.html` as the live model evolves
 - add source references on the methodology page if desired
 
 ## Current Validation Layer
@@ -147,10 +164,10 @@ Current validation coverage:
 
 ## Recommended Next Sequence
 
-1. run a broader occupation review sheet across all launch roles
-2. add weighted task-share controls
-3. surface task-level evidence citations in the UI
-4. move more of the client-built role-fate map into the engine contract
+1. add multi-anchor function graphs
+2. reduce proxy dependence with more direct task evidence and benchmark promotion
+3. write occupation-by-occupation explanation reports
+4. replace the remaining legacy questionnaire bridge with a native factor-based runtime contract
 
 ## Release Readiness Read
 

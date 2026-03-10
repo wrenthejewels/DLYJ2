@@ -93,6 +93,7 @@ $headerMap = @{
     'occupation_function_map.csv' = @('occupation_id','function_id','function_type','function_weight','delegability_guardrail','source_mix','source_confidence','notes')
     'task_function_edges.csv' = @('occupation_id','task_id','function_id','edge_type','task_to_function_weight','accountability_weight','judgment_requirement','trust_requirement','regulatory_liability_weight','human_authority_requirement','source_mix','source_confidence','notes')
     'function_accountability_profiles.csv' = @('occupation_id','function_id','accountability_statement','primary_output','primary_stakeholder','judgment_requirement','trust_requirement','regulatory_liability_weight','human_authority_requirement','bargaining_power_retention','source_mix','source_confidence','notes')
+    'occupation_role_explanations.csv' = @('occupation_id','title','role_transformation_type','function_anchor_count','primary_driver','secondary_driver','primary_counterweight','evidence_profile','confidence_band','review_priority','explanation_summary')
     'occupation_exposure_priors.csv' = @('occupation_id','source_id','exposure_score','augmentation_score','automation_score','adaptive_capacity_score','confidence','release_date','notes')
     'task_exposure_evidence.csv' = @('occupation_id','onet_task_id','task_cluster_id','source_id','exposure_score','augmentation_score','automation_score','observed_usage_share','evidence_type','confidence','notes')
     'task_source_evidence.csv' = @('occupation_id','task_id','source_id','source_role','exposure_score','augmentation_score','automation_score','evidence_weight','confidence','promotion_status','notes')
@@ -115,6 +116,8 @@ $headerMap = @{
     'ui_role_category_map.csv' = @('ui_role_key','ui_role_label','onet_soc_code','title','fit_rank','fit_type','notes')
     'role_family_function_defaults.csv' = @('role_family','function_category','role_summary','function_statement','accountability_statement','primary_output','primary_stakeholder','judgment_requirement','trust_requirement','regulatory_liability_weight','human_authority_requirement','bargaining_power_retention','source_mix','notes')
     'occupation_role_function_overrides.csv' = @('occupation_id','function_category','role_summary','function_statement','accountability_statement','primary_output','primary_stakeholder','judgment_requirement','trust_requirement','regulatory_liability_weight','human_authority_requirement','bargaining_power_retention','source_mix','notes')
+    'occupation_secondary_function_overrides.csv' = @('occupation_id','function_key','function_category','role_summary','function_statement','accountability_statement','primary_output','primary_stakeholder','function_weight','judgment_requirement','trust_requirement','regulatory_liability_weight','human_authority_requirement','bargaining_power_retention','priority_task_families','source_mix','notes')
+    'reviewed_task_exposure_overrides.csv' = @('occupation_id','task_id','exposure_score','augmentation_score','automation_score','confidence','notes')
     'job_description_seed_task_expansions.csv' = @('occupation_id','evidence_id','employer_name','job_title','source_url','source_kind','task_statement','task_family_id','task_type','importance','frequency','review_status','source_confidence','notes')
     'job_description_review_sources.csv' = @('occupation_id','source_ref','employer_name','job_title','source_url','source_kind','review_status','notes')
     'pilot_role_transformation_calibration.csv' = @('occupation_id','function_retention_bias','accountability_bias','bargaining_bias','direct_pressure_bias','delegation_bias','displacement_bias','benchmark_pressure_floor','notes')
@@ -123,7 +126,7 @@ $headerMap = @{
 foreach ($entry in $headerMap.GetEnumerator()) {
     $path = if ($entry.Key -like 'crosswalk_*') {
         Join-Path $crosswalkDir $entry.Key
-    } elseif ($entry.Key -in @('launch_occupation_seed.csv','ui_role_category_map.csv','role_family_function_defaults.csv','occupation_role_function_overrides.csv','job_description_seed_task_expansions.csv','job_description_review_sources.csv','pilot_role_transformation_calibration.csv')) {
+    } elseif ($entry.Key -in @('launch_occupation_seed.csv','ui_role_category_map.csv','role_family_function_defaults.csv','occupation_role_function_overrides.csv','occupation_secondary_function_overrides.csv','reviewed_task_exposure_overrides.csv','job_description_seed_task_expansions.csv','job_description_review_sources.csv','pilot_role_transformation_calibration.csv')) {
         Join-Path $metadataDir $entry.Key
     } else {
         Join-Path $normalizedDir $entry.Key
@@ -149,6 +152,7 @@ $roleFunctions = Import-Csv (Join-Path $normalizedDir 'role_functions.csv')
 $occupationFunctionMap = Import-Csv (Join-Path $normalizedDir 'occupation_function_map.csv')
 $taskFunctionEdges = Import-Csv (Join-Path $normalizedDir 'task_function_edges.csv')
 $functionProfiles = Import-Csv (Join-Path $normalizedDir 'function_accountability_profiles.csv')
+$roleExplanations = Import-Csv (Join-Path $normalizedDir 'occupation_role_explanations.csv')
 $exposurePriors = Import-Csv (Join-Path $normalizedDir 'occupation_exposure_priors.csv')
 $taskEvidence = Import-Csv (Join-Path $normalizedDir 'task_exposure_evidence.csv')
 $taskSourceEvidence = Import-Csv (Join-Path $normalizedDir 'task_source_evidence.csv')
@@ -165,8 +169,13 @@ $taskRoleProfiles = Import-Csv (Join-Path $normalizedDir 'occupation_task_role_p
 $roleTransformation = Import-Csv (Join-Path $normalizedDir 'occupation_role_transformation.csv')
 $transitions = Import-Csv (Join-Path $normalizedDir 'occupation_transition_adjacency.csv')
 $launchSeed = Import-Csv (Join-Path $metadataDir 'launch_occupation_seed.csv')
+$secondaryFunctions = Import-Csv (Join-Path $metadataDir 'occupation_secondary_function_overrides.csv')
+$reviewedTaskOverrides = Import-Csv (Join-Path $metadataDir 'reviewed_task_exposure_overrides.csv')
 $sourceIds = Select-String -Path (Join-Path $metadataDir 'source_registry.yaml') -Pattern '^\s*- source_id:\s*(.+)$' |
     ForEach-Object { $_.Matches[0].Groups[1].Value.Trim() }
+$secondaryFunctionKeys = $secondaryFunctions | ForEach-Object {
+    [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.function_key)" }
+}
 
 $occupationIds = $occupations | Select-Object -ExpandProperty occupation_id
 $taskClusterIds = $taskClusters | Select-Object -ExpandProperty task_cluster_id
@@ -178,10 +187,13 @@ Assert-NoDuplicates -Rows $jobDescriptionEvidence -Key 'evidence_id' -Label 'job
 Assert-NoDuplicates -Rows $occupationTaskInventory -Key 'task_id' -Label 'task inventory task_id'
 Assert-NoDuplicates -Rows $roleFunctions -Key 'function_id' -Label 'role function function_id'
 Assert-NoDuplicates -Rows $functionProfiles -Key 'function_id' -Label 'function profile function_id'
+Assert-NoDuplicates -Rows $roleExplanations -Key 'occupation_id' -Label 'role explanations occupation_id'
 Assert-NoDuplicates -Rows $labor -Key 'occupation_id' -Label 'labor occupation_id'
 Assert-NoDuplicates -Rows $taskRoleProfiles -Key 'occupation_id' -Label 'task role profile occupation_id'
 Assert-NoDuplicates -Rows $roleTransformation -Key 'occupation_id' -Label 'role transformation occupation_id'
 Assert-NoDuplicates -Rows $launchSeed -Key 'launch_rank' -Label 'launch_rank'
+Assert-NoDuplicates -Rows $secondaryFunctionKeys -Key 'composite_key' -Label 'secondary function occupation/function'
+Assert-NoDuplicates -Rows $reviewedTaskOverrides -Key 'task_id' -Label 'reviewed task override task_id'
 
 Assert-ForeignKey -Rows $selector -Column 'occupation_id' -Allowed $occupationIds -Label 'selector occupation_id'
 Assert-ForeignKey -Rows $occupationTasks -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation tasks occupation_id'
@@ -198,6 +210,7 @@ Assert-ForeignKey -Rows $taskDependencyEdges -Column 'edge_source' -Allowed $sou
 Assert-ForeignKey -Rows $roleFunctions -Column 'occupation_id' -Allowed $occupationIds -Label 'role function occupation_id'
 Assert-ForeignKey -Rows $occupationFunctionMap -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation function map occupation_id'
 Assert-ForeignKey -Rows $functionProfiles -Column 'occupation_id' -Allowed $occupationIds -Label 'function profile occupation_id'
+Assert-ForeignKey -Rows $roleExplanations -Column 'occupation_id' -Allowed $occupationIds -Label 'role explanations occupation_id'
 Assert-ForeignKey -Rows $taskFunctionEdges -Column 'occupation_id' -Allowed $occupationIds -Label 'task function edge occupation_id'
 Assert-ForeignKey -Rows $exposurePriors -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation exposure occupation_id'
 Assert-ForeignKey -Rows $exposurePriors -Column 'source_id' -Allowed $sourceIds -Label 'occupation exposure source_id'
@@ -224,6 +237,8 @@ Assert-ForeignKey -Rows $taskRoleProfiles -Column 'occupation_id' -Allowed $occu
 Assert-ForeignKey -Rows $roleTransformation -Column 'occupation_id' -Allowed $occupationIds -Label 'role transformation occupation_id'
 Assert-ForeignKey -Rows $transitions -Column 'from_occupation_id' -Allowed $occupationIds -Label 'transition from_occupation_id'
 Assert-ForeignKey -Rows $transitions -Column 'to_occupation_id' -Allowed $occupationIds -Label 'transition to_occupation_id'
+Assert-ForeignKey -Rows $secondaryFunctions -Column 'occupation_id' -Allowed $occupationIds -Label 'secondary function occupation_id'
+Assert-ForeignKey -Rows $reviewedTaskOverrides -Column 'occupation_id' -Allowed $occupationIds -Label 'reviewed task override occupation_id'
 
 Assert-ShareSums -Rows $occTaskClusters -GroupColumn 'occupation_id' -ShareColumn 'share_prior'
 if ($occupationTaskInventory.Count -gt 0) {
@@ -233,6 +248,7 @@ if ($occupationTaskInventory.Count -gt 0) {
 $taskInventoryIds = $occupationTaskInventory | Select-Object -ExpandProperty task_id
 Assert-ForeignKey -Rows $taskDependencyEdges -Column 'from_task_id' -Allowed $taskInventoryIds -Label 'task dependency from_task_id'
 Assert-ForeignKey -Rows $taskDependencyEdges -Column 'to_task_id' -Allowed $taskInventoryIds -Label 'task dependency to_task_id'
+Assert-ForeignKey -Rows $reviewedTaskOverrides -Column 'task_id' -Allowed $taskInventoryIds -Label 'reviewed task override task_id'
 Assert-ForeignKey -Rows $taskSourceEvidence -Column 'task_id' -Allowed $taskInventoryIds -Label 'task source evidence task_id'
 Assert-ForeignKey -Rows $taskFunctionEdges -Column 'task_id' -Allowed $taskInventoryIds -Label 'task function edges task_id'
 

@@ -106,6 +106,16 @@ async function main() {
     throw new Error('Expected role_fate_label in result payload.');
   }
 
+  if (!result.occupation_explanation) {
+    throw new Error('Expected occupation_explanation in result payload.');
+  }
+  if (!result.occupation_explanation.explanation_summary) {
+    throw new Error('Expected occupation_explanation.explanation_summary in result payload.');
+  }
+  if (!result.evidence_summary?.explanation_summary) {
+    throw new Error('Expected evidence_summary.explanation_summary in result payload.');
+  }
+
   const taskDrivenResult = engine.computeResult({
     occupationId: result.selected_occupation_id,
     roleCategory: 'software',

@@ -1,5 +1,73 @@
 # Role Transformation Overhaul Plan
 
+## Read This First
+
+This is the canonical planning and handoff document for the current model.
+
+A new session should read this document first to understand:
+- what the live product is now
+- what has already been implemented
+- what the current model stack looks like
+- what still needs to be done next
+
+Supporting docs:
+- `docs/v2_0_questionnaire_spec.md` = current intake and questionnaire contract
+- `docs/v2_0_results_spec.md` = current result object and UI/result contract
+- `docs/v2_0_release_plan.md` = short release snapshot only, not the main plan
+
+## Documentation Structure
+
+Keep this file as the one central planning and handoff doc.
+
+Recommended doc roles:
+- `docs/role_transformation_overhaul_plan.md` = canonical current-state, roadmap, and next-steps document
+- `docs/v2_0_questionnaire_spec.md` = supporting intake and questionnaire reference
+- `docs/v2_0_results_spec.md` = supporting output/result contract reference
+- `docs/v2_0_release_plan.md` = short snapshot of what is live, not a separate roadmap
+
+Recommended merge decision:
+- do not merge the questionnaire or results specs into this file, because they work better as narrow contract docs
+- do not let `docs/v2_0_release_plan.md` grow into a second planning document
+- if future planning notes are created, fold them back into this file instead of creating another top-level roadmap
+
+## Current Live Surface
+
+Current live pages:
+- `/` = model
+- `/guide` = guide
+- `/method` = methodology
+
+Archived pages:
+- `archive/legacy-pages/` = older model/guide/method surfaces kept for reference
+- `archive/route-aliases/` = older `*2` / `*3` route snapshots and aliases
+
+## Current Live Model Summary
+
+The live model is a role-fate model built on top of:
+- a mapped occupation anchor
+- an occupation task inventory
+- a task-role graph with dependency edges
+- direct and fallback task evidence
+- a structured role-refinement profile derived from the questionnaire
+- labor-market context as a supporting layer
+
+The live model currently outputs:
+- a role-fate label
+- a wave trajectory
+- a role-fate map
+- a task-level breakdown
+- a recomposition summary
+- evidence and occupation-assignment summaries
+
+Current live role-fate labels:
+- `Augmented`
+- `Compressed`
+- `Elevated`
+- `Split`
+- `Expanded`
+- `Collapsed`
+- `Mixed transition`
+
 ## First-Pass Implementation Status
 
 Implemented on `2026-03-10`:
@@ -11,19 +79,22 @@ Implemented on `2026-03-10`:
 - `task_source_evidence.csv`
 - `occupation_source_priors.csv`
 - `occupation_role_transformation.csv`
+- `occupation_role_explanations.csv`
 
 Implemented scripts:
 - `build_job_description_evidence.ps1`
 - `build_role_function_layer.ps1`
 - `build_source_comparison_layer.ps1`
 - `build_role_transformation_scores.ps1`
+- `build_role_explanations.ps1`
 - `rebuild_role_transformation_stack.ps1`
 
 Current implementation scope:
-- one primary function anchor per launch occupation
+- reviewed multi-anchor function graphs for the highest-complexity occupations, with single-anchor coverage retained elsewhere
 - task-to-function weighting for every normalized task
-- unified task-source comparison rows across Anthropic, GPT task labels, cluster proxies, and stubs
+- unified task-source comparison rows across Anthropic, GPT task labels, cluster proxies, and stubs, with proxies down-weighted when task-level evidence exists
 - unified occupation prior rows across live aggregates and benchmark sources
+- occupation-level explanation summaries for all `34` modeled occupations
 - first-pass runtime questionnaire redesign with structured role-refinement factors and a legacy-answer compatibility bridge
 - reviewed public-job-posting task-gap coverage for all `34` modeled occupations
 - reviewed role-transformation calibration for all `34` modeled occupations:
@@ -36,23 +107,27 @@ Current implementation scope:
 - first-pass role transformation outputs for all `34` modeled occupations
 
 Known current limits:
-- function graphs currently use one primary function node per occupation, not multiple reviewed anchors
+- multi-anchor function coverage exists only for a reviewed subset of the most obviously split roles, not yet for every occupation that may need it
 - transformation scoring still relies on broad role-family defaults and benchmark floors underneath the reviewed overrides
-- task evidence still depends heavily on cluster priors where direct telemetry or benchmark task labels are thin
-- the live questionnaire now uses the new role-refinement factors under the hood, but the visible UI still runs through the legacy numbered-question shell rather than a fully renamed modular form
+- task evidence still depends too much on cluster priors for the thinnest-covered occupations even after proxy down-weighting
+- the live questionnaire now renders as core questions plus optional deeper modules, but it is still backed by the legacy-question compatibility bridge rather than a native factor-first payload
 
 ### What Has Been Done So Far
 
 - Imported benchmark layers for `AIOE`, `Webb`, `SML`, and `GPTs are GPTs`
 - Built a unified task-source evidence layer and occupation prior comparison layer
 - Added a task-role graph with richer task inventory, dependency edges, and role-profile summaries
-- Added a role-function layer with function anchors, accountability profiles, and task-to-function edges
+- Added a role-function layer with function anchors, accountability profiles, task-to-function edges, and reviewed supplemental anchors for split-function occupations
 - Added a first-pass role-transformation scoring layer for all modeled occupations
+- Added occupation-by-occupation explanation outputs so each transformation row has a plain-English audit summary
+- Reduced proxy overreach by down-weighting cluster-prior task evidence when direct task evidence or benchmark task labels already exist
+- Added a reviewed task-scoring layer for the highest-proxy occupation gap so Business Operations Specialists no longer reads as pure proxy coverage
 - Added a first-pass runtime questionnaire redesign:
   - structured role-refinement profile under the hood
   - legacy `Q1..Q16` compatibility bridge
   - runtime scoring tied more directly to retained function, sign-off, substitution pressure, dependency drag, and augmentation fit
   - updated runtime copy so the questionnaire is framed as role refinement rather than generic friction
+  - moved the visible UI to a schema-rendered core-questions plus optional-modules surface
 - Replaced seed-only job-description placeholders with reviewed public posting evidence for:
   - Lawyers
   - Data Scientists
@@ -133,28 +208,34 @@ What is live:
 - legacy numbered answers are translated into the new profile through a compatibility bridge
 - runtime scoring now uses retained-function and authority-oriented factors more directly
 - presets expose both legacy answer presets and derived questionnaire-factor presets
+- the visible UI now presents:
+  - a role-refinement readout
+  - core questions
+  - optional deeper modules
+  - schema-rendered questionnaire content rather than hardcoded questionnaire markup
 
 What is not finished yet:
-- the visible UI still uses the old numbered question shell
-- the questionnaire is not yet broken into named modules like `Function and Authority` or `Task Chain and Bottlenecks`
-- methodology copy is only partially updated
+- the questionnaire payload is still internally bridged from legacy question IDs rather than natively authored as factor objects
+- module-level branching and specialized deep paths are still limited
+- guide and methodology copy will still need continued tightening as the model evolves
 - the long-term target should still be a native factor-based questionnaire payload rather than legacy question IDs
 
 ### What Still Needs To Be Done
 
-- Add multi-anchor function graphs for roles with distinct sub-functions or sign-off layers
+- Extend multi-anchor function graphs beyond the first reviewed subset wherever one anchor still collapses distinct human-retained functions
 - Improve task-to-function weighting where O*NET still overstates generic admin or workflow tasks
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
-- Add occupation-by-occupation review reports that explain why each role lands in its transformation state
-- Finish the questionnaire migration by replacing the legacy numbered UI shell with a native named-factor and optional-module experience
+- Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
+- Finish the questionnaire migration by replacing the legacy-answer bridge with a native factor-based runtime contract
 - Expand beyond the current `34` modeled occupations once the reviewed workflow is stable
-- Evaluate whether the current output taxonomy needs more than:
-  - `limited_near_term_change`
-  - `augmented_core_role`
-  - `workflow_recomposition`
-  - `workflow_fragmentation`
-  - `delegated_but_retained_function`
-  - `substitution_pressure`
+- Evaluate whether the current output taxonomy needs refinement beyond:
+  - `Augmented`
+  - `Compressed`
+  - `Elevated`
+  - `Split`
+  - `Expanded`
+  - `Collapsed`
+  - `Mixed transition`
 
 ## Purpose
 
@@ -640,10 +721,10 @@ Success condition:
 
 ## Immediate Next Steps
 
-1. Add multi-anchor function graphs for the highest-complexity roles, especially legal, management, engineering, and communications work.
-2. Replace more cluster-prior proxy dependence with direct task evidence, GPT task-label promotion, or reviewed manual mapping.
-3. Write occupation-by-occupation explanation reports so each transformation classification is auditable.
-4. Finish the questionnaire migration so the UI, presets, and methodology all speak the new role-refinement language natively.
+1. Extend the reviewed multi-anchor function layer beyond the first high-complexity subset, especially where one anchor still hides distinct advisory, supervisory, or relationship-retention functions.
+2. Replace more cluster-prior proxy dependence with direct task evidence, GPT task-label promotion, or reviewed manual mapping for the highest-proxy occupations.
+3. Use the new occupation explanation layer to run another occupation-by-occupation audit and tighten task-to-function weighting where explanations still look generic.
+4. Finish the questionnaire migration by replacing the remaining legacy-answer bridge with a native factor-based runtime contract.
 5. Expand the reviewed workflow to occupations beyond the current `34` once the explanation layer is stable.
 
 ## One-Sentence Summary

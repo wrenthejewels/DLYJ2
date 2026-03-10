@@ -15,6 +15,7 @@
         occupationTaskInventory: 'data/normalized/occupation_task_inventory.csv',
         taskDependencyEdges: 'data/normalized/task_dependency_edges.csv',
         occupationTaskRoleProfiles: 'data/normalized/occupation_task_role_profiles.csv',
+        occupationRoleExplanations: 'data/normalized/occupation_role_explanations.csv',
         taskMembership: 'data/normalized/task_cluster_membership.csv',
         taskEvidence: 'data/normalized/task_exposure_evidence.csv',
         taskPriors: 'data/normalized/task_augmentation_automation_priors.csv',
@@ -1449,6 +1450,7 @@
             var taskInventoryRows = store.taskInventoryByOcc[occupationId] || [];
             var dependencyEdges = store.taskDependencyEdgesByOcc[occupationId] || [];
             var taskRoleProfile = store.taskRoleProfilesByOcc[occupationId] || null;
+            var occupationExplanation = store.occupationExplanationsByOcc[occupationId] || null;
             var taskInventoryById = indexBy(taskInventoryRows, 'task_id');
             var dominantTaskIds = uniqueStrings(input.dominantTaskIds || []);
             var criticalTaskIds = uniqueStrings(input.criticalTaskIds || []);
@@ -2089,6 +2091,12 @@
                     laborContext && laborContext.unemployment_group_label ? ('Latest official BLS unemployment for ' + laborContext.unemployment_group_label + ' is ' + laborContext.latest_unemployment_rate + '% (' + laborContext.latest_unemployment_period + ').') : 'No mapped BLS unemployment series for this occupation yet.'
                 ]
             };
+            if (occupationExplanation) {
+                evidenceSummary.explanation_summary = occupationExplanation.explanation_summary || '';
+                evidenceSummary.review_priority = occupationExplanation.review_priority || null;
+                evidenceSummary.evidence_profile = occupationExplanation.evidence_profile || null;
+                evidenceSummary.function_anchor_count = toNumber(occupationExplanation.function_anchor_count, 0);
+            }
 
             var result = {
                 selected_role_category: roleCategory,
@@ -2103,6 +2111,17 @@
                 fate_drivers: [],
                 fate_counterweights: [],
                 role_summary: roleSummary,
+                occupation_explanation: occupationExplanation ? {
+                    role_transformation_type: occupationExplanation.role_transformation_type || null,
+                    function_anchor_count: toNumber(occupationExplanation.function_anchor_count, 0),
+                    primary_driver: occupationExplanation.primary_driver || null,
+                    secondary_driver: occupationExplanation.secondary_driver || null,
+                    primary_counterweight: occupationExplanation.primary_counterweight || null,
+                    evidence_profile: occupationExplanation.evidence_profile || null,
+                    confidence_band: occupationExplanation.confidence_band || null,
+                    review_priority: occupationExplanation.review_priority || null,
+                    explanation_summary: occupationExplanation.explanation_summary || null
+                } : null,
                 questionnaire_profile: evidenceSummary.questionnaire_profile,
                 questionnaire_profile_source: signals.questionnaireProfileSource,
                 occupation_assignment: occupationAssignment,
@@ -2373,6 +2392,7 @@
             adaptationByOcc: indexBy(loaded.adaptationPriors, 'occupation_id'),
             laborByOcc: indexBy(loaded.laborContext, 'occupation_id'),
             unemploymentByGroup: groupBy(loaded.unemploymentMonthly, 'unemployment_group_id'),
+            occupationExplanationsByOcc: indexBy(loaded.occupationRoleExplanations, 'occupation_id'),
             uiRoleMapByRole: groupRoleMap(loaded.uiRoleMap)
         });
     }

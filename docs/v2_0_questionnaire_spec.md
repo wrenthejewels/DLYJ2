@@ -1,13 +1,21 @@
 # V2.0 Questionnaire Specification
 
+## Scope
+
+This is a supporting reference doc, not the main planning doc.
+
+For current model status, roadmap, and next steps, read:
+- `docs/role_transformation_overhaul_plan.md`
+
 ## Purpose
 
 This document describes the current live intake contract for the `2.0` role-fate model.
 
-It replaces the earlier aspirational intake spec. The live intake is now a hybrid:
+The live intake is now a hybrid:
 - occupation anchoring
 - five structured task selectors
-- the legacy questionnaire, reinterpreted as a scoring layer
+- a questionnaire UI that renders as core questions plus optional deeper modules
+- a structured role-refinement profile derived through a legacy-answer compatibility bridge
 
 ## Current Intake Flow
 
@@ -17,7 +25,7 @@ The live page collects inputs in this order:
 2. occupation anchor
 3. hierarchy / seniority
 4. optional structured task detail
-5. optional legacy questionnaire
+5. optional role refinement
 
 ## Current Structured Task Inputs
 
@@ -100,7 +108,12 @@ These task selections indirectly affect:
 
 ## Current Questionnaire Layer
 
-The live engine still consumes this legacy answer set:
+The visible UI now presents a role-refinement surface:
+- a live role-refinement readout
+- core questions
+- optional deeper modules
+
+Under the hood, the engine still accepts this legacy answer set and converts it into the new structured profile:
 - `Q1`
 - `Q2`
 - `Q3`
@@ -123,22 +136,59 @@ Questions not currently active in the live engine:
 - `Q18`
 - `Q19`
 
+## Current Structured Questionnaire Profile
+
+The current bridge maps legacy answers into a structured role-refinement profile with fields including:
+- `function_centrality`
+- `human_signoff_requirement`
+- `liability_and_regulatory_burden`
+- `relationship_ownership`
+- `exception_and_context_load`
+- `workflow_decomposability`
+- `organizational_adoption_readiness`
+- `ai_observability_of_work`
+- `dependency_bottleneck_strength`
+- `handoff_and_coordination_complexity`
+- `external_trust_requirement`
+- `stakeholder_alignment_burden`
+- `execution_vs_judgment_mix`
+- `augmentation_fit`
+- `substitution_risk_modifier`
+
 ## Current Composite Signals
 
-The live engine maps questionnaire answers into these composites:
+The live engine then compresses that profile into these runtime composites:
 
 ```ts
-capabilitySignal = avg(Q1, Q4, Q8)
-couplingProtection = avg(Q7, Q9, Q11, Q12)
-adoptionPressure = avg(Q13, Q14, Q16)
+functionRetention = avg(
+  function_centrality,
+  human_signoff_requirement,
+  liability_and_regulatory_burden,
+  relationship_ownership
+)
+
+capabilitySignal = avg(
+  ai_observability_of_work,
+  workflow_decomposability,
+  substitution_risk_modifier
+)
+
+couplingProtection = avg(
+  functionRetention,
+  exception_and_context_load,
+  dependency_bottleneck_strength,
+  external_trust_requirement
+)
+
+adoptionPressure = organizational_adoption_readiness
 ```
 
-It also derives bundle friction dimensions:
-- `exception_burden = avg(1-Q5, 1-Q6, Q7, Q9)`
-- `accountability_load = avg(Q7, Q11)`
-- `judgment_requirement = avg(Q7, Q9, Q11)`
-- `document_intensity = avg(Q2, Q3, Q4, Q8)`
-- `tacit_context_dependence = avg(Q7, Q9, Q12)`
+It also derives bundle friction dimensions from the structured profile:
+- `exception_burden`
+- `accountability_load`
+- `judgment_requirement`
+- `document_intensity`
+- `tacit_context_dependence`
 
 All answers are first normalized to `[0, 1]`.
 
@@ -217,21 +267,23 @@ The live UI now enforces these behaviors:
 - duplicate task picks across the five selectors are disabled in the client
 - all five task selectors are optional
 - if no task is chosen, the engine falls back to the occupation prior
+- the questionnaire is rendered from schema in the client rather than hardcoded page markup
 
 ## Current Gaps
 
 Still missing from the intake relative to the broader redesign:
 - weighted task-share buckets
+- native factor-authored questionnaire payloads instead of the current legacy-answer bridge
 - explicit `AI-danger task` selection separate from `value-defining task`
 - user-authored dependency links between chosen tasks
 - direct residual-role-distinctiveness question
-- deeper retained-role / span-of-control prompts
+- deeper role-mode branching for occupations with multiple distinct function paths
 
 ## Next Intake Work
 
 Recommended next changes:
 
-1. replace single task picks with rough weighted task buckets
-2. add explicit `if AI got very good at this task, would bargaining power break?` prompts
-3. let users declare a small number of dependency links between their chosen tasks
-4. introduce a visible retained-role-distinctiveness question instead of inferring all of it from structure
+1. replace the legacy-answer bridge with a native factor-based questionnaire contract
+2. replace single task picks with rough weighted task buckets
+3. add explicit `if AI got very good at this task, would bargaining power break?` prompts
+4. let users declare a small number of dependency links between their chosen tasks

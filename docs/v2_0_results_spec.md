@@ -1,5 +1,12 @@
 # V2.0 Results Specification
 
+## Scope
+
+This is a supporting contract doc, not the main planning doc.
+
+For current model status, roadmap, and next steps, read:
+- `docs/role_transformation_overhaul_plan.md`
+
 ## Purpose
 
 This document describes the current live `2.0` results contract as implemented in:
@@ -7,7 +14,10 @@ This document describes the current live `2.0` results contract as implemented i
 - `app.js`
 - `index.html`
 
-It replaces the earlier redesign-target version of this spec.
+Current live surfaces:
+- `/` = model
+- `/guide` = guide
+- `/method` = methodology
 
 ## Current Public Result Order
 
@@ -35,6 +45,7 @@ The live headline surface shows:
 - primary displacement wave
 - retained leverage tier
 - personalization-fit tier
+- occupation anchor
 
 ## Current Role Fate Map
 
@@ -97,6 +108,33 @@ type V2Result = {
   fate_drivers: string[]
   fate_counterweights: string[]
   role_summary: string
+  occupation_explanation: {
+    role_transformation_type: string | null
+    function_anchor_count: number
+    primary_driver: string | null
+    secondary_driver: string | null
+    primary_counterweight: string | null
+    evidence_profile: string | null
+    confidence_band: string | null
+    review_priority: string | null
+    explanation_summary: string | null
+  } | null
+
+  questionnaire_profile: {
+    function_centrality: number
+    human_signoff_requirement: number
+    liability_and_regulatory_burden: number
+    relationship_ownership: number
+    exception_and_context_load: number
+    workflow_decomposability: number
+    organizational_adoption_readiness: number
+    ai_observability_of_work: number
+    dependency_bottleneck_strength: number
+    external_trust_requirement: number
+    augmentation_fit: number
+    substitution_risk_modifier: number
+  }
+  questionnaire_profile_source: 'legacy_answers' | 'structured_profile'
 
   occupation_assignment: {
     role_category: string
@@ -241,6 +279,9 @@ The live page relies on these engine-level structural scores:
 - `exposed_core_share`
 - `retained_core_share`
 - `demand_expansion_modifier`
+- `function_retention`
+- `augmentation_fit`
+- `substitution_risk_modifier`
 
 Public wording rule:
 - keep `residual_role_integrity`
@@ -260,6 +301,11 @@ Still implemented as transitional legacy surfaces:
 - `role_outlook_label`
 - wave trajectory cards
 - legacy transformation cluster lists
+- legacy-answer questionnaire compatibility path
+
+Current explanation surface:
+- the engine now returns an occupation-level explanation summary drawn from the normalized explanation layer
+- the client surfaces that summary in the model-details panel instead of leaving the audit logic only in diagnostics
 
 ## Current Acceptance Criteria
 
@@ -278,3 +324,4 @@ Recommended next changes:
 - return `role_fate_map` directly from the engine rather than rebuilding it in the client
 - add source drill-down and task-level citations
 - add weighted task-share controls so users can do more than tag a handful of tasks
+- move the questionnaire contract from the legacy-answer bridge to a native factor-based payload

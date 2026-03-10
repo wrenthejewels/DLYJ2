@@ -27,6 +27,7 @@ function Get-SourceRole([string]$SourceId) {
     if ($SourceId -like 'src_anthropic_ei_*') { return 'live_task_evidence' }
     if ($SourceId -eq 'src_internal_stub_2026_03') { return 'fallback_task_proxy' }
     if ($SourceId -eq 'src_openai_gpts_are_gpts_2023') { return 'benchmark_task_label' }
+    if ($SourceId -eq 'src_reviewed_task_scoring_2026_03') { return 'reviewed_task_estimate' }
     if ($SourceId -eq 'src_v2_cluster_prior_proxy_2026_03') { return 'cluster_prior_proxy' }
     if ($SourceId -eq 'src_v2_launch_aggregate_2026_03') { return 'live_task_aggregate' }
     return 'supporting_evidence'
@@ -36,6 +37,7 @@ function Get-PromotionStatus([string]$SourceRole) {
     switch ($SourceRole) {
         'live_task_evidence' { return 'active_live' }
         'live_task_aggregate' { return 'active_live' }
+        'reviewed_task_estimate' { return 'active_supporting' }
         'benchmark_task_label' { return 'active_supporting' }
         'cluster_prior_proxy' { return 'active_supporting' }
         'fallback_task_proxy' { return 'fallback_only' }
@@ -43,12 +45,13 @@ function Get-PromotionStatus([string]$SourceRole) {
     }
 }
 
-function Get-EvidenceWeight([string]$SourceRole) {
+function Get-EvidenceWeight([string]$SourceRole, [bool]$HasTaskLevelEvidence = $false) {
     switch ($SourceRole) {
         'live_task_evidence' { return 1.00 }
+        'reviewed_task_estimate' { return 0.68 }
         'benchmark_task_label' { return 0.72 }
-        'cluster_prior_proxy' { return 0.55 }
-        'fallback_task_proxy' { return 0.35 }
+        'cluster_prior_proxy' { return $(if ($HasTaskLevelEvidence) { 0.18 } else { 0.46 }) }
+        'fallback_task_proxy' { return $(if ($HasTaskLevelEvidence) { 0.12 } else { 0.28 }) }
         'live_task_aggregate' { return 0.90 }
         default { return 0.50 }
     }
@@ -61,6 +64,8 @@ $taskBenchmarks = Import-Csv (Join-Path $OutputDir 'task_benchmark_gpt4_labels.c
 $occupationPriors = Import-Csv (Join-Path $OutputDir 'occupation_exposure_priors.csv')
 $benchmarkSources = Import-Csv (Join-Path $OutputDir 'occupation_benchmark_source_scores.csv')
 $benchmarkScores = Import-Csv (Join-Path $OutputDir 'occupation_benchmark_scores.csv')
+$reviewedTaskOverridesPath = Join-Path $Root 'data\metadata\reviewed_task_exposure_overrides.csv'
+$reviewedTaskOverrides = if (Test-Path $reviewedTaskOverridesPath) { Import-Csv $reviewedTaskOverridesPath } else { @() }
 
 $taskEvidenceByKey = @{}
 foreach ($row in $taskEvidence) {
@@ -81,13 +86,24 @@ foreach ($row in $taskPriors) {
     $taskPriorByKey["$($row.occupation_id)|$($row.task_cluster_id)"] = $row
 }
 
+$reviewedOverridesByTaskId = @{}
+foreach ($row in $reviewedTaskOverrides) {
+    $reviewedOverridesByTaskId[$row.task_id] = $row
+}
+
 $taskSourceRows = New-Object System.Collections.Generic.List[object]
 foreach ($task in $inventory) {
     $taskKey = "$($task.occupation_id)|$($task.onet_task_id)"
+    $hasDirectTaskEvidence = $false
+    $hasBenchmarkTaskLabel = $taskBenchmarkByKey.ContainsKey($taskKey)
+    $hasReviewedTaskEstimate = $reviewedOverridesByTaskId.ContainsKey($task.task_id)
 
     if ($taskEvidenceByKey.ContainsKey($taskKey)) {
         foreach ($evidence in $taskEvidenceByKey[$taskKey]) {
             $sourceRole = Get-SourceRole -SourceId $evidence.source_id
+            if ($sourceRole -eq 'live_task_evidence') {
+                $hasDirectTaskEvidence = $true
+            }
             $taskSourceRows.Add([PSCustomObject]@{
                 occupation_id = $task.occupation_id
                 task_id = $task.task_id
@@ -96,12 +112,29 @@ foreach ($task in $inventory) {
                 exposure_score = Format-Decimal -Value ([double]$evidence.exposure_score) -Digits 4
                 augmentation_score = Format-Decimal -Value ([double]$evidence.augmentation_score) -Digits 4
                 automation_score = Format-Decimal -Value ([double]$evidence.automation_score) -Digits 4
-                evidence_weight = Format-Decimal -Value (Get-EvidenceWeight -SourceRole $sourceRole) -Digits 4
+                evidence_weight = Format-Decimal -Value (Get-EvidenceWeight -SourceRole $sourceRole -HasTaskLevelEvidence $hasBenchmarkTaskLabel) -Digits 4
                 confidence = Format-Decimal -Value ([double]$evidence.confidence) -Digits 4
                 promotion_status = Get-PromotionStatus -SourceRole $sourceRole
                 notes = "task_match|evidence_type=$($evidence.evidence_type)"
             })
         }
+    }
+
+    if ($hasReviewedTaskEstimate) {
+        $reviewed = $reviewedOverridesByTaskId[$task.task_id]
+        $taskSourceRows.Add([PSCustomObject]@{
+            occupation_id = $task.occupation_id
+            task_id = $task.task_id
+            source_id = 'src_reviewed_task_scoring_2026_03'
+            source_role = 'reviewed_task_estimate'
+            exposure_score = Format-Decimal -Value ([double]$reviewed.exposure_score) -Digits 4
+            augmentation_score = Format-Decimal -Value ([double]$reviewed.augmentation_score) -Digits 4
+            automation_score = Format-Decimal -Value ([double]$reviewed.automation_score) -Digits 4
+            evidence_weight = Format-Decimal -Value (Get-EvidenceWeight -SourceRole 'reviewed_task_estimate' -HasTaskLevelEvidence $hasDirectTaskEvidence) -Digits 4
+            confidence = Format-Decimal -Value ([double]$reviewed.confidence) -Digits 4
+            promotion_status = Get-PromotionStatus -SourceRole 'reviewed_task_estimate'
+            notes = "reviewed_task_override|$($reviewed.notes)"
+        })
     }
 
     if ($taskBenchmarkByKey.ContainsKey($taskKey)) {
@@ -121,7 +154,7 @@ foreach ($task in $inventory) {
             exposure_score = Format-Decimal -Value $exposure -Digits 4
             augmentation_score = Format-Decimal -Value $augmentation -Digits 4
             automation_score = Format-Decimal -Value $automation -Digits 4
-            evidence_weight = Format-Decimal -Value (Get-EvidenceWeight -SourceRole 'benchmark_task_label') -Digits 4
+            evidence_weight = Format-Decimal -Value (Get-EvidenceWeight -SourceRole 'benchmark_task_label' -HasTaskLevelEvidence ($hasDirectTaskEvidence -or $hasReviewedTaskEstimate)) -Digits 4
             confidence = Format-Decimal -Value $confidence -Digits 4
             promotion_status = Get-PromotionStatus -SourceRole 'benchmark_task_label'
             notes = 'task_match|benchmark_task_label'
@@ -132,6 +165,8 @@ foreach ($task in $inventory) {
     if ($taskPriorByKey.ContainsKey($priorKey)) {
         $prior = $taskPriorByKey[$priorKey]
         $proxyAutomation = ([double]$prior.partial_automation_likelihood * 0.65) + ([double]$prior.high_automation_likelihood * 0.35)
+        $proxyBackstopped = $hasDirectTaskEvidence -or $hasBenchmarkTaskLabel -or $hasReviewedTaskEstimate
+        $proxyConfidence = Clamp (([double]$prior.evidence_confidence * $(if ($proxyBackstopped) { 0.68 } else { 0.92 }))) 0.15 0.95
         $taskSourceRows.Add([PSCustomObject]@{
             occupation_id = $task.occupation_id
             task_id = $task.task_id
@@ -140,10 +175,10 @@ foreach ($task in $inventory) {
             exposure_score = Format-Decimal -Value ([double]$prior.exposure_score) -Digits 4
             augmentation_score = Format-Decimal -Value ([double]$prior.augmentation_likelihood) -Digits 4
             automation_score = Format-Decimal -Value $proxyAutomation -Digits 4
-            evidence_weight = Format-Decimal -Value (Get-EvidenceWeight -SourceRole 'cluster_prior_proxy') -Digits 4
-            confidence = Format-Decimal -Value (Clamp (([double]$prior.evidence_confidence * 0.92)) 0.20 0.95) -Digits 4
-            promotion_status = Get-PromotionStatus -SourceRole 'cluster_prior_proxy'
-            notes = 'cluster_proxy|mapped_from_task_family'
+            evidence_weight = Format-Decimal -Value (Get-EvidenceWeight -SourceRole 'cluster_prior_proxy' -HasTaskLevelEvidence $proxyBackstopped) -Digits 4
+            confidence = Format-Decimal -Value $proxyConfidence -Digits 4
+            promotion_status = if ($proxyBackstopped) { 'backstop_only' } else { (Get-PromotionStatus -SourceRole 'cluster_prior_proxy') }
+            notes = if ($proxyBackstopped) { 'cluster_proxy|mapped_from_task_family|proxy_backstopped_by_task_evidence' } else { 'cluster_proxy|mapped_from_task_family' }
         })
     }
 }

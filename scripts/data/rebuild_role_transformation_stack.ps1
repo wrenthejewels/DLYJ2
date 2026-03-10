@@ -10,7 +10,8 @@ $scripts = @(
     'build_task_role_graph.ps1',
     'build_source_comparison_layer.ps1',
     'build_role_function_layer.ps1',
-    'build_role_transformation_scores.ps1'
+    'build_role_transformation_scores.ps1',
+    'build_role_explanations.ps1'
 )
 
 foreach ($scriptName in $scripts) {

@@ -252,6 +252,17 @@ sources:
     granularity: occupation_function_graph
     status: active_seed
     notes: 'First-pass role summary, function anchor, and accountability profile layer used to move from task exposure toward role transformation scoring.'
+  - source_id: src_role_function_expansion_2026_03
+    name: Role function expansion layer
+    category: role_function_structure
+    version_label: '2026-03-10 reviewed multi-anchor expansion'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_function_graph
+    status: active_targeted_review
+    notes: 'Reviewed supplemental function anchors for occupations where a single primary function was too reductive for the current role-transformation model.'
   - source_id: src_v2_cluster_prior_proxy_2026_03
     name: V2 cluster prior proxy
     category: task_exposure
@@ -263,6 +274,17 @@ sources:
     granularity: occupation_and_task
     status: active_supporting_derived
     notes: 'Derived task-level proxy built by attaching occupation-cluster priors to individual task inventory rows when direct task evidence is missing or partial.'
+  - source_id: src_reviewed_task_scoring_2026_03
+    name: Reviewed task scoring overrides
+    category: task_exposure
+    version_label: '2026-03-10 reviewed task estimates'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_and_task
+    status: active_targeted_review
+    notes: 'Reviewed task-level exposure, augmentation, and automation estimates used to reduce pure proxy dependence for thinly covered occupations.'
   - source_id: src_source_comparison_layer_2026_03
     name: Source comparison layer
     category: occupation_prior
@@ -285,6 +307,17 @@ sources:
     granularity: occupation_level
     status: active
     notes: 'First-pass function-aware role transformation output derived from task evidence, dependency structure, function anchors, and labor market context.'
+  - source_id: src_role_explanation_layer_2026_03
+    name: Role explanation layer
+    category: role_fate_scoring
+    version_label: '2026-03-10 occupation explanation summaries'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_level
+    status: active
+    notes: 'Derived explanation summaries that surface the strongest pressure signals, counterweights, function anchors, and evidence mix for each occupation-level role-transformation output.'
   - source_id: src_reviewed_role_calibration_2026_03
     name: Reviewed role calibration overrides
     category: role_fate_scoring

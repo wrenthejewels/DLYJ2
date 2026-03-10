@@ -28,7 +28,12 @@ function main() {
     'v2-bargaining-bundle',
     'v2-direct-bundle',
     'v2-indirect-bundle',
-    'v2-residual-bundle'
+    'v2-residual-bundle',
+    'v2-explanation-driver',
+    'v2-explanation-counterweight',
+    'v2-explanation-evidence',
+    'v2-explanation-review',
+    'v2-explanation-copy'
   ].forEach((id) => {
     assertIncludes(html, `id="${id}"`, 'index.html');
   });
@@ -37,6 +42,7 @@ function main() {
     'populateV2TaskInputs',
     'syncV2TaskSelectionState',
     'buildRoleFateMap',
+    'renderV2OccupationExplanation',
     'QUESTIONNAIRE_MODULES',
     'buildQuestionNode',
     "renderV2ClusterList('v2-bargaining-bundle'",

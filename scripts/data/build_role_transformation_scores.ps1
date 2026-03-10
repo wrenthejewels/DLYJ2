@@ -43,6 +43,7 @@ $occupations = Import-Csv (Join-Path $OutputDir 'occupations.csv')
 $taskInventory = Import-Csv (Join-Path $OutputDir 'occupation_task_inventory.csv')
 $dependencyEdges = Import-Csv (Join-Path $OutputDir 'task_dependency_edges.csv')
 $taskSourceEvidence = Import-Csv (Join-Path $OutputDir 'task_source_evidence.csv')
+$occupationFunctionMap = Import-Csv (Join-Path $OutputDir 'occupation_function_map.csv')
 $taskFunctionEdges = Import-Csv (Join-Path $OutputDir 'task_function_edges.csv')
 $functionProfiles = Import-Csv (Join-Path $OutputDir 'function_accountability_profiles.csv')
 $taskRoleProfiles = Import-Csv (Join-Path $OutputDir 'occupation_task_role_profiles.csv')
@@ -69,15 +70,12 @@ foreach ($row in $taskSourceEvidence) {
     $taskEvidenceByTaskId[$row.task_id].Add($row)
 }
 
-$functionEdgeByTaskId = @{}
-foreach ($row in $taskFunctionEdges) {
-    $functionEdgeByTaskId[$row.task_id] = $row
-}
-
-$functionProfileByOccupation = @{}
+$functionEdgesByTaskId = Group-ByKey -Rows $taskFunctionEdges -Key 'task_id'
+$functionProfilesByFunctionId = @{}
 foreach ($row in $functionProfiles) {
-    $functionProfileByOccupation[$row.occupation_id] = $row
+    $functionProfilesByFunctionId[$row.function_id] = $row
 }
+$functionMapByOccupation = Group-ByKey -Rows $occupationFunctionMap -Key 'occupation_id'
 
 $taskRoleProfileByOccupation = @{}
 foreach ($row in $taskRoleProfiles) {
@@ -118,11 +116,62 @@ foreach ($occupation in $occupations) {
         continue
     }
 
-    $profile = $functionProfileByOccupation[$occupation.occupation_id]
+    $functionMaps = if ($functionMapByOccupation.ContainsKey($occupation.occupation_id)) { $functionMapByOccupation[$occupation.occupation_id] } else { @() }
+    $profileWeightTotal = 0.0
+    $profileJudgment = 0.0
+    $profileTrust = 0.0
+    $profileRegulatory = 0.0
+    $profileAuthority = 0.0
+    $profileBargaining = 0.0
+    $profileConfidence = 0.0
+    $primaryOutputs = New-Object System.Collections.Generic.List[string]
+    $stakeholders = New-Object System.Collections.Generic.List[string]
+    $accountabilityStatements = New-Object System.Collections.Generic.List[string]
+    foreach ($functionMap in $functionMaps) {
+        if (-not $functionProfilesByFunctionId.ContainsKey($functionMap.function_id)) {
+            continue
+        }
+        $functionProfile = $functionProfilesByFunctionId[$functionMap.function_id]
+        $functionWeight = [double]$functionMap.function_weight
+        $profileWeightTotal += $functionWeight
+        $profileJudgment += $functionWeight * [double]$functionProfile.judgment_requirement
+        $profileTrust += $functionWeight * [double]$functionProfile.trust_requirement
+        $profileRegulatory += $functionWeight * [double]$functionProfile.regulatory_liability_weight
+        $profileAuthority += $functionWeight * [double]$functionProfile.human_authority_requirement
+        $profileBargaining += $functionWeight * [double]$functionProfile.bargaining_power_retention
+        $profileConfidence += $functionWeight * [double]$functionProfile.source_confidence
+        if (-not [string]::IsNullOrWhiteSpace([string]$functionProfile.primary_output)) {
+            $primaryOutputs.Add([string]$functionProfile.primary_output)
+        }
+        if (-not [string]::IsNullOrWhiteSpace([string]$functionProfile.primary_stakeholder)) {
+            $stakeholders.Add([string]$functionProfile.primary_stakeholder)
+        }
+        if (-not [string]::IsNullOrWhiteSpace([string]$functionProfile.accountability_statement)) {
+            $accountabilityStatements.Add([string]$functionProfile.accountability_statement)
+        }
+    }
+    if ($profileWeightTotal -le 0) {
+        $profileWeightTotal = 1.0
+    }
+    $profile = [PSCustomObject]@{
+        judgment_requirement = $profileJudgment / $profileWeightTotal
+        trust_requirement = $profileTrust / $profileWeightTotal
+        regulatory_liability_weight = $profileRegulatory / $profileWeightTotal
+        human_authority_requirement = $profileAuthority / $profileWeightTotal
+        bargaining_power_retention = $profileBargaining / $profileWeightTotal
+        source_confidence = $profileConfidence / $profileWeightTotal
+        primary_output = ($primaryOutputs | Select-Object -Unique) -join ' / '
+        primary_stakeholder = ($stakeholders | Select-Object -Unique) -join ' / '
+        accountability_statement = ($accountabilityStatements | Select-Object -Unique) -join ' / '
+    }
     $roleProfile = $taskRoleProfileByOccupation[$occupation.occupation_id]
     $adaptation = $adaptationByOccupation[$occupation.occupation_id]
     $labor = $laborByOccupation[$occupation.occupation_id]
     $benchmarkRows = if ($sourcePriorsByOccupation.ContainsKey($occupation.occupation_id)) { $sourcePriorsByOccupation[$occupation.occupation_id] } else { @() }
+    $functionWeightById = @{}
+    foreach ($functionMap in $functionMaps) {
+        $functionWeightById[$functionMap.function_id] = [double]$functionMap.function_weight
+    }
 
     $guardrail = Clamp (
         (0.30 * [double]$profile.judgment_requirement) +
@@ -223,11 +272,13 @@ foreach ($occupation in $occupations) {
             $routineHighPressureShare += $timeShare
         }
 
-        if ($functionEdgeByTaskId.ContainsKey($task.task_id)) {
-            $functionEdge = $functionEdgeByTaskId[$task.task_id]
-            $functionWeight = [double]$functionEdge.task_to_function_weight
-            $weightedFunctionPressure += $functionWeight * ((0.78 * [double]$taskMetrics.direct_pressure) + (0.22 * $indirectPressure))
-            $functionWeightTotal += $functionWeight
+        if ($functionEdgesByTaskId.ContainsKey($task.task_id)) {
+            foreach ($functionEdge in $functionEdgesByTaskId[$task.task_id]) {
+                $anchorWeight = if ($functionWeightById.ContainsKey($functionEdge.function_id)) { [double]$functionWeightById[$functionEdge.function_id] } else { 1.0 }
+                $functionWeight = [double]$functionEdge.task_to_function_weight * $anchorWeight
+                $weightedFunctionPressure += $functionWeight * ((0.78 * [double]$taskMetrics.direct_pressure) + (0.22 * $indirectPressure))
+                $functionWeightTotal += $functionWeight
+            }
         }
 
         foreach ($sourceId in (($taskMetrics.source_ids -split '\|') | Where-Object { $_ })) {
@@ -300,11 +351,15 @@ foreach ($occupation in $occupations) {
 
     [void]$sourceMixSet.Add('src_role_function_seed_2026_03')
     [void]$sourceMixSet.Add('src_role_transformation_model_2026_03')
+    if (@($functionMaps).Count -gt 1) {
+        [void]$sourceMixSet.Add('src_role_function_expansion_2026_03')
+    }
     if ($calibration) {
         [void]$sourceMixSet.Add('src_reviewed_role_calibration_2026_03')
     }
     $sourceMix = ($sourceMixSet | Sort-Object) -join '|'
     $calibrationNote = if ($calibration) { "|calibration=$($calibration.notes)" } else { '' }
+    $functionNote = "|function_anchors=$(@($functionMaps).Count)"
 
     $results.Add([PSCustomObject]@{
         occupation_id = $occupation.occupation_id
@@ -322,7 +377,7 @@ foreach ($occupation in $occupations) {
         role_transformation_type = $roleTransformationType
         confidence = Format-Decimal -Value $confidence -Digits 4
         source_mix = $sourceMix
-        notes = ('guardrail={0}|support_high_pressure={1}|routine_high_pressure={2}|benchmark_mean={3}{4}' -f (Format-Decimal -Value $guardrail -Digits 4), (Format-Decimal -Value $supportHighPressureShare -Digits 4), (Format-Decimal -Value $routineHighPressureShare -Digits 4), (Format-Decimal -Value $benchmarkMeanValue -Digits 4), $calibrationNote)
+        notes = ('guardrail={0}|support_high_pressure={1}|routine_high_pressure={2}|benchmark_mean={3}{4}{5}' -f (Format-Decimal -Value $guardrail -Digits 4), (Format-Decimal -Value $supportHighPressureShare -Digits 4), (Format-Decimal -Value $routineHighPressureShare -Digits 4), (Format-Decimal -Value $benchmarkMeanValue -Digits 4), $functionNote, $calibrationNote)
     })
 }
 

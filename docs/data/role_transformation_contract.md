@@ -41,9 +41,13 @@ Each row preserves one task and one source view with:
 
 Current source roles:
 - `live_task_evidence`
+- `reviewed_task_estimate`
 - `benchmark_task_label`
 - `cluster_prior_proxy`
 - `fallback_task_proxy`
+
+Current rule:
+- cluster and fallback proxies remain visible, but they are now down-weighted when stronger task-level evidence already exists for the same task
 
 ### `occupation_source_priors.csv`
 
@@ -58,23 +62,24 @@ This is the occupation-level comparison layer that keeps benchmarks visible with
 
 ### `role_functions.csv`
 
-Stores role summary and primary function anchors.
+Stores role summary and function anchors.
 
 Current first pass:
-- one primary function anchor per launch occupation
+- one primary function anchor for every launch occupation
+- reviewed supplemental anchors for a targeted multi-anchor subset where one function anchor was too reductive
 - role-family defaults for broad coverage
 - occupation-specific overrides for function-sensitive roles
 
 ### `occupation_function_map.csv`
 
-Binds each occupation to its function anchor and stores a `delegability_guardrail`.
+Binds each occupation to its function anchors and stores a `delegability_guardrail`.
 
 Interpretation:
 - higher guardrail means exposed tasks are less likely to eliminate the role outright because judgment, trust, authority, or liability still matter
 
 ### `task_function_edges.csv`
 
-Maps every normalized task to the occupation's function anchor.
+Maps every normalized task to one or more occupation function anchors.
 
 Key fields:
 - `task_to_function_weight`
@@ -85,6 +90,10 @@ Key fields:
 - `human_authority_requirement`
 
 This is the bridge between flat task exposure and role-level function retention.
+
+Current behavior:
+- tasks can now bind to more than one function anchor where a reviewed split is warranted
+- the scorer uses both the task-to-function edge weights and the occupation-level function weights when aggregating function pressure
 
 ### `function_accountability_profiles.csv`
 
@@ -112,6 +121,17 @@ Current metrics:
 - `delegation_likelihood`
 - `headcount_displacement_risk`
 - `role_transformation_type`
+
+### `occupation_role_explanations.csv`
+
+Derived explanation layer for each occupation-level transformation output.
+
+Use it to surface:
+- the strongest pressure signals
+- the strongest retained counterweight
+- the current function-anchor mix
+- the current evidence mix
+- which occupations should be reviewed next because proxy dependence is still high
 
 ### `pilot_role_transformation_calibration.csv`
 
@@ -160,7 +180,7 @@ The current stack now works like this:
 2. Attach all available source-specific task evidence.
 3. Aggregate direct task pressure per task.
 4. Add indirect pressure through dependency edges.
-5. Weight each task by how much it supports the role's function.
+5. Weight each task by how much it supports the role's function or functions.
 6. Preserve human guardrails through accountability, trust, liability, and authority.
 7. Produce role-transformation outputs instead of stopping at exposure.
 8. Apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
@@ -168,6 +188,7 @@ The current stack now works like this:
 ## Current limitations
 
 - Job-description evidence now covers all `34` modeled occupations.
-- Function graphs currently use one primary function node per occupation.
+- Multi-anchor function coverage exists only for a reviewed subset of occupations.
 - The transformation output is still a first-pass model and still depends on role-family defaults, benchmark floors, and cluster-prior proxies under the reviewed overrides.
+- The new explanation layer is still review-facing; it is not yet surfaced directly in the end-user product.
 - The live questionnaire layer still reflects an older friction-oriented runtime design and has not yet been fully reworked to map onto the new role-function model.

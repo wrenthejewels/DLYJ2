@@ -1138,6 +1138,19 @@ function renderV2OccupationAssignment(assignment) {
     );
 }
 
+function renderV2OccupationExplanation(explanation) {
+    safeSetText('v2-explanation-driver', explanation ? [explanation.primary_driver, explanation.secondary_driver].filter(Boolean).join(' + ') : '-');
+    safeSetText('v2-explanation-counterweight', explanation ? explanation.primary_counterweight || '-' : '-');
+    safeSetText('v2-explanation-evidence', explanation ? explanation.evidence_profile || '-' : '-');
+    safeSetText('v2-explanation-review', explanation ? formatV2Label(explanation.review_priority) : '-');
+    safeSetText(
+        'v2-explanation-copy',
+        explanation?.explanation_summary
+            ? `${explanation.explanation_summary} This is the current audit summary generated from the occupation explanation layer.`
+            : 'Choose a mapped occupation to see the plain-English audit summary for the current role readout.'
+    );
+}
+
 function renderV2RecompositionSummary(summary) {
     safeSetText('v2-recomposition-label', summary ? summary.summary_label || '-' : '-');
     safeSetText('v2-recomposition-compression', summary ? formatBandMetric(summary.workflow_compression, summary.workflow_compression_band, [0.25, 0.5], ['Low', 'Moderate', 'High']) : '-');
@@ -1324,6 +1337,11 @@ function resetV2Results(message, detail) {
     safeSetText('v2-task-confidence', '-');
     safeSetText('v2-prior-confidence', '-');
     safeSetText('v2-evidence-notes', 'Choose a mapped occupation to see how evidence strength, personalization signal, occupation anchoring, and task coverage are scored.');
+    safeSetText('v2-explanation-driver', '-');
+    safeSetText('v2-explanation-counterweight', '-');
+    safeSetText('v2-explanation-evidence', '-');
+    safeSetText('v2-explanation-review', '-');
+    safeSetText('v2-explanation-copy', 'Choose a mapped occupation to see the plain-English audit summary for the current role readout.');
     safeSetText('v2-map-subtitle', "This map starts from the current task mix, then shows which tasks hold bargaining power, face direct AI pressure, lose value through spillover, or remain central to the retained role.");
     safeSetText('v2-task-note', 'This view reorders the selected occupation\'s task inventory as your task picks and role-refinement answers change role share, pressure, spillover, and retained leverage.');
     safeSetText('v2-recomposition-conversion', '-');
@@ -1334,6 +1352,7 @@ function resetV2Results(message, detail) {
     });
     renderV2LaborMarketContext(null, '');
     renderV2OccupationAssignment(null);
+    renderV2OccupationExplanation(null);
     renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped occupation to populate the current bundle.' });
     renderV2ClusterList('v2-bargaining-bundle', [], { emptyText: 'Bargaining-power tasks appear once the role view is active.' });
     renderV2ClusterList('v2-direct-bundle', [], { emptyText: 'Direct pressure appears once the role view is active.' });
@@ -1460,6 +1479,7 @@ async function updateV2Results(options = {}) {
     );
     renderV2RecompositionSummary(result.recomposition_summary);
     renderV2OccupationAssignment(result.occupation_assignment);
+    renderV2OccupationExplanation(result.occupation_explanation);
     renderV2LaborMarketContext(result.labor_market_context, result.selected_occupation_title);
     renderV2ClusterList('v2-current-bundle', roleFateMap.current_role, {
         shareKey: 'signal_share',
