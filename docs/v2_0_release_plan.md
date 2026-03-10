@@ -2,189 +2,168 @@
 
 ## Purpose
 
-This document is the current source of truth for the next `2.0` redesign pass.
+This document is the current source of truth for the `2.0` role-fate rollout state.
 
-That pass replaces the interim role-transformation briefing with a `Role Fate Map` built on better task coverage, explicit task dependencies, and clearer public role outcomes.
+It replaces the older redesign-plan version of this file and reflects what is now live in the repo.
 
 ## Product Goal
 
-`2.0` should answer:
+`2.0` now aims to answer:
 - what the role is made of today
 - which tasks carry bargaining power
 - which tasks face direct AI pressure
-- which supporting tasks weaken because they depend on exposed core work
-- whether the role is more likely to augment, compress, elevate, split, expand, or collapse
+- which tasks weaken because they depend on exposed work
+- what organizational fate the role most likely moves toward
 
-The product should not lead with:
-- timing forecasts
-- generic exposure labels without task grounding
-- unexplained structural metrics such as `coherence`
+## Current Shipped State
 
-## Locked Product Decisions
+The repo now ships a working role-fate implementation with:
+- occupation-specific task inventory inputs
+- seeded + manually expanded task-role graph coverage
+- direct and indirect task-pressure scoring
+- calibrated `Role Fate` labels
+- a task-derived `Role Fate Map`
+- narrative drivers and counterweights
 
-- The new public ontology is `Role Fate`, not the old five-card briefing.
-- Default intake follows `progressive depth`: light by default, more structured if the user wants it.
-- First-wave data strategy is `public sources + internal curation`.
-- First-wave user evidence is structured task selection, not freeform document upload.
-- Demand expansion remains a first-class modifier, but not the main headline ontology.
-- The public role-fate taxonomy is:
-  - `Augmented`
-  - `Compressed`
-  - `Elevated`
-  - `Split`
-  - `Expanded`
-  - `Collapsed`
-  - `Mixed transition`
-
-## Current Repo State
-
-The current live homepage is still an interim `2.0` result:
-- it uses occupation-specific tasks, but task coverage is often thin
-- it still relies on a flat task list plus cluster-level structure
-- it uses a lightweight dependency proxy instead of a task graph
-- it still exposes internal concepts such as residual-bundle quality too indirectly for public use
-
-Current task-data snapshot:
-- `669` normalized task rows across `33` occupations with task rows present
-- average `20.3` task rows per covered occupation
-- median `20`
-- minimum `11`
-- one mapped occupation currently has no normalized task rows:
-  - `Business Operations Specialists, All Other`
-
-Thin-coverage occupations already visible in the current normalized layer include:
-- `Management Analysts` (`11` task rows)
-- `Paralegals and Legal Assistants` (`12`)
-- `Market Research Analysts and Marketing Specialists` (`13`)
-- `Customer Service Representatives` (`13`)
-- `Statistical Assistants` (`14`)
-- `Technical Writers` (`15`)
-- `Sales Representatives of Services...` (`15`)
-
-## Workstreams
+## Workstream Status
 
 ### 1. Result-surface redesign
 
-Replace the current verdict surface with:
-- current role breakdown
-- role fate map
-- bargaining-power summary
-- direct pressure tasks
-- indirect spillover tasks
-- retained leverage summary
-
 Status:
-- spec approved
-- implementation not started
+- implemented
+
+Current state:
+- role-fate headline is live
+- role-fate confidence is live
+- five-column role-fate map is live
+- structured narrative cards are live
+- task-level breakdown is live
+
+Still open:
+- return `role_fate_map` directly from the engine instead of building it in the client
+- add task-level source drill-down
 
 ### 2. Task-data foundation
 
-Add the data needed for fuller role coverage:
-- richer canonical task inventories
-- core vs supporting task labels
-- value-centrality / bargaining-power annotations
-- task dependency edges
-
 Status:
-- first-step contract documented in `docs/data/task_role_graph_contract.md`
-- scaffold CSVs added under `data/normalized/`
-- seeded role-graph generator added at `scripts/data/build_task_role_graph.ps1`
-- current seeded outputs:
-  - `710` task inventory rows
-  - `986` dependency edges
-  - `34` occupation role profiles
-  - all `34` launch occupations now have task inventory coverage
+- implemented baseline
+
+Current state:
+- task-role graph contract documented
+- seeded role-graph build script live
+- manual task and dependency expansions added for thin occupations
+- normalized layer now includes:
+  - `occupation_task_inventory.csv`
+  - `task_dependency_edges.csv`
+  - `occupation_task_role_profiles.csv`
+
+Current snapshot:
+- `710` task inventory rows
+- `986` dependency edges
+- `34` occupation role profiles
+- all `34` launch occupations covered
+
+Still open:
+- more manual review of seeded weights
+- stronger evidence and dependency coverage per occupation
 
 ### 3. Intake redesign
 
-Replace the current direct-input block with a structured task-intake flow:
-- high-time tasks
-- value-defining tasks
-- AI-supported tasks
-- AI-danger tasks
-- support-task dependencies
-- residual-role distinctiveness
-
 Status:
-- approved in `docs/v2_0_questionnaire_spec.md`
-- implementation not started
+- phase 1 implemented
+
+Current state:
+- category, occupation, and hierarchy remain the anchor
+- five structured task selectors are live:
+  - primary current task
+  - secondary current task
+  - value-defining task
+  - AI-assisted task
+  - support/spillover task
+- duplicate task picks are blocked in the client
+
+Still open:
+- weighted task-share buckets
+- explicit AI-danger task prompt
+- user-declared task dependency links
+- retained-role distinctiveness prompt
 
 ### 4. Engine redesign
 
-Replace the current wave-first scoring with a role-fate model driven by:
-- direct exposure pressure
-- indirect dependency pressure
-- residual role integrity
-- elevation potential
-- split risk
-- demand expansion modifier
-
 Status:
-- task-role graph is now wired into `v2_engine.js`
-- direct and indirect pressure now affect task breakdown, dependency penalty, and residual-role diagnostics
+- implemented baseline
+
+Current state:
+- cluster shares blend occupation task-cluster priors with task-inventory summaries
+- questionnaire answers map into:
+  - `capabilitySignal`
+  - `couplingProtection`
+  - `adoptionPressure`
+  - friction dimensions
+- task-role graph scoring now produces:
+  - `direct_exposure_pressure`
+  - `indirect_dependency_pressure`
+  - `retained_leverage_score`
+  - `residual_role_integrity`
+- role-fate classifier now emits:
+  - `role_fate_state`
+  - `role_fate_label`
+  - `role_fate_confidence`
+  - `role_fate_readout`
+  - `fate_drivers`
+  - `fate_counterweights`
+
+Still open:
+- explicit `split_risk`, `collapse_risk`, and `elevation_potential` fields
+- formal calibration set beyond the current anchor occupations
 
 ### 5. Documentation rewrite
 
-Rewrite user-facing methodology and guide pages after the new result contract is live enough to document faithfully.
+Status:
+- implemented for v2 docs and methodology
 
-## Near-Term Sequence
+Current state:
+- `docs/v2_0_results_spec.md` updated to the live contract
+- `docs/v2_0_questionnaire_spec.md` updated to the live intake
+- `method2/index.html` updated to describe the live math and functional flow
 
-1. lock the v2 docs around the role-fate ontology
-2. audit task coverage and define the task/dependency contract
-3. extend the normalized layer for role-task graph support
-4. redesign the task intake to populate the new contract
-5. replace the current outlook calculation with role-fate scoring
-6. redesign the results surface around the new ordering and language
-7. rewrite guide and methodology pages to match the shipped model
+Still open:
+- align `guide2` with the calibrated role-fate surface
+- add source references on the methodology page if desired
 
-## Acceptance Criteria
+## Current Validation Layer
 
-`2.0` is ready for the redesign cutover when:
+The repo now includes:
+- `scripts/test_v2_engine.js`
+- `scripts/test_role_fate_calibration.js`
+- `scripts/test_v2_ui_contract.js`
 
-1. the page shows current role makeup before the verdict
-2. the page clearly distinguishes direct AI pressure from indirect dependency spillover
-3. the page identifies bargaining-power tasks explicitly
-4. the public result never uses `coherence`
-5. the engine can output one of the locked role-fate states with confidence
-6. the task inventory for launch occupations is no longer obviously skeletal
-7. labor-market context remains secondary to role-structure explanation
+Current validation coverage:
+- engine payload integrity
+- task-inventory access
+- task-input propagation
+- anchor occupation role-fate calibration
+- UI contract for the new task selectors and role-fate columns
 
-## Current Source Strategy
+## Recommended Next Sequence
 
-Use:
-- `O*NET` as the task-structure spine
-- `Anthropic Economic Index` as the main task-level AI evidence layer
-- `BLS` as labor-market context
-- internal curation where public task coverage is too thin or too generic
+1. run a broader occupation review sheet across all launch roles
+2. add weighted task-share controls
+3. surface task-level evidence citations in the UI
+4. move more of the client-built role-fate map into the engine contract
 
-Candidate additions for this redesign phase:
-- O*NET Detailed Work Activities
-- BLS Occupational Outlook narrative task descriptions
-- ESCO occupation-skill/task structure
+## Release Readiness Read
 
-Do not make these headline scoring inputs in the first pass:
-- benchmark-only comparison layers
-- freeform user documents
-- labor-demand forecasting equations
+The `2.0` role-fate pass is now good enough for continued iteration, but not final.
 
-## Session Update - 2026-03-10-D
+Main reasons:
+- the ontology is now consistent
+- the public result is materially clearer than the earlier exposure/residual surface
+- the data layer supports dependency-driven spillover
+- the classifier has an initial calibrated spread across multiple fate states
 
-- completed:
-  - approved the `Role Fate Map` redesign plan
-  - replaced the v2 results and questionnaire specs with the new ontology
-  - documented a first-step task/dependency data contract
-  - added normalized CSV scaffolds for the task-role graph layer
-  - added and ran a seeded role-graph build script to populate the new normalized files
-  - extended normalized-data validation to cover the new role-graph files
-  - added manual role-graph task and dependency expansions for previously thin occupations
-  - wired `v2_engine.js` to consume the role-graph inventory and dependency edges during scoring
-- changed decisions:
-  - `Role Fate` replaces the old public five-card framing
-  - explicit indirect task risk is now a first-class requirement
-  - task coverage quality is now a blocker for trustworthy role-fate outputs
-- new blockers:
-  - the intake does not yet collect value-defining tasks or support-task dependencies
-  - the public UI still renders the older briefing contract rather than the full role-fate surface
-  - role-graph weights remain seeded heuristics and still need review or calibration
-- next recommended step:
-  - redesign the intake and result surface so users can select value-defining work and see direct pressure, indirect spillover, bargaining-power tasks, and retained leverage explicitly
+Main remaining risks:
+- task weights are still partly seeded heuristics
+- user task composition is still too coarse
+- source drill-down is not yet visible in the UI
+- manual browser QA across devices and occupations is still needed

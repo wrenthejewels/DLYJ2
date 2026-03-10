@@ -2,373 +2,236 @@
 
 ## Purpose
 
-This document defines the intake for the `Role Fate Map` redesign.
+This document describes the current live intake contract for the `2.0` role-fate model.
 
-The intake should no longer behave like a lightly repurposed hazard questionnaire. It should gather enough structure to:
-- identify what the role actually consists of
-- distinguish high-time tasks from high-value tasks
-- identify which tasks already benefit from AI
-- identify which support tasks depend on exposed core work
-- estimate whether the role compresses, elevates, splits, expands, or collapses
+It replaces the earlier aspirational intake spec. The live intake is now a hybrid:
+- occupation anchoring
+- five structured task selectors
+- the legacy questionnaire, reinterpreted as a scoring layer
 
-## Core Design Principle
+## Current Intake Flow
 
-The intake should follow `progressive depth`.
+The live page collects inputs in this order:
 
-Default users should answer a short, legible set of structured questions.
-Power users should be able to go deeper without needing freeform uploads.
+1. broad role category
+2. occupation anchor
+3. hierarchy / seniority
+4. optional structured task detail
+5. optional legacy questionnaire
 
-The default path should feel light.
-The optional path should feel materially more specific.
+## Current Structured Task Inputs
 
-## Recommended Intake Structure
+The live direct-input block in `index.html` now exposes five occupation-specific selectors:
 
-The redesigned intake has six sections:
+1. `Primary current task`
+2. `Secondary current task`
+3. `Value-defining task`
+4. `Task already helped by AI`
+5. `Support task tied to exposed work`
 
-1. role anchoring
-2. task composition
-3. value and bargaining power
-4. AI pressure and support
-5. dependency and residual integrity
-6. adaptation and demand context
+These selectors are populated from `engine.getTaskInventory(selectedOccupationId)`.
 
-Public-surface rule:
-- category, occupation, and hierarchy remain the front-door defaults
-- structured task composition follows immediately after anchoring
-- deeper task-detail inputs stay optional
-- freeform pasted documents are not part of the first redesign
+## Current Runtime Mapping
 
-## Section 1: Role Anchoring
+The client translates those five selectors into this runtime input contract:
 
-Purpose:
-- choose the best occupation prior before personalization
+```ts
+type DirectTaskInputs = {
+  dominantTaskIds: string[]
+  roleCriticalTaskIds: string[]
+  aiSupportTaskIds: string[]
+  supportTaskIds: string[]
+  dominantTaskClusters: string[]
+  roleCriticalClusters: string[]
+}
+```
 
-Fields:
+The current translation logic is:
+- `Primary current task` + `Secondary current task` -> `dominantTaskIds`
+- `Value-defining task` -> `criticalTaskIds`
+- `Task already helped by AI` -> `aiSupportTaskIds`
+- `Support task tied to exposed work` -> `supportTaskIds`
+- selected task-family ids are derived from the chosen task options and used to tilt cluster weights
 
-### R1. Broad role category
+## Current Engine Effect Of Task Inputs
 
-Use the current role-category set from `index.html`.
+The engine currently applies those task inputs in four places:
 
-Maps to:
-- `selected_role_category`
-- occupation suggestions
+### 1. Cluster-share tilting
 
-### R2. Occupation candidate selection
+Selected task-family ids are converted into cluster overrides:
+- `+0.16` for dominant clusters
+- `+0.10` for role-critical clusters
 
-After category selection, show:
-- `2-3` suggested occupation matches
-- search across all mapped occupations
+These weights are passed through `buildTaskOverrides(...)` before cluster normalization.
 
-Maps to:
-- `selected_occupation_id`
-- `selected_occupation_title`
+### 2. Task-share reweighting
 
-### R3. Seniority / scope
+Selected task rows receive multiplicative share boosts:
+- dominant task: `+0.40`
+- critical task: `+0.12`
+- support task: `+0.18`
 
-Retain the current hierarchy concept, but interpret it as:
-- span of control
-- decision authority
-- retained-role leverage
+The task shares are then renormalized across the role.
 
-Maps to:
-- `elevation_potential`
-- `demand_expansion_modifier`
-- `personalization_fit`
+### 3. Task-pressure adjustment
 
-## Section 2: Task Composition
+Current task-input effects on task-level scoring:
+- critical task:
+  - raises `bargaining_power_weight`
+  - raises `value_centrality`
+  - promotes the task toward `core`
+- AI-assisted task:
+  - raises `ai_support_observability`
+  - lowers direct pressure slightly
+  - raises retained leverage slightly
+- support/spillover task:
+  - raises indirect dependency pressure
+  - raises dependency penalty
 
-Purpose:
-- estimate the user's actual role makeup inside the selected occupation
+### 4. Role-fate interpretation
 
-This is the most important section in the redesign.
-
-### Default fields
-
-#### T1. Top task families by time share
-
-Ask the user to choose the `3-5` task families that dominate their time.
-
-Maps to:
-- `role_fate_map.current_role`
-- `direct_exposure_pressure`
-
-#### T2. Concrete tasks you spend the most time on
-
-Show a structured picker of occupation-specific tasks.
-
-Allow the user to:
-- choose up to `5` high-time tasks
-- optionally mark one as `most of my week`
-
-Maps to:
-- `current_share`
-- task-level weights inside the selected occupation
-
-### Optional deepening
-
-#### T3. Task weighting refinement
-
-Allow the user to rebalance the selected tasks into rough buckets:
-- `small share`
-- `meaningful share`
-- `dominant share`
-
-This is intentionally bucketed, not a percent-entry UI.
-
-## Section 3: Value And Bargaining Power
-
-Purpose:
-- separate time share from value share
-
-### Required fields
-
-#### V1. Which tasks most explain why the role exists?
-
-Ask the user to pick up to `3` tasks that define the role's value.
-
-Maps to:
-- `bargaining_power_tasks`
-- `value_centrality`
-- `collapse_risk`
-
-#### V2. Which tasks would still matter if AI handled the admin work?
-
-Ask the user to select the tasks that still justify a distinct role after routine work is removed.
-
-Maps to:
-- `retained_leverage`
-- `residual_role_integrity`
-- `elevation_potential`
-
-## Section 4: AI Pressure And Support
-
-Purpose:
-- separate tasks AI directly pressures from tasks AI currently helps with
-
-### Required fields
-
-#### A1. Which tasks already get faster with AI or software?
-
-Ask the user to select tasks already accelerated by tools.
-
-Maps to:
-- `pressure_mode`
-- `demand_expansion_modifier`
-- augmentation vs substitution interpretation
-
-#### A2. Which tasks would be dangerous if AI became very good at them?
-
-Ask the user to select tasks whose automation would weaken bargaining power or role necessity.
-
-Maps to:
-- `exposed_core_share`
-- `collapse_risk`
-- `split_risk`
-
-### Reused legacy questions
-
-Keep and reinterpret:
-- `Q1` observed AI capability
-- `Q2` example-work availability
-- `Q3` benchmark clarity
-- `Q4` task digitization
-- `Q5` decomposability
-- `Q6` standardization
-- `Q8` feedback speed
-
-These remain supporting calibration questions rather than the visible center of the intake.
-
-## Section 5: Dependency And Residual Integrity
-
-Purpose:
-- capture indirect task risk and whether the remaining work still forms a role
-
-### New structured fields
-
-#### D1. Which tasks mainly exist to support other tasks?
-
-Allow the user to mark selected tasks as:
-- `core`
-- `supporting`
-- `mixed`
-
-Maps to:
-- `role_criticality`
-- dependency-edge weighting
-
-#### D2. If AI handled the exposed tasks, what happens to the supporting work?
-
-Ask the user to choose for each marked support task:
-- `mostly stays`
-- `shrinks a lot`
-- `mostly disappears`
-
-Maps to:
-- `indirect_dependency_pressure`
-- `residual_role_integrity`
-
-#### D3. Would the remaining work still justify a distinct role?
-
-This becomes a first-class question and should be visible.
-
-Maps to:
-- `residual_role_integrity`
+These task selections indirectly affect:
 - `role_fate_state`
+- `role_fate_label`
+- `role_fate_confidence`
+- `fate_drivers`
+- `fate_counterweights`
 
-### Reused legacy questions
+## Current Questionnaire Layer
 
-Keep and reinterpret:
-- `Q7` context dependency
-- `Q9` tacit knowledge
-- `Q10` residual bundle fragility
-- `Q11` human judgment / relationship load
-- `Q12` physical presence
+The live engine still consumes this legacy answer set:
+- `Q1`
+- `Q2`
+- `Q3`
+- `Q4`
+- `Q5`
+- `Q6`
+- `Q7`
+- `Q8`
+- `Q9`
+- `Q11`
+- `Q12`
+- `Q13`
+- `Q14`
+- `Q16`
 
-## Section 6: Adaptation And Demand Context
+Questions not currently active in the live engine:
+- `Q10`
+- `Q15`
+- `Q17`
+- `Q18`
+- `Q19`
 
-Purpose:
-- estimate retained-role fit and whether AI expands output or span of control
+## Current Composite Signals
 
-### Required fields
+The live engine maps questionnaire answers into these composites:
 
-#### F1. If routine work shrank, would your role move up toward review, coordination, or decision-making?
+```ts
+capabilitySignal = avg(Q1, Q4, Q8)
+couplingProtection = avg(Q7, Q9, Q11, Q12)
+adoptionPressure = avg(Q13, Q14, Q16)
+```
 
-Maps to:
-- `elevation_potential`
-- `role_fate_state`
+It also derives bundle friction dimensions:
+- `exception_burden = avg(1-Q5, 1-Q6, Q7, Q9)`
+- `accountability_load = avg(Q7, Q11)`
+- `judgment_requirement = avg(Q7, Q9, Q11)`
+- `document_intensity = avg(Q2, Q3, Q4, Q8)`
+- `tacit_context_dependence = avg(Q7, Q9, Q12)`
 
-#### F2. Would AI let you serve more clients, projects, or scope with the same team?
+All answers are first normalized to `[0, 1]`.
 
-Maps to:
+## Current Functional Interpretation By Section
+
+### Role Anchoring
+
+Current live fields:
+- category
+- occupation
+- hierarchy
+
+These drive:
+- occupation resolution
+- occupation candidate ranking
+- seniority signal
+- part of elevation and retained-role logic
+
+### Task Composition
+
+Current live fields:
+- primary task
+- secondary task
+
+These drive:
+- cluster-share tilting
+- task-share reweighting
+- visible current-role rows
+
+### Value And Bargaining Power
+
+Current live field:
+- value-defining task
+
+This drives:
+- role-critical cluster weighting
+- task-level bargaining power weighting
+- retained leverage
+- role-defining task selection
+
+### AI Pressure And Support
+
+Current live field:
+- AI-assisted task
+
+This drives:
+- lower direct pressure on the selected task
+- higher augmentation interpretation
+- slightly stronger retained leverage
+
+### Dependency And Spillover
+
+Current live field:
+- support task tied to exposed work
+
+This drives:
+- higher indirect dependency pressure
+- higher dependency penalty
+- stronger split/compression pressure in the role-fate classifier
+
+### Adaptation And Demand Context
+
+Current live fields:
+- hierarchy
+- `Q13`, `Q14`, `Q16`
+
+These drive:
+- `adoptionPressure`
 - `demand_expansion_modifier`
-- `role_fate_state = expanded`
+- part of `role_fate_state`
 
-### Reused legacy questions
+## Current UX Rules
 
-Keep:
-- `Q13` organization AI adoption readiness
-- `Q14` labor cost pressure
-- `Q16` workflow integration readiness
-- `Q17` skill transferability
-- `Q18` adaptability / learning
-- `Q19` job performance
+The live UI now enforces these behaviors:
+- task selectors are occupation-specific
+- duplicate task picks across the five selectors are disabled in the client
+- all five task selectors are optional
+- if no task is chosen, the engine falls back to the occupation prior
 
-De-emphasize:
-- `Q15` labor market tightness as a primary role-fate driver
+## Current Gaps
 
-## Question Versioning
+Still missing from the intake relative to the broader redesign:
+- weighted task-share buckets
+- explicit `AI-danger task` selection separate from `value-defining task`
+- user-authored dependency links between chosen tasks
+- direct residual-role-distinctiveness question
+- deeper retained-role / span-of-control prompts
 
-Do not present the intake publicly as `Q1-Q19`.
+## Next Intake Work
 
-Public grouping should be:
-- `Role`
-- `Task makeup`
-- `What creates value`
-- `AI pressure`
-- `Role integrity`
-- `Fit and expansion`
+Recommended next changes:
 
-Internally:
-- keep compatibility mapping while the live engine still expects legacy fields
-- add a translation layer from the new task-structured inputs into the existing runtime contract
-
-## Field-Level Mapping To Result
-
-### `role_fate_state`
-
-Depends on:
-- top task families
-- concrete high-time tasks
-- value-defining tasks
-- support-task dependencies
-- residual-role distinctiveness
-- AI-danger tasks
-- retained-role elevation path
-- demand expansion inputs
-
-### `bargaining_power_tasks`
-
-Depends on:
-- value-defining tasks
-- retained-role tasks
-- judgment / relationship inputs
-
-### `directly_pressured_tasks`
-
-Depends on:
-- occupation task priors
-- AI-support and AI-danger selections
-- exposure-condition questions
-
-### `indirectly_at_risk_tasks`
-
-Depends on:
-- support-task marking
-- dependency responses
-- residual integrity questions
-
-### `residual_role_integrity`
-
-Depends on:
-- retained-role tasks
-- context dependency
-- tacit knowledge
-- support-task dependency outcomes
-- distinct-role question
-
-### `demand_expansion_modifier`
-
-Depends on:
-- AI-support selections
-- scope / span-of-control question
-- seniority
-- adoption context
-
-## MVP Implementation Strategy
-
-Phase 1:
-- keep category, occupation, and hierarchy
-- replace the current direct task-family inputs with a structured task-composition block
-- add value-defining-task selection
-- add support-task and residual-distinctiveness questions
-
-Phase 2:
-- let users mark dependency relationships between a small set of chosen tasks
-- introduce task-bucket weighting for deeper users
-
-Phase 3:
-- consider optional document-assisted intake only after the structured path is stable
-
-## Keep / Change / Drop Summary
-
-### Keep, but demote
-
-- most legacy exposure and context questions
-
-### Keep, but reinterpret heavily
-
-- `Q7`, `Q9`, `Q10`, `Q11`, `Q12`
-
-### Add as first-class structured inputs
-
-- concrete high-time task selection
-- value-defining task selection
-- AI-support task selection
-- AI-danger task selection
-- support-task marking
-- residual-role distinctiveness
-- span-of-control / demand expansion
-
-### Exclude from the first redesign
-
-- freeform uploads
-- pasted job descriptions as a required input
-- any path that forces the user to enter exact percentages
-
-## Next Dependency
-
-The next required step is to connect this intake to a richer task data layer with:
-- fuller task inventories
-- task dependency edges
-- value-centrality annotations
-- support-vs-core annotations
+1. replace single task picks with rough weighted task buckets
+2. add explicit `if AI got very good at this task, would bargaining power break?` prompts
+3. let users declare a small number of dependency links between their chosen tasks
+4. introduce a visible retained-role-distinctiveness question instead of inferring all of it from structure

@@ -2,204 +2,71 @@
 
 ## Purpose
 
-This document locks the next `2.0` results-page redesign.
+This document describes the current live `2.0` results contract as implemented in:
+- `v2_engine.js`
+- `app.js`
+- `index.html`
 
-The redesign replaces the current `current -> exposed -> residual` framing with a `Role Fate Map` that:
-- starts from the user's current role makeup
-- separates direct AI pressure from indirect dependency spillover
-- identifies which tasks carry bargaining power
-- explains the likely organizational fate of the role
+It replaces the earlier redesign-target version of this spec.
 
-This is a product and implementation spec, not public copy.
+## Current Public Result Order
 
-## Core Result Principle
-
-The public result should answer, in this order:
-
-1. what your role is made of today
-2. which tasks actually carry bargaining power
-3. which tasks face direct AI pressure
-4. which other tasks lose value because they support exposed core work
-5. what the role most likely becomes inside an organization
-
-The result should not lead with:
-- timing claims
-- raw structural jargon such as `coherence`
-- generic task-cluster labels without task-level grounding
-- binary replace / not replace framing
-
-## Public Page Structure
-
-The default page order is:
+The live page now renders results in this order:
 
 1. role summary header
-2. current role breakdown
-3. primary `Role Fate Map`
-4. bargaining-power and risk-driver summary
-5. structured narrative explanation
-6. labor-market context panel
-7. collapsed `Show model details` section
+2. role fate headline with confidence
+3. wave trajectory cards
+4. structured narrative cards
+5. `Role Fate Map`
+6. task-level breakdown
+7. recomposition summary
+8. occupation assignment and evidence summary
+9. labor-market context
 
-The page should show the current task makeup before the verdict. Users need to see what is important in the role before the model explains what changes.
+The page still exposes wave trajectory as a secondary surface, but the primary public ontology is now `Role Fate`.
 
-## Header
+## Current Headline Surface
 
-The result header should display:
-- selected broad role category
-- chosen occupation anchor
-- one-line summary of the likely role fate
+The live headline surface shows:
+- `role_fate_label`
+- `role_summary`
+- `role_fate_confidence`
+- top task under direct pressure
+- primary displacement wave
+- retained leverage tier
+- personalization-fit tier
 
-Example summary patterns:
-- `AI is more likely to compress the execution layer of this role than remove the role outright.`
-- `Your bargaining power stays concentrated in judgment-heavy and coordination-heavy work.`
-- `If AI becomes strong on the role's core value tasks, this role is vulnerable to collapse rather than simple augmentation.`
+## Current Role Fate Map
 
-## Primary Headline Surface
+The live `Role Fate Map` is rendered in the client from `task_breakdown.tasks`.
 
-The old five-card briefing should be retired from the default public surface.
-
-Default public treatment:
-- one dominant `Role Fate` verdict
-- one short summary paragraph
-- four compact supporting readouts:
-  - `Core bargaining-power tasks`
-  - `Directly pressured tasks`
-  - `Indirectly at-risk support tasks`
-  - `What still anchors the role`
-
-### 1. Role Fate
-
-Type:
-- text label plus confidence
-
-Purpose:
-- communicate the most likely organizational outcome if AI capability continues to improve on the exposed parts of the role
-
-Allowed values:
-- `Augmented`
-- `Compressed`
-- `Elevated`
-- `Split`
-- `Expanded`
-- `Collapsed`
-- `Mixed transition`
-
-Definitions:
-- `Augmented`: AI speeds up meaningful parts of the role, but bargaining-power tasks remain human-led
-- `Compressed`: the role stays structurally similar, but fewer workers are needed
-- `Elevated`: lower-level execution compresses and the retained role becomes more judgment-heavy, coordinating, or supervisory
-- `Split`: the role separates into a smaller high-value core plus lower-cost execution work
-- `Expanded`: AI increases span of control, output, or demand enough to offset substitution pressure
-- `Collapsed`: the role's core organizational reason to exist weakens materially if AI performs the key value-defining tasks
-- `Mixed transition`: the model sees multiple plausible trajectories without a dominant state
-
-### 2. Core Bargaining-Power Tasks
-
-Type:
-- ranked task list
-
-Purpose:
-- show which tasks most explain why the role exists and why the worker keeps leverage
-
-For each row, show:
-- task statement
-- value importance
-- current share
-- durability note
-
-### 3. Directly Pressured Tasks
-
-Type:
-- ranked task list
-
-Purpose:
-- show which tasks face the highest direct automation or substitution pressure
-
-For each row, show:
-- task statement
-- current share
-- direct pressure level
-- likely mode (`augmentation`, `automation`, `mixed`)
-
-### 4. Indirectly At-Risk Support Tasks
-
-Type:
-- ranked task list
-
-Purpose:
-- show tasks that are not directly easy for AI, but are tied to exposed core tasks
-
-For each row, show:
-- task statement
-- supporting relationship
-- dependent exposed task
-- indirect risk level
-
-### 5. What Still Anchors The Role
-
-Type:
-- short structured summary
-
-Purpose:
-- explain what work still justifies the role after direct and indirect pressure are applied
-
-Use `residual_role_integrity` in the engine, but never expose `coherence` as public terminology.
-
-## Primary Visualization
-
-The primary chart is now the `Role Fate Map`.
-
-Minimum MVP columns:
+Current columns:
 - `Current role`
-- `Core bargaining power`
+- `Bargaining-power tasks`
 - `Direct AI pressure`
 - `Indirect spillover`
 - `Retained leverage`
 
-Recommended display rules:
-- use occupation-specific task rows, not only cluster labels
-- emphasize value-defining tasks visually, not only high-time-share tasks
-- visually distinguish direct risk from indirect spillover
-- keep the retained column focused on what remains valuable, not only what remains present
+These columns are derived from task-level signals, not directly returned as a first-class `role_fate_map` object from the engine.
 
-The user should be able to answer visually:
-- what work defines this role now?
-- what work is directly exposed?
-- what work weakens because it depends on exposed core tasks?
-- what part of the role still carries bargaining power?
-- what organizational fate follows from that structure?
+## Current Narrative Contract
 
-## Structured Narrative
+The narrative panel now uses four structured cards:
 
-The narrative should be structured, not freeform.
+1. `Likely Organizational Fate`
+2. `Direct Pressure And Spillover`
+3. `What Protects Bargaining Power`
+4. `How Your Inputs Shift The Result`
 
-Required sections:
+These are powered by:
+- `role_fate_readout.organizational_fate`
+- `fate_drivers`
+- `fate_counterweights`
+- `narrative_summary`
 
-1. `What defines the role today`
-2. `What AI pressures first`
-3. `Why bargaining power holds or weakens`
-4. `What the role likely becomes`
+## Current Result Object
 
-The key sentence pattern should be:
-- `If AI gets very good at X, then Y bargaining power weakens because Z.`
-
-## Model Details Surface
-
-The collapsed details surface should contain:
-- direct exposure pressure
-- indirect dependency pressure
-- residual role integrity
-- elevation potential
-- split risk
-- demand expansion modifier
-- evidence strength and task coverage
-- occupation anchor details
-
-These should be legible labels, not unexplained internal scores.
-
-## Recommended Result Object
-
-This is the target app-facing contract for the redesigned result.
+The live engine returns these result fields as part of the app-facing contract:
 
 ```ts
 type RoleFateState =
@@ -211,125 +78,203 @@ type RoleFateState =
   | 'collapsed'
   | 'mixed_transition'
 
-type TaskPressureMode = 'augment' | 'automate' | 'mixed'
-
-type RoleTaskRow = {
-  task_id: string
-  task_statement: string
-  task_family_id: string
-  current_share: number
-  value_centrality: number
-  bargaining_power_weight: number
-  direct_exposure_pressure: number
-  indirect_dependency_pressure: number
-  retained_leverage: number
-  pressure_mode: TaskPressureMode
-  role_criticality: 'core' | 'supporting' | 'optional'
-  upstream_task_ids: string[]
-  downstream_task_ids: string[]
-  evidence_confidence: number
-  source_labels: string[]
-}
-
-type RoleFateMap = {
-  current_role: RoleTaskRow[]
-  bargaining_power_tasks: RoleTaskRow[]
-  directly_pressured_tasks: RoleTaskRow[]
-  indirectly_at_risk_tasks: RoleTaskRow[]
-  retained_leverage_tasks: RoleTaskRow[]
-}
-
 type V2Result = {
   selected_role_category: string
   selected_occupation_id: string
   selected_occupation_title: string
+
+  role_outlook: string
+  role_outlook_label: string
+
   role_fate_state: RoleFateState
   role_fate_label: string
   role_fate_confidence: number
-  role_summary: string
-  role_fate_map: RoleFateMap
+  role_fate_readout: {
+    organizational_fate: string
+    drivers: string[]
+    counterweights: string[]
+  }
   fate_drivers: string[]
   fate_counterweights: string[]
-  residual_role_integrity: {
-    score: number
-    label: 'Strong' | 'Moderate' | 'Weak'
-    note: string
+  role_summary: string
+
+  occupation_assignment: {
+    role_category: string
+    role_category_label: string
+    selected_occupation_id: string
+    selected_occupation_title: string
+    onet_soc_code: string | null
+    selector_weight: number
+    anchor_confidence: number
+    category_candidate_count: number
+    category_candidate_rank: number | null
+    occupation_prior_source: string | null
+    assignment_method: string
+    task_assignment_method: string
+    dominant_task_clusters: Array<{
+      task_cluster_id: string
+      label: string
+    }>
+    selected_task_inputs: {
+      dominant_task_ids: string[]
+      critical_task_ids: string[]
+      ai_support_task_ids: string[]
+      support_task_ids: string[]
+    }
+    role_defining_cluster: {
+      task_cluster_id: string
+      label: string
+    } | null
+    direct_task_evidence_count: number
+    fallback_task_count: number
+    questionnaire_effect: string
   }
-  bargaining_power_summary: {
-    core_task_count: number
-    exposed_core_share: number
-    retained_core_share: number
-    note: string
+
+  primary_displacement_wave: 'current' | 'next' | 'distant'
+  wave_trajectory: {
+    current: WaveSnapshot
+    next: WaveSnapshot
+    distant: WaveSnapshot
   }
-  structural_scores: {
-    direct_exposure_pressure: number
-    indirect_dependency_pressure: number
-    elevation_potential: number
-    split_risk: number
-    demand_expansion_modifier: number
-  }
-  narrative_summary: {
-    current_role_definition: string
-    direct_pressure_summary: string
-    bargaining_power_summary: string
-    role_fate_summary: string
-  }
-  evidence_summary: {
-    task_coverage: number
-    direct_task_evidence_confidence: number
-    dependency_map_confidence: number
-    occupation_anchor_confidence: number
-    notes: string[]
-  }
-  labor_market_context: {
-    employment_us: number
-    annual_openings: number
-    median_wage_usd: number
-    projection_growth_pct: number
-    latest_unemployment_rate: number | null
+
+  top_exposed_work: {
+    task_cluster_id: string
+    label: string
+    share_of_role: number
+    automation_difficulty: number
+    wave_assignment: 'current' | 'next' | 'distant'
+    exposure_level: 'low' | 'moderate' | 'high'
   } | null
-  diagnostics: {
-    direct_exposure_pressure: number
-    indirect_dependency_pressure: number
-    residual_role_integrity: number
-    elevation_potential: number
-    split_risk: number
-    demand_expansion_modifier: number
-    collapse_risk: number
-    task_coverage_gap: number
+
+  role_defining_work: {
+    task_cluster_id: string
+    label: string
+    share_of_role: number
+    retained_share: number
+    wave_assignment: 'current' | 'next' | 'distant'
+    automation_difficulty: number
+  } | null
+
+  exposed_task_share: number
+  residual_role_strength: 'weak' | 'moderate' | 'strong'
+  personalization_fit: 'weak' | 'moderate' | 'strong'
+
+  recomposition_summary: RecompositionSummary
+  transformation_map: {
+    current_bundle: ClusterRow[]
+    exposed_clusters: ClusterRow[]
+    retained_clusters: ClusterRow[]
+    elevated_clusters: ClusterRow[]
   }
+
+  task_breakdown: {
+    total_tasks_considered: number
+    direct_evidence_tasks: number
+    cluster_fallback_tasks: number
+    user_selected_task_count: number
+    tasks: RoleTaskRow[]
+  }
+
+  narrative_summary: {
+    why_this_role_changes: string
+    what_is_under_pressure: string
+    what_stays_core: string
+    personalization_fit_summary: string
+  }
+
+  evidence_summary: EvidenceSummary
+  labor_market_context: LaborMarketContext | null
+  diagnostics: Diagnostics
 }
 ```
 
-## Mapping To The Current Data Layer
+## Current Task Row Contract
 
-The current normalized layer is still usable as a base, but it is not sufficient on its own.
+```ts
+type RoleTaskRow = {
+  task_id: string
+  onet_task_id: string
+  task_statement: string
+  task_type: string
+  task_cluster_id: string
+  task_cluster_label: string
+  share_of_role: number
+  selection_multiplier: number
+  automation_difficulty: number
+  wave_assignment: 'current' | 'next' | 'distant'
+  direct_exposure_pressure: number
+  indirect_dependency_pressure: number
+  value_centrality: number
+  bargaining_power_weight: number
+  role_criticality: 'core' | 'supporting' | string
+  ai_support_observability: number
+  evidence_confidence: number
+  direct_evidence_reliability: number
+  mapping_method: string
+  mapping_confidence: number
+  evidence_type: string
+  evidence_source: string | null
+  observed_usage_share: number
+  has_direct_evidence: boolean
+  is_role_critical: boolean
+  is_user_selected_dominant: boolean
+  is_user_selected_critical: boolean
+  is_user_selected_ai_support: boolean
+  is_user_selected_support_task: boolean
+  elevation_boost: number
+  exposed_share: number
+  retained_share: number
+  retained_leverage: number
+  exposure_score: number
+  exposure_level: 'low' | 'moderate' | 'high'
+  likely_mode: 'automation' | 'augmentation' | 'mixed'
+}
+```
 
-Already useful:
-- `data/normalized/occupation_tasks.csv`
-- `data/normalized/occupation_task_clusters.csv`
-- `data/normalized/task_exposure_evidence.csv`
-- `data/normalized/task_augmentation_automation_priors.csv`
-- `data/normalized/occupation_exposure_priors.csv`
-- `data/normalized/occupation_labor_market_context.csv`
+## Structural Scores Now Used Publicly
 
-Still missing for the redesign:
-- explicit task dependency edges
-- value-centrality annotations
-- bargaining-power annotations
-- a cleaner distinction between core and supporting tasks
-- stronger occupation coverage for thin task inventories
+The live page relies on these engine-level structural scores:
+- `direct_exposure_pressure`
+- `indirect_dependency_pressure`
+- `retained_leverage_score`
+- `residual_role_integrity`
+- `exposed_core_share`
+- `retained_core_share`
+- `demand_expansion_modifier`
 
-## Implementation Notes
+Public wording rule:
+- keep `residual_role_integrity`
+- do not expose `coherence` as the primary public label
+- when wave cards still display wave connectivity, label it as `retained integrity`
 
-- The current live page is an interim role-transformation briefing, not the final `Role Fate Map`.
-- The first implementation pass should keep labor-market context secondary.
-- The public result must never expose `coherence` again; replace it with `residual role integrity`.
-- The public result should prefer task-level explanations over cluster-only labels whenever task rows are available.
+## Current Gaps Between Spec And Implementation
 
-## Next Dependency
+Still not implemented as first-class result objects:
+- a direct `role_fate_map` payload from the engine
+- explicit `split_risk`, `collapse_risk`, or `elevation_potential` fields
+- source drill-down at the task-row UI level
+- weighted user-entered task shares
 
-The next required step is a task-data foundation pass:
-- audit launch occupations for thin task coverage
-- define the task/dependency schema
-- add progressive structured task inputs that can override or enrich the occupation prior without forcing freeform uploads
+Still implemented as transitional legacy surfaces:
+- `role_outlook`
+- `role_outlook_label`
+- wave trajectory cards
+- legacy transformation cluster lists
+
+## Current Acceptance Criteria
+
+The current live result is considered aligned when:
+
+1. the page shows current task makeup before the task breakdown verdict logic becomes abstract
+2. direct AI pressure and indirect spillover are separate visible concepts
+3. bargaining-power tasks are shown explicitly
+4. role fate is a first-class label with confidence
+5. task-level rows carry the main explanation burden
+6. public copy does not rely on `coherence` as the main explanatory term
+
+## Next Result-Surface Work
+
+Recommended next changes:
+- return `role_fate_map` directly from the engine rather than rebuilding it in the client
+- add source drill-down and task-level citations
+- add weighted task-share controls so users can do more than tag a handful of tasks

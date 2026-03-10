@@ -8,263 +8,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
     <title>Methodology - Don't Lose Your Job</title>
     <style>
-        :root {
-            --bg-page: #ffffff;
-            --bg-card: #fffdfa;
-            --bg-subtle: #f7f3ec;
-            --text-primary: #1a1917;
-            --text-secondary: #5c5850;
-            --text-tertiary: #8a8578;
-            --accent: #2a5298;
-            --accent-hover: #1e3c72;
-            --border-light: #e8e4de;
-            --border-medium: #d9d4cc;
-            --shadow: 0 24px 60px rgba(15, 23, 42, 0.06);
-            --radius-md: 12px;
-            --radius-lg: 22px;
-            --max-width: 1120px;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            color: var(--text-primary);
-            background:
-                radial-gradient(circle at top left, rgba(42, 82, 152, 0.08), transparent 28%),
-                linear-gradient(180deg, #fffdf9 0%, #ffffff 28%, #fbf7f0 100%);
-        }
-
-        a {
-            color: inherit;
-        }
-
-        .site-header {
-            position: sticky;
-            top: 0;
-            z-index: 20;
-            backdrop-filter: blur(14px);
-            background: rgba(255, 255, 255, 0.9);
-            border-bottom: 1px solid rgba(232, 228, 222, 0.9);
-        }
-
-        .header-inner {
-            width: min(94%, var(--max-width));
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            padding: 16px 0;
-        }
-
-        .publication-title {
-            font-family: 'Bebas Neue', sans-serif;
-            letter-spacing: 0.04em;
-            font-size: 1.6rem;
-            color: var(--text-primary);
-        }
-
-        .nav {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .nav-link {
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-size: 0.92rem;
-            padding: 8px 12px;
-            border-radius: 999px;
-            border: 1px solid transparent;
-        }
-
-        .nav-link:hover {
-            color: var(--accent-hover);
-            border-color: var(--border-light);
-            background: rgba(42, 82, 152, 0.04);
-        }
-
-        .nav-link.active {
-            color: var(--accent);
-            border-color: rgba(42, 82, 152, 0.18);
-            background: rgba(42, 82, 152, 0.08);
-        }
-
-        .container {
-            width: min(94%, var(--max-width));
-            margin: 0 auto;
-            padding: 48px 0 72px;
-        }
-
-        .article {
-            background: rgba(255, 255, 255, 0.78);
-            border: 1px solid rgba(232, 228, 222, 0.92);
-            border-radius: 28px;
-            padding: 34px;
-            box-shadow: var(--shadow);
-        }
-
-        .article-hero {
-            padding-bottom: 24px;
-            border-bottom: 1px solid var(--border-light);
-            margin-bottom: 28px;
-        }
-
-        .eyebrow {
-            font-size: 0.78rem;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--text-tertiary);
-            margin-bottom: 10px;
-        }
-
-        h1 {
-            margin: 0 0 10px;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: clamp(2.8rem, 7vw, 4.6rem);
-            line-height: 0.95;
-            letter-spacing: 0.03em;
-        }
-
-        .lede {
-            margin: 0;
-            max-width: 72ch;
-            font-size: 1.05rem;
-            line-height: 1.7;
-            color: var(--text-secondary);
-        }
-
-        .article-body {
-            display: grid;
-            gap: 18px;
-        }
-
-        .article-body section {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius-lg);
-            padding: 24px;
-        }
-
-        .article-body h2 {
-            margin: 0 0 14px;
-            font-size: 1.45rem;
-            color: var(--accent);
-        }
-
-        .article-body h3 {
-            margin: 18px 0 10px;
-            font-size: 1rem;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            color: var(--text-primary);
-        }
-
-        .article-body p,
-        .article-body li {
-            color: var(--text-secondary);
-            line-height: 1.75;
-            font-size: 0.98rem;
-        }
-
-        .detail-list,
-        .plain-numbered-list {
-            margin: 12px 0 0;
-            padding-left: 20px;
-        }
-
-        .detail-list li,
-        .plain-numbered-list li {
-            margin-bottom: 10px;
-        }
-
-        .equation-callout {
-            margin: 18px 0;
-            padding: 16px 18px;
-            border-radius: 18px;
-            background: linear-gradient(180deg, #ffffff 0%, #f8f5ef 100%);
-            border: 1px solid var(--border-medium);
-        }
-
-        .callout-label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.76rem;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: var(--text-tertiary);
-        }
-
-        .equation-display {
-            margin: 8px 0;
-            color: var(--text-primary);
-            overflow-x: auto;
-        }
-
-        code {
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 0.92em;
-            background: rgba(42, 82, 152, 0.08);
-            padding: 2px 6px;
-            border-radius: 6px;
-        }
-
-        .footer-links {
-            width: min(94%, var(--max-width));
-            margin: 0 auto 36px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            color: var(--text-tertiary);
-            font-size: 0.9rem;
-        }
-
-        .author-link {
-            text-decoration: none;
-        }
-
-        .author-link:hover {
-            color: var(--accent);
-        }
-
-        .social-divider {
-            color: var(--border-medium);
-        }
-
-        @media (max-width: 860px) {
-            .header-inner {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .nav {
-                justify-content: flex-start;
-            }
-
-            .article {
-                padding: 22px;
-            }
-
-            .article-body section {
-                padding: 18px;
-            }
-        }
+        :root { --bg-page:#ffffff; --bg-card:#fffdfa; --text-primary:#1a1917; --text-secondary:#5c5850; --text-tertiary:#8a8578; --accent:#2a5298; --accent-hover:#1e3c72; --border-light:#e8e4de; --border-medium:#d9d4cc; --shadow:0 24px 60px rgba(15,23,42,0.06); --radius-lg:22px; --max-width:1120px; }
+        * { box-sizing:border-box; }
+        body { margin:0; font-family:'Inter',sans-serif; color:var(--text-primary); background:radial-gradient(circle at top left, rgba(42,82,152,0.08), transparent 28%), linear-gradient(180deg,#fffdf9 0%,#ffffff 28%,#fbf7f0 100%); }
+        a { color:inherit; }
+        .site-header { position:sticky; top:0; z-index:20; backdrop-filter:blur(14px); background:rgba(255,255,255,0.9); border-bottom:1px solid rgba(232,228,222,0.9); }
+        .header-inner { width:min(94%, var(--max-width)); margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 0; }
+        .publication-title { font-family:'Bebas Neue',sans-serif; letter-spacing:0.04em; font-size:1.6rem; }
+        .nav { display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; }
+        .nav-link { text-decoration:none; color:var(--text-secondary); font-size:0.92rem; padding:8px 12px; border-radius:999px; border:1px solid transparent; }
+        .nav-link:hover { color:var(--accent-hover); border-color:var(--border-light); background:rgba(42,82,152,0.04); }
+        .nav-link.active { color:var(--accent); border-color:rgba(42,82,152,0.18); background:rgba(42,82,152,0.08); }
+        .container { width:min(94%, var(--max-width)); margin:0 auto; padding:48px 0 72px; }
+        .article { background:rgba(255,255,255,0.78); border:1px solid rgba(232,228,222,0.92); border-radius:28px; padding:34px; box-shadow:var(--shadow); }
+        .article-hero { padding-bottom:24px; border-bottom:1px solid var(--border-light); margin-bottom:28px; }
+        .eyebrow { font-size:0.78rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-tertiary); margin-bottom:10px; }
+        h1 { margin:0 0 10px; font-family:'Bebas Neue',sans-serif; font-size:clamp(2.8rem, 7vw, 4.6rem); line-height:0.95; letter-spacing:0.03em; }
+        .lede { margin:0; max-width:72ch; font-size:1.05rem; line-height:1.7; color:var(--text-secondary); }
+        .article-body { display:grid; gap:18px; }
+        .article-body section { background:var(--bg-card); border:1px solid var(--border-light); border-radius:var(--radius-lg); padding:24px; }
+        .article-body h2 { margin:0 0 14px; font-size:1.45rem; color:var(--accent); }
+        .article-body p, .article-body li { color:var(--text-secondary); line-height:1.75; font-size:0.98rem; }
+        .detail-list { margin:12px 0 0; padding-left:20px; }
+        .equation-callout { margin:18px 0; padding:16px 18px; border-radius:18px; background:linear-gradient(180deg,#ffffff 0%,#f8f5ef 100%); border:1px solid var(--border-medium); }
+        .callout-label { display:block; margin-bottom:8px; font-size:0.76rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-tertiary); }
+        .equation-display { margin:8px 0; color:var(--text-primary); overflow-x:auto; }
+        code { font-family:'IBM Plex Mono',monospace; font-size:0.92em; background:rgba(42,82,152,0.08); padding:2px 6px; border-radius:6px; }
+        .footer-links { width:min(94%, var(--max-width)); margin:0 auto 36px; display:flex; justify-content:center; gap:10px; color:var(--text-tertiary); font-size:0.9rem; }
+        .author-link { text-decoration:none; }
+        .author-link:hover { color:var(--accent); }
+        .social-divider { color:var(--border-medium); }
+        @media (max-width:860px) { .header-inner { flex-direction:column; align-items:flex-start; } .nav { justify-content:flex-start; } .article { padding:22px; } .article-body section { padding:18px; } }
     </style>
 </head>
 <body class="mathjax-pending">
     <header class="site-header">
         <div class="header-inner">
-            <div>
-                <a href="/" style="text-decoration: none;">
-                    <span class="publication-title">Don't Lose Your Job</span>
-                </a>
-            </div>
+            <div><a href="/" style="text-decoration: none;"><span class="publication-title">Don't Lose Your Job</span></a></div>
             <nav class="nav">
                 <a href="/" class="nav-link">Model</a>
                 <a href="/guide2" class="nav-link">Guide</a>
@@ -280,315 +60,174 @@
         <article class="article">
             <header class="article-hero">
                 <div class="eyebrow">V2.0 Methodology</div>
-                <h1>Current Model Math</h1>
-                <p class="lede">This page documents the live <code>2.0</code> role-transformation model as currently implemented in <code>v2_engine.js</code>. It excludes the archived legacy timing model entirely.</p>
+                <h1>Current Role-Fate Math</h1>
+                <p class="lede">This page documents the live <code>2.0</code> model as currently implemented in <code>v2_engine.js</code>. It describes the shipped role-fate system: occupation anchoring, task-graph scoring, wave trajectory, role-fate classification, and the client-side role-fate map.</p>
             </header>
 
             <div class="article-body">
                 <section>
-                    <h2>Model Scope</h2>
-                    <p>The live main model is occupation-anchored and transformation-first. It answers five questions: what work is exposed, whether exposed work looks more like augmentation or automation, whether the retained bundle still forms a coherent role, how well the user's profile fits the retained role, and what labor-market context surrounds that occupation.</p>
-                    <p>The public result now also exposes a task-level breakdown. That task view is not a separate model: it is a projection of the selected occupation's O*NET task list through the same occupation anchor, task-cluster weights, questionnaire signals, and Anthropic evidence stack used by the headline outputs.</p>
-                    <p>The public <code>Role Transformation Map</code> is now derived from those live task rows rather than from the raw shared cluster bundle alone. The map ranks the mapped tasks by current share, exposed share, and retained share so the displayed rows are occupation-specific.</p>
-                    <p>The current scoring stack uses O*NET occupation structure, Anthropic Economic Index task priors, derived occupation priors, and BLS labor-market context. The live headline outputs do not use the archived hazard/timing math.</p>
-                </section>
-
-                <section>
-                    <h2>Runtime Inputs</h2>
-                    <p>The engine resolves the user to a concrete occupation and then applies direct task and questionnaire inputs.</p>
+                    <h2>Runtime Contract</h2>
+                    <p>The engine scores a concrete mapped occupation, then applies optional task picks and questionnaire answers.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Input tuple</span>
-                        <div class="equation-display">$$x = (\text{occupationId},\ \text{roleCategory},\ \text{answers}_{1:19},\ \text{seniorityLevel},\ \text{dominantTaskClusters},\ \text{roleCriticalClusters},\ \text{aiToolSupportLevel},\ \text{residualRoleDistinctiveness})$$</div>
+                        <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{answers}_{\{1,2,3,4,5,6,7,8,9,11,12,13,14,16\}},\ \text{seniorityLevel},\ \text{dominantTaskIds},\ \text{criticalTaskIds},\ \text{aiSupportTaskIds},\ \text{supportTaskIds})$$</div>
                     </div>
-                    <p>The engine then loads normalized occupation task clusters, occupation tasks, task-cluster membership rows, task-level transformation evidence, cluster priors, occupation exposure priors, adaptation priors, labor-market context, and mapped unemployment time series.</p>
+                    <p>The page populates those task ids from the structured selectors: primary task, secondary task, value-defining task, AI-assisted task, and support/spillover task.</p>
                 </section>
 
                 <section>
-                    <h2>Task-Bundle Reconstruction</h2>
-                    <p>Let the baseline occupation share for cluster <em>i</em> be $s_i^{(0)}$. The current implementation now treats the occupation bundle as a prior composition with concentration $\kappa$, then updates that prior with pseudo-mass from direct task inputs.</p>
-                    <div class="equation-callout">
-                        <span class="callout-label">Pseudo-count bundle update</span>
-                        <div class="equation-display">$$o_i = w_i^{\text{explicit}} + 0.16 \cdot \mathbf{1}[i \in \text{dominantTaskClusters}] + 0.10 \cdot \mathbf{1}[i \in \text{roleCriticalClusters}]$$</div>
-                        <div class="equation-display">$$\kappa = 0.75 + 1.5 \cdot \operatorname{avg}_i(\text{clusterEvidenceConfidence}_i)$$</div>
-                        <div class="equation-display">$$s_i = \frac{\kappa s_i^{(0)} + o_i}{\kappa + \sum_j o_j}$$</div>
-                    </div>
-                    <p>This is equivalent to a Dirichlet-style prior update rather than an unconstrained ad hoc rescaling. In the current release, the direct inputs still tilt the occupation prior rather than fully replacing it with user-supplied time shares.</p>
+                    <h2>Data Stack</h2>
+                    <ul class="detail-list">
+                        <li>occupation anchor: <code>occupations.csv</code>, <code>occupation_selector_index.csv</code></li>
+                        <li>bundle priors: <code>occupation_task_clusters.csv</code></li>
+                        <li>task-role graph: <code>occupation_task_inventory.csv</code>, <code>task_dependency_edges.csv</code>, <code>occupation_task_role_profiles.csv</code></li>
+                        <li>evidence mapping: <code>task_cluster_membership.csv</code>, <code>task_exposure_evidence.csv</code></li>
+                        <li>empirical priors: <code>task_augmentation_automation_priors.csv</code>, <code>occupation_exposure_priors.csv</code></li>
+                        <li>context: <code>occupation_adaptation_priors.csv</code>, <code>occupation_labor_market_context.csv</code></li>
+                    </ul>
                 </section>
 
                 <section>
-                    <h2>Occupation Assignment And Task Projection</h2>
-                    <p>The engine always scores a concrete mapped occupation. The selected category narrows the candidate set, occupation search can resolve directly to a mapped launch occupation, and the final role briefing is anchored to that occupation's O*NET/SOC identity.</p>
+                    <h2>Bundle Construction</h2>
+                    <p>The role starts as a blend of cluster-level occupation priors and task-inventory summaries.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Occupation anchor strength</span>
-                        <div class="equation-display">$$C_{\text{anchor}} = \operatorname{avg}(\text{occupationPriorConfidence},\ \text{selectorWeight})$$</div>
+                        <span class="callout-label">Baseline blend</span>
+                        <div class="equation-display">$$\tilde s_i = 0.65\, s_i^{\text{cluster}} + 0.35\, s_i^{\text{inventory}}, \qquad s_i^{(0)} = \frac{\tilde s_i}{\sum_j \tilde s_j}$$</div>
                     </div>
-                    <p>In the interface this is labeled <strong>Occupation anchor strength</strong>. It is a descriptive anchor score, not a semantic search confidence or a posterior probability over occupation identity.</p>
-                    <p>Once the occupation is fixed, the task panel is generated from its O*NET task list. Let task <em>t</em> belong to cluster $c(t)$. The current implementation constructs a within-cluster task weight from O*NET importance, O*NET frequency, observed Anthropic usage when available, and a small core-task boost:</p>
+                    <p>Selected task families then tilt the occupation bundle:</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Task weighting inside a cluster</span>
-                        <div class="equation-display">$$w_t^{\text{raw}} = \max\!\left(0.04,\ 0.58I_t + 0.27F_t + 0.15U_t + 0.08\mathbf{1}[t \in \text{core tasks}]\right)\cdot m_t$$</div>
-                        <div class="equation-display">$$s_t = s_{c(t)} \cdot \frac{w_t^{\text{raw}}}{\sum_{j \in c(t)} w_j^{\text{raw}}}$$</div>
+                        <span class="callout-label">Override mass</span>
+                        <div class="equation-display">$$o_i = w_i^{\text{explicit}} + 0.16\mathbf{1}[i\in \text{dominant}] + 0.10\mathbf{1}[i\in \text{critical}]$$</div>
+                        <div class="equation-display">$$s_i = \frac{s_i^{(0)} + o_i}{\sum_j (s_j^{(0)} + o_j)}$$</div>
                     </div>
-                    <p>Here $I_t$ is normalized task importance, $F_t$ is normalized task frequency, $U_t$ is observed Anthropic usage share when present, and $m_t$ is the task-cluster membership confidence weight. This means questionnaire-driven cluster weights flow through to the task view automatically.</p>
                 </section>
 
                 <section>
                     <h2>Questionnaire Signals</h2>
-                    <p>The visible questionnaire is grouped for <code>2.0</code>, but internally the engine still maps the answers into normalized $q_1$ through $q_{19}$ values.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Normalization</span>
-                        <div class="equation-display">$$q_k = \operatorname{clamp}\!\left(\frac{Q_k - 1}{4},\,0,\,1\right),\qquad s = \operatorname{clamp}\!\left(\frac{\text{seniorityLevel}-1}{4},\,0,\,1\right),\qquad r \in [0,1]$$</div>
+                        <div class="equation-display">$$q_k = \operatorname{clamp}\!\left(\frac{Q_k-1}{4},0,1\right), \qquad s = \operatorname{clamp}\!\left(\frac{\text{seniorityLevel}-1}{4},0,1\right)$$</div>
                     </div>
                     <div class="equation-callout">
                         <span class="callout-label">Composite signals</span>
-                        <div class="equation-display">$$E = \operatorname{avg}(q_1,q_2,q_3,q_4,q_5,q_6,q_8)$$</div>
-                        <div class="equation-display">$$C = \operatorname{avg}(q_7,q_9,q_{11},q_{12})$$</div>
-                        <div class="equation-display">$$A_{\text{auto}} = \operatorname{avg}(q_3,q_4,q_5,q_6,q_8,1-q_7,1-q_9,1-q_{11},1-q_{12})$$</div>
-                        <div class="equation-display">$$A_{\text{aug}} = \operatorname{avg}(q_1,q_4,q_8,q_7,q_9,q_{11})$$</div>
-                        <div class="equation-display">$$P_{\text{adopt}} = \operatorname{avg}(q_{13},q_{14},1-q_{15},q_{16})$$</div>
-                        <div class="equation-display">$$F_{\text{adapt}} = \operatorname{avg}(q_{17},q_{18},q_{19})$$</div>
-                        <div class="equation-display">$$G_{\text{fragile}} = \operatorname{avg}(q_{10},1-r)$$</div>
+                        <div class="equation-display">$$\text{capabilitySignal} = \operatorname{avg}(q_1,q_4,q_8)$$</div>
+                        <div class="equation-display">$$\text{couplingProtection} = \operatorname{avg}(q_7,q_9,q_{11},q_{12})$$</div>
+                        <div class="equation-display">$$\text{adoptionPressure} = \operatorname{avg}(q_{13},q_{14},q_{16})$$</div>
                     </div>
-                    <p><code>P_adopt</code> and the direct AI support signal are now part of the live scoring path, but they still act as secondary modifiers rather than replacing task evidence.</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Friction dimensions</span>
+                        <div class="equation-display">$$f_i = (f^{\text{exception}}, f^{\text{accountability}}, f^{\text{judgment}}, f^{\text{document}}, f^{\text{tacit}})$$</div>
+                        <div class="equation-display">$$f^{\text{exception}}=\operatorname{avg}(1-q_5,1-q_6,q_7,q_9), \quad f^{\text{accountability}}=\operatorname{avg}(q_7,q_{11})$$</div>
+                        <div class="equation-display">$$f^{\text{judgment}}=\operatorname{avg}(q_7,q_9,q_{11}), \quad f^{\text{document}}=\operatorname{avg}(q_2,q_3,q_4,q_8), \quad f^{\text{tacit}}=\operatorname{avg}(q_7,q_9,q_{12})$$</div>
+                    </div>
                 </section>
 
                 <section>
-                    <h2>Cluster-Level Transformation Scoring</h2>
-                    <p>For each task cluster <em>i</em>, the engine loads a base exposure prior $e_i^{(0)}$, a base augmentation prior $a_i^{(0)}$, and a base automation prior $u_i^{(0)}$. The automation prior is the mean of the partial-automation and high-automation priors. These cluster priors are no longer averaged mechanically with occupation priors; they are shrunk toward occupation-level priors using an adjusted reliability term.</p>
-                    <p>Let $h_i$ be the built-in human-advantage weight for cluster <em>i</em>, let $k_i = \mathbf{1}[i \in \text{roleCriticalClusters}]$, and let $T$ be the direct AI/tool support signal. The live formulas are:</p>
+                    <h2>Cluster Automation Difficulty</h2>
+                    <p>Each task family is scored on automation difficulty, using friction, human advantage, empirical priors, and task-inventory attributes.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Prior shrinkage and transformation</span>
-                        <div class="equation-display">$$\rho_i = \text{adjusted cluster-prior reliability} \in [0,1]$$</div>
-                        <div class="equation-display">$$\bar{e}_i^{(0)} = \rho_i e_i^{(0)} + (1-\rho_i)E_{\text{occ}}$$</div>
-                        <div class="equation-display">$$\bar{a}_i^{(0)} = \rho_i a_i^{(0)} + (1-\rho_i)A_{\text{occ}}$$</div>
-                        <div class="equation-display">$$\bar{u}_i^{(0)} = \rho_i u_i^{(0)} + (1-\rho_i)U_{\text{occ}}$$</div>
-                        <div class="equation-display">$$R_{\text{adopt}} = 0.92 + 0.16P_{\text{adopt}}$$</div>
-                        <div class="equation-display">$$e_i = \operatorname{clamp}\!\left(\bar{e}_i^{(0)} \cdot (0.68 + 0.62E)\cdot R_{\text{adopt}}\cdot(1 + 0.08k_i)\cdot(1 - 0.42 h_i C),\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$a_i = \operatorname{clamp}\!\left(\bar{a}_i^{(0)} \cdot (0.72 + 0.48A_{\text{aug}} + 0.32T)\cdot(1 + h_i(0.16 + 0.12T))\cdot R_{\text{adopt}},\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$u_i = \operatorname{clamp}\!\left(\bar{u}_i^{(0)} \cdot (0.68 + 0.68A_{\text{auto}} + 0.18P_{\text{adopt}})\cdot(1 - h_i(0.42C + 0.18T)),\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$m_i = \arg\max\{a_i,\ u_i\}$$</div>
+                        <span class="callout-label">Intrinsic friction</span>
+                        <div class="equation-display">$$F_i = 0.25f^{\text{accountability}}_i + 0.22f^{\text{judgment}}_i + 0.22f^{\text{tacit}}_i + 0.18f^{\text{exception}}_i + 0.13(1-f^{\text{document}}_i)$$</div>
                     </div>
-                    <p>The model then estimates absorbed, retained, and elevated share for each cluster.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Bundle transformation</span>
-                        <div class="equation-display">$$\text{absorbed}_i = s_i \cdot e_i \cdot u_i \cdot (0.74 + 0.16P_{\text{adopt}})$$</div>
-                        <div class="equation-display">$$\text{retained}_i = \max(0,\ s_i - \text{absorbed}_i)$$</div>
-                        <div class="equation-display">$$\text{elev}_i =
+                        <span class="callout-label">Difficulty score</span>
+                        <div class="equation-display">$$D_i = \operatorname{clamp}\!\left(0.40F_i + 0.25(0.35h_i) + 0.25R_i + 0.10\cdot\text{couplingProtection},\,0.02,\,0.98\right)$$</div>
+                        <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.10B_i + 0.05C_i + 0.04\max(0,V_i-0.5) - 0.07A_i + 0.08K_i,\,0.02,\,0.98\right)$$</div>
+                    </div>
+                    <p><code>h_i</code> is built-in human advantage, <code>R_i</code> is empirical resistance after shrinkage toward occupation priors, <code>B_i</code> is mean bargaining-weight, <code>C_i</code> is core-task share, <code>V_i</code> is mean value centrality, <code>A_i</code> is mean AI-support observability, and <code>K_i</code> indicates a role-critical family.</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Wave assignment</span>
+                        <div class="equation-display">$$\text{wave}_i =
 \begin{cases}
-\text{absorbed}_i \cdot (0.22 + 0.18s + 0.12r + 0.08k_i), & i \in \mathcal{E} \\
-0, & i \notin \mathcal{E}
+\text{current}, & D_i \le 0.35 \\
+\text{next}, & 0.35 < D_i \le 0.65 \\
+\text{distant}, & D_i > 0.65
 \end{cases}$$</div>
-                        <div class="equation-display">$$t_i = \text{retained}_i + \text{elev}_i$$</div>
                     </div>
-                    <p>Here $\mathcal{E}$ is the fixed set of elevation-capable clusters: coordination, QA/review, decision support, oversight/strategy, relationship management, and client interaction. A user-selected role-defining cluster receives extra weight in exposure and elevation so the model is not driven by time share alone.</p>
                 </section>
 
                 <section>
-                    <h2>Task-Level Exposure Projection</h2>
-                    <p>The task panel reuses the cluster-level transformation math rather than introducing a second scoring system. For each task <em>t</em>, the engine first takes the cluster-level result for $c(t)$ and then shrinks direct Anthropic task evidence toward that cluster estimate using task-count-weighted reliability.</p>
+                    <h2>Task-Role Graph</h2>
+                    <p>The task graph is a live scoring layer. User-selected tasks change task share, direct pressure, spillover, and retained leverage.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Task-level exposure and mode</span>
-                        <div class="equation-display">$$\lambda_t = c_t \cdot \frac{n_t}{n_t + 40}$$</div>
-                        <div class="equation-display">$$e_t = 
-\begin{cases}
-\lambda_t e_t^{\text{direct}} + (1-\lambda_t)e_{c(t)}, & \text{if direct task evidence exists} \\
-e_{c(t)}, & \text{otherwise}
-\end{cases}$$</div>
-                        <div class="equation-display">$$a_t = 
-\begin{cases}
-\lambda_t a_t^{\text{direct}} + (1-\lambda_t)a_{c(t)}, & \text{if direct task evidence exists} \\
-a_{c(t)}, & \text{otherwise}
-\end{cases}$$</div>
-                        <div class="equation-display">$$u_t = 
-\begin{cases}
-\lambda_t u_t^{\text{direct}} + (1-\lambda_t)u_{c(t)}, & \text{if direct task evidence exists} \\
-u_{c(t)}, & \text{otherwise}
-\end{cases}$$</div>
+                        <span class="callout-label">Task share</span>
+                        <div class="equation-display">$$s_t^{\text{raw}} = s_{c(t)} \cdot \frac{\text{timeSharePrior}_t}{\sum_{j \in c(t)} \text{timeSharePrior}_j}$$</div>
+                        <div class="equation-display">$$m_t = 1 + 0.40\mathbf{1}[t\in \text{dominant}] + 0.12\mathbf{1}[t\in \text{critical}] + 0.18\mathbf{1}[t\in \text{support}]$$</div>
+                        <div class="equation-display">$$s_t = \frac{s_t^{\text{raw}}m_t}{\sum_j s_j^{\text{raw}}m_j}$$</div>
                     </div>
                     <div class="equation-callout">
-                        <span class="callout-label">Task transformation</span>
-                        <div class="equation-display">$$\text{absorbed}_t = s_t \cdot e_t \cdot u_t \cdot (0.74 + 0.16P_{\text{adopt}})$$</div>
-                        <div class="equation-display">$$\text{retained}_t = \max(0,\ s_t - \text{absorbed}_t)$$</div>
-                        <div class="equation-display">$$\text{elev}_t =
-\begin{cases}
-\text{absorbed}_t \cdot (0.22 + 0.18s + 0.12r + 0.08k_{c(t)}), & c(t) \in \mathcal{E} \\
-0, & c(t) \notin \mathcal{E}
-\end{cases}$$</div>
-                        <div class="equation-display">$$t_t = \text{retained}_t + \text{elev}_t$$</div>
+                        <span class="callout-label">Task pressure</span>
+                        <div class="equation-display">$$p_t^{\text{direct}} = \operatorname{clamp}\!\left(0.68(1-D_{c(t)}) + 0.20\alpha_{c(t)} + 0.12A_t - 0.14\mathbf{1}[t\in \text{aiSupport}] + 0.03\mathbf{1}[t\in \text{support}],\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$p_t^{\text{spill}} = \sum_{(t,u)\in \mathcal{D}} d_{tu}\, p_u^{\text{direct}} \max(V_u,B_u) + 0.12\mathbf{1}[t\in \text{support}]$$</div>
                     </div>
-                    <p>Here $c_t$ is task-level evidence confidence and $n_t$ is the parsed Anthropic task count when available. In the interface, the task list is sorted by exposed share $s_t e_t$ by default. The user can expand from the top ten rows to the full mapped task list without changing the underlying calculations.</p>
-                    <p>The public map is then derived from this same task table:</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Task-derived public map</span>
-                        <div class="equation-display">$$\text{Current map rows} = \operatorname{TopK}_t(s_t)$$</div>
-                        <div class="equation-display">$$\text{Exposed map rows} = \operatorname{TopK}_t(s_t e_t)$$</div>
-                        <div class="equation-display">$$\text{Residual map rows} = \operatorname{TopK}_t(t_t)$$</div>
+                        <span class="callout-label">Retained leverage</span>
+                        <div class="equation-display">$$L_t = \operatorname{clamp}\!\left(B_t(1-p_t^{\text{direct}})(1-p_t^{\text{spill}}) + 0.10\mathbf{1}[t\in \text{core}] + 0.08\mathbf{1}[t\in \text{critical}] + 0.08\mathbf{1}[t\in \text{aiSupport}] + 0.60\,\text{elevationBoost}_t,\,0,\,1\right)$$</div>
                     </div>
-                    <p>This means the visible map now shows the occupation's own mapped tasks rather than a fixed generic family list.</p>
+                    <p>The role-level task metrics are share-weighted means:
+                    <ul class="detail-list">
+                        <li><code>direct_exposure_pressure</code></li>
+                        <li><code>indirect_dependency_pressure</code></li>
+                        <li><code>retained_leverage_score</code></li>
+                        <li><code>residual_role_integrity</code></li>
+                    </ul>
+                    </p>
+                </section>
+
+                <section>
+                    <h2>Role Fate Classifier</h2>
+                    <p>The live engine classifies the role into one of seven states using a rule-based tree over the structural scores.</p>
+                    <div class="equation-callout">
+                        <span class="callout-label">Demand modifier</span>
+                        <div class="equation-display">$$M_{\text{demand}} = \operatorname{clamp}\!\left(\frac{\text{projectionGrowthPct}+2}{10},\,0,\,1\right)$$</div>
+                    </div>
+                    <div class="equation-callout">
+                        <span class="callout-label">Classifier</span>
+                        <div class="equation-display">$$\text{Role Fate} =
+\begin{cases}
+\text{Expanded}, & M_{\text{demand}} \ge 0.82 \land L \ge 0.56 \land I \ge 0.60 \land R_{\text{next}} \ge 0.62 \land P_{\text{direct}} < 0.48 \\
+\text{Augmented}, & \text{nextWaveState}=\text{stable} \land P_{\text{direct}} < 0.42 \land I \ge 0.60 \land R_{\text{next}} \ge 0.62 \\
+\text{Elevated}, & R_{\text{core}} \ge 0.38 \land I \ge 0.56 \land R_{\text{next}} \ge 0.55 \land P_{\text{direct}} < 0.48 \land M_{\text{demand}} \ge 0.30 \\
+\text{Split}, & ((\text{nextWaveState}\in\{\text{transformed},\text{narrowed}\}) \land R_{\text{core}} \ge 0.24 \land 0.38 \le P_{\text{direct}} < 0.68 \land I \ge 0.42) \lor (P_{\text{direct}} \ge 0.55 \land R_{\text{core}} \ge 0.22 \land R_{\text{next}} \ge 0.28) \\
+\text{Collapsed}, & P_{\text{direct}} \ge 0.70 \land P_{\text{core}} \ge 0.22 \land I < 0.35 \land R_{\text{next}} < 0.18 \land R_{\text{core}} < 0.12 \\
+\text{Compressed}, & P_{\text{direct}} \ge 0.46 \lor R_{\text{next}} < 0.55 \lor S_{\text{exposed}} \ge 0.45 \lor P_{\text{spill}} \ge 0.10 \\
+\text{Mixed transition}, & \text{otherwise}
+\end{cases}$$</div>
+                    </div>
                 </section>
 
                 <section>
                     <h2>Recomposition Layer</h2>
-                    <p>The live result also includes a secondary recomposition read. This is a descriptive structural layer, not a separate labor-demand forecast.</p>
+                    <p>The page still shows a secondary recomposition panel. It is not the headline role-fate label, but it estimates how much exposed work looks technically compressible and how much of that compression may convert into fewer labor hours.</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Explicit task-family frictions</span>
-                        <div class="equation-display">$$F_i = \{x_i,\ a_i,\ j_i,\ d_i,\ t_i\}$$</div>
-                        <div class="equation-display">$$x_i=\text{exception burden},\quad a_i=\text{accountability load},\quad j_i=\text{judgment requirement},\quad d_i=\text{document intensity},\quad t_i=\text{tacit/context dependence}$$</div>
-                    </div>
-                    <p>These friction dimensions are derived from the questionnaire and blended with reviewed task-family profiles before the engine scores exposure, augmentation, automation, and recomposition.</p>
-                    <div class="equation-callout">
-                        <span class="callout-label">Workflow compression</span>
-                        <div class="equation-display">$$W_{\text{raw}} = \sum_i s_i e_i \cdot \operatorname{clamp}\!\left(u_i + (1-u_i)g_i \cdot 0.42,\ 0,\ 1\right)$$</div>
-                        <div class="equation-display">$$P_{\text{dep}} = 1.10 \sum_{(i,j)\in\mathcal{E}} d_{ij}\cdot \min(s_i,s_j)\cdot (1-\kappa_i)(1-\kappa_j)$$</div>
-                        <div class="equation-display">$$W = \operatorname{clamp}\!\left(\max(0, W_{\text{raw}}-P_{\text{dep}}) \cdot (1 - 0.20C),\,0,\,1\right)$$</div>
-                    </div>
-                    <div class="equation-callout">
-                        <span class="callout-label">Organizational conversion and gap</span>
-                        <div class="equation-display">$$O = \operatorname{clamp}\!\left(0.20P_{\text{adopt}} + 0.14\pi_{\text{auto}} + 0.12G_{\text{fragile}} + 0.12(1-C) + 0.08(1-r) + 0.05(1-T) + 0.12S_{\text{exposed}} + 0.06\bar d + 0.05(1-\bar a) + 0.03(1-\bar j) + 0.03(1-\bar t),\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$S_{\text{sub}} = W \cdot O,\qquad G_{\text{recomp}} = W - S_{\text{sub}}$$</div>
-                    </div>
-                    <div class="equation-callout">
-                        <span class="callout-label">Uncertainty bands</span>
-                        <div class="equation-display">$$c_{\text{recomp}} = \operatorname{avg}(C_{\text{task}}, C_{\text{anchor}}, C_{\text{personal}}, R_{\text{direct}}, 1-0.45\cdot P_{\text{dep}}/W_{\text{raw}})$$</div>
-                        <div class="equation-display">$$h = \operatorname{clamp}(0.06 + 0.18(1-c_{\text{recomp}}) + 0.05(1-R_{\text{direct}}) + 0.04(1-C_{\text{anchor}}),\,0.06,\,0.24)$$</div>
-                        <div class="equation-display">$$[z^{-}, z^{+}] = [\operatorname{clamp}(z-h,0,1),\ \operatorname{clamp}(z+h,0,1)]$$</div>
-                    </div>
-                    <p>In the interface these are shown as <strong>Workflow compression</strong>, <strong>Organizational conversion</strong>, <strong>Substitution potential</strong>, and <strong>Recomposition gap</strong>. They are displayed as banded descriptive values with explicit uncertainty ranges, not as precise estimates of employment loss.</p>
-                </section>
-
-                <section>
-                    <h2>Role-Level Aggregation</h2>
-                    <p>Cluster mass is aggregated into exposed share, automation/augmentation balance, strategic retained share, residual viability, and personalization fit.</p>
-                    <div class="equation-callout">
-                        <span class="callout-label">Exposure and balance</span>
-                        <div class="equation-display">$$S_{\text{exposed}} = \operatorname{clamp}\!\left(\sum_i s_i e_i,\ 0,\ 1\right)$$</div>
-                        <div class="equation-display">$$M_{\text{auto}} = \sum_i s_i e_i u_i,\qquad M_{\text{aug}} = \sum_i s_i e_i a_i$$</div>
-                        <div class="equation-display">$$\pi_{\text{auto}} =
-\begin{cases}
-\frac{M_{\text{auto}}}{M_{\text{auto}} + M_{\text{aug}}}, & M_{\text{auto}} + M_{\text{aug}} > 0 \\
-0.5, & \text{otherwise}
-\end{cases},\qquad \pi_{\text{aug}} = 1-\pi_{\text{auto}}$$</div>
-                    </div>
-                    <div class="equation-callout">
-                        <span class="callout-label">Strategic retained share</span>
-                        <div class="equation-display">$$S_{\text{strategic}} = \sum_{i \in \mathcal{E} \cap \mathcal{R}} t_i$$</div>
-                        <div class="equation-display">$$S_{\text{critical,exposed}} = \sum_{i \in \mathcal{K}} s_i e_i,\qquad S_{\text{critical,retained}} = \sum_{i \in \mathcal{K}} t_i$$</div>
-                        <div class="equation-display">$$B_{\text{critical}} =
-\begin{cases}
-\operatorname{avg}\!\left(S_{\text{critical,retained}},\ 1 - \operatorname{clamp}(S_{\text{critical,exposed}}\cdot\max(\pi_{\text{auto}},0.45),0,1)\right), & |\mathcal{K}| > 0 \\
-r, & |\mathcal{K}| = 0
-\end{cases}$$</div>
-                    </div>
-                    <div class="equation-callout">
-                        <span class="callout-label">Residual role strength</span>
-                        <div class="equation-display">$$V = \operatorname{clamp}\!\left(0.68 \cdot \operatorname{avg}(1-G_{\text{fragile}},\ r,\ C,\ S_{\text{strategic}},\ B_{\text{critical}},\ 1-\pi_{\text{auto}}) + 0.32 \cdot \operatorname{clamp}\!\left(\sum_i t_i,\ 0,\ 1\right),\ 0,\ 1\right)$$</div>
-                    </div>
-                    <div class="equation-callout">
-                        <span class="callout-label">Personalization fit</span>
-                        <div class="equation-display">$$P = \operatorname{clamp}\!\left(\operatorname{avg}(A_{\text{occ}},\ S_{\text{strategic}},\ S_{\text{critical,retained}} \text{ or } r,\ C,\ F_{\text{adapt}},\ T,\ 0.55s + 0.45r,\ 1-G_{\text{fragile}}),\ 0,\ 1\right)$$</div>
-                    </div>
-                    <p>$A_{\text{occ}}$ is the occupation-level adaptive-capacity prior from the adaptation-prior layer when available, otherwise from the occupation-prior layer.</p>
-                </section>
-
-                <section>
-                    <h2>Discrete Output Rules</h2>
-                    <p>The live engine uses rule-based thresholds for the five main outputs.</p>
-
-                    <h3>Role outlook</h3>
-                    <div class="equation-callout">
-                        <span class="callout-label">Decision tree</span>
-                        <div class="equation-display">$$\text{Role Outlook} =
-\begin{cases}
-\text{High displacement risk}, & V < 0.34 \land \pi_{\text{auto}} \ge 0.58 \land S_{\text{exposed}} \ge 0.58 \\
-\text{Role fragments}, & V < 0.42 \land S_{\text{exposed}} \ge 0.55 \\
-\text{Role becomes more senior}, & S_{\text{strategic}} \ge 0.34 \land \pi_{\text{auto}} < 0.48 \land s \ge 0.50 \\
-\text{Mostly augmented}, & V \ge 0.62 \land \pi_{\text{aug}} \ge 0.55 \\
-\text{Routine work compressed}, & V \ge 0.48 \\
-\text{Role becomes narrower}, & \text{otherwise}
-\end{cases}$$</div>
-                    </div>
-
-                    <h3>Top exposed work</h3>
-                    <div class="equation-callout">
-                        <span class="callout-label">Selection rule</span>
-                        <div class="equation-display">$$i^\star = \arg\max_i\left((s_i e_i)\cdot(1 + 0.35k_i)\right)$$</div>
-                        <div class="equation-display">$$\text{Exposure tier}(i^\star) =
-\begin{cases}
-\text{high}, & e_{i^\star} \ge 0.68 \\
-\text{moderate}, & e_{i^\star} \ge 0.40 \\
-\text{low}, & \text{otherwise}
-\end{cases}$$</div>
-                    </div>
-
-                    <h3>Mode of change</h3>
-                    <div class="equation-callout">
-                        <span class="callout-label">Balance thresholds</span>
-                        <div class="equation-display">$$\text{Mode} =
-\begin{cases}
-\text{mostly automation}, & \pi_{\text{auto}} \ge 0.60 \\
-\text{mostly augmentation}, & \pi_{\text{auto}} \le 0.42 \\
-\text{mixed}, & \text{otherwise}
-\end{cases}$$</div>
-                    </div>
-
-                    <h3>Residual role strength and personalization fit</h3>
-                    <div class="equation-callout">
-                        <span class="callout-label">Tiering rule</span>
-                        <div class="equation-display">$$\text{Tier}(z) =
-\begin{cases}
-\text{strong}, & z \ge 0.68 \\
-\text{moderate}, & z \ge 0.45 \\
-\text{weak}, & \text{otherwise}
-\end{cases}$$</div>
+                        <span class="callout-label">Current formulas</span>
+                        <div class="equation-display">$$W = \operatorname{clamp}\!\left(\text{currentWaveAbsorbed}(1-0.20\cdot\text{couplingProtection}),\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$O = \operatorname{clamp}\!\left(0.30\text{adoptionPressure} + 0.25(1-\text{couplingProtection}) + 0.20\text{currentWaveAbsorbed} + 0.10(1-f^{\text{accountability}}) + 0.08(1-f^{\text{judgment}}) + 0.07f^{\text{document}},\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$S = W \cdot O, \qquad G = W - S$$</div>
                     </div>
                 </section>
 
                 <section>
-                    <h2>Confidence and Evidence Summary</h2>
-                    <p>The model emits multiple descriptive evidence signals instead of one monolithic uncertainty score.</p>
+                    <h2>Client-Side Role Fate Map</h2>
+                    <p>The homepage builds the visible `Role Fate Map` from the task table returned by the engine. The five columns are top-k rankings over different task-level signals:</p>
                     <div class="equation-callout">
-                        <span class="callout-label">Evidence and signal fields</span>
-                        <div class="equation-display">$$C_{\text{task}} = \operatorname{avg}_i(\text{clusterEvidenceConfidence}_i)$$</div>
-                        <div class="equation-display">$$C_{\text{anchor}} = \operatorname{avg}(\text{occupationPriorConfidence},\ \text{selectorWeight})$$</div>
-                        <div class="equation-display">$$C_{\text{personal}} = \operatorname{avg}(r,\ 1-G_{\text{fragile}},\ C,\ T,\ C_{\text{task}})$$</div>
-                        <div class="equation-display">$$C_{\text{labor}} = \text{laborMarketConfidence}$$</div>
+                        <span class="callout-label">Client rankings</span>
+                        <div class="equation-display">$$\text{Current role} = \operatorname{TopK}_t(s_t)$$</div>
+                        <div class="equation-display">$$\text{Bargaining power} = \operatorname{TopK}_t\left(s_t \cdot \max(B_t,V_t)\right)$$</div>
+                        <div class="equation-display">$$\text{Direct pressure} = \operatorname{TopK}_t(s_t \cdot p_t^{\text{direct}})$$</div>
+                        <div class="equation-display">$$\text{Indirect spillover} = \operatorname{TopK}_t(s_t \cdot p_t^{\text{spill}})$$</div>
+                        <div class="equation-display">$$\text{Retained leverage} = \operatorname{TopK}_t(\text{retainedShare}_t \cdot L_t)$$</div>
                     </div>
-                    <p>In the interface these appear as:</p>
+                </section>
+
+                <section>
+                    <h2>Evidence And Limits</h2>
+                    <p>The engine emits descriptive confidence and coverage fields, not a full posterior distribution. It also still carries some legacy wave machinery internally.</p>
                     <ul class="detail-list">
-                        <li><strong>Evidence strength</strong> = $C_{\text{task}}$</li>
-                        <li><strong>Occupation anchor strength</strong> = $C_{\text{anchor}}$</li>
-                        <li><strong>Personalization signal strength</strong> = $C_{\text{personal}}$</li>
-                    </ul>
-                    <p>The evidence payload also tracks task-row coverage directly:</p>
-                    <div class="equation-callout">
-                        <span class="callout-label">Task coverage counts</span>
-                        <div class="equation-display">$$N_{\text{direct}} = \#\{t : \text{direct Anthropic task evidence exists}\},\qquad N_{\text{fallback}} = \#\{t : \text{cluster fallback is used}\}$$</div>
-                        <div class="equation-display">$$R_{\text{direct}} = \frac{N_{\text{direct}}}{N_{\text{direct}} + N_{\text{fallback}}}$$</div>
-                        <div class="equation-display">$$\bar{\rho} = \operatorname{avg}_i(\rho_i),\qquad \bar{\lambda} = \operatorname{avg}_{t \in \text{direct rows}}(\lambda_t)$$</div>
-                    </div>
-                    <p><strong>Task coverage</strong> in the UI is the direct coverage ratio $R_{\text{direct}}$ plus the raw direct/fallback counts. These values summarize coverage and alignment; they are not posterior probabilities over the labels.</p>
-                    <p>The recomposition panel now adds a separate structural confidence read. That confidence is driven by direct task coverage, occupation-anchor strength, personalization signal strength, and the size of the remaining dependency bottlenecks.</p>
-                </section>
-
-                <section>
-                    <h2>Labor-Market Context</h2>
-                    <p>BLS data is loaded alongside the transformation result but is not a direct driver of the main role labels. The current engine treats labor context as a separate panel.</p>
-                    <div class="equation-callout">
-                        <span class="callout-label">Current design rule</span>
-                        <div class="equation-display">$$\text{Main role labels} \perp \text{labor-market panel}$$</div>
-                    </div>
-                    <p>The context payload includes employment, annual openings, median wage, projected growth, latest mapped unemployment rate, and the last 12 monthly unemployment observations for the mapped BLS occupation group.</p>
-                </section>
-
-                <section>
-                    <h2>Current Limitations</h2>
-                    <ul class="detail-list">
-                        <li><strong>Direct task inputs are still coarse.</strong> They matter more than before, but they still tilt the occupation bundle rather than fully replacing it with user-supplied time shares.</li>
-                        <li><strong>Task-level rows are partly projected from cluster math.</strong> When direct Anthropic task evidence is missing, the task panel inherits cluster-level exposure and mode estimates rather than estimating each task independently from a fully separate model.</li>
-                        <li><strong>Adoption context is still a modifier, not a separate labor-demand model.</strong> It changes realized pressure inside the transformation engine, but it does not become an independent forecast system.</li>
-                        <li><strong>Coefficients remain hand-tuned.</strong> The shrinkage and transformation forms are now more principled, but the constants are still calibrated manually rather than estimated from a labeled validation set.</li>
-                        <li><strong>Occupation quality remains critical.</strong> The largest benchmark-disagreement roles still need better occupation-prior and task-bundle cleanup.</li>
-                        <li><strong>Confidence is descriptive.</strong> The model exposes coverage and alignment confidence, not a formal uncertainty distribution over every output.</li>
+                        <li><strong>Role-fate confidence</strong> is a margin-style score from the current rule set, not a calibrated probability.</li>
+                        <li><strong>Task evidence coverage</strong> still varies by occupation and task family.</li>
+                        <li><strong>User task input</strong> is still selector-based rather than weighted by rough percentage buckets.</li>
+                        <li><strong>The classifier</strong> is calibrated heuristically against anchor occupations, not trained on a labeled dataset.</li>
                     </ul>
                 </section>
             </div>
@@ -601,26 +240,16 @@ r, & |\mathcal{K}| = 0
             mathRoot.classList.remove('mathjax-pending', 'mathjax-rendering');
             mathRoot.classList.add('mathjax-ready');
         };
-
         MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
-            },
-            svg: {
-                fontCache: 'global'
-            },
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
+            svg: { fontCache: 'global' },
             startup: {
                 pageReady: () => {
                     mathRoot.classList.remove('mathjax-pending');
                     mathRoot.classList.add('mathjax-rendering');
-                    document.querySelectorAll('.equation-display').forEach((el) => {
-                        el.style.visibility = 'hidden';
-                    });
+                    document.querySelectorAll('.equation-display').forEach((el) => { el.style.visibility = 'hidden'; });
                     return MathJax.startup.defaultPageReady().then(() => {
-                        document.querySelectorAll('.equation-display').forEach((el) => {
-                            el.style.visibility = 'visible';
-                        });
+                        document.querySelectorAll('.equation-display').forEach((el) => { el.style.visibility = 'visible'; });
                         revealMath();
                     }).catch((err) => {
                         console.error('MathJax typeset error', err);
