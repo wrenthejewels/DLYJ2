@@ -83,61 +83,43 @@
         cluster_oversight_strategy: { cluster_decision_support: 0.10, cluster_coordination: 0.10 }
     };
 
+    var WAVE_THRESHOLDS = { current_max: 0.35, next_max: 0.65 };
+
+    var FRICTION_WEIGHTS = {
+        accountability_load: 0.25,
+        judgment_requirement: 0.22,
+        tacit_context_dependence: 0.22,
+        exception_burden: 0.18,
+        inverse_document_intensity: 0.13
+    };
+
+    var AUTOMATION_DIFFICULTY_WEIGHTS = {
+        intrinsicFriction: 0.40,
+        humanAdvantage: 0.25,
+        empiricalResistance: 0.25,
+        couplingProtection: 0.10
+    };
+
+    var COHERENCE_BONUSES = {
+        clusterCountThreshold: 3,
+        clusterCountBonus: 0.10,
+        retainedShareThreshold: 0.45,
+        retainedShareBonus: 0.10
+    };
+
+    var WAVE_STATE_LABELS = {
+        stable: 'Stable',
+        narrowed: 'Narrowed',
+        transformed: 'Transformed',
+        displaced: 'Displaced'
+    };
+
     var SCORING_CONFIG = {
         criticalityBoost: 0.08,
         adoptionRealizationBase: 0.92,
         adoptionRealizationScale: 0.16,
-        exposureBase: 0.68,
-        exposureReadinessScale: 0.62,
-        exposureCouplingPenalty: 0.42,
-        augmentationBase: 0.72,
-        augmentationSignalScale: 0.48,
-        augmentationToolScale: 0.32,
-        augmentationHumanBase: 0.16,
-        augmentationHumanToolScale: 0.12,
-        automationBase: 0.68,
-        automationSignalScale: 0.68,
-        automationAdoptionScale: 0.18,
-        automationCouplingPenalty: 0.42,
-        automationToolPenalty: 0.18,
-        compressionAugmentationSavings: 0.42,
-        absorbedAutomationBase: 0.74,
-        absorbedAutomationAdoptionScale: 0.16,
-        elevationBase: 0.22,
-        elevationSeniorityScale: 0.18,
-        elevationDistinctivenessScale: 0.12,
-        elevationCriticalScale: 0.08,
-        recompositionCouplingPenalty: 0.20,
         dependencyPenaltyScale: 1.10,
-        organizationalConversionWeights: {
-            adoptionPressure: 0.20,
-            automationShare: 0.14,
-            fragility: 0.12,
-            lowCoupling: 0.12,
-            lowDistinctiveness: 0.08,
-            lowToolSupport: 0.05,
-            exposedTaskShare: 0.12,
-            documentIntensity: 0.06,
-            lowAccountability: 0.05,
-            lowJudgment: 0.03,
-            lowTacit: 0.03
-        },
-        roleState: {
-            highDisplacementResidualMax: 0.34,
-            highDisplacementAutomationMin: 0.58,
-            highDisplacementExposureMin: 0.58,
-            fragmentsResidualMax: 0.42,
-            fragmentsExposureMin: 0.55,
-            moreSeniorStrategicResidualMin: 0.22,
-            moreSeniorAutomationMax: 0.50,
-            moreSeniorSeniorityMin: 0.50,
-            moreSeniorCompressionMax: 0.16,
-            moreSeniorGapMin: 0.02,
-            mostlyAugmentedResidualMin: 0.62,
-            mostlyAugmentedAugmentationMin: 0.55,
-            mostlyAugmentedCompressionMax: 0.18,
-            routineResidualMin: 0.48
-        }
+        recompositionCouplingPenalty: 0.20
     };
 
     function clamp(value, min, max) {
@@ -228,13 +210,14 @@
             tacit_context_dependence: 0.40
         };
         var user = signals.frictionDimensions || {};
+        var w = 0.30;
 
         return {
-            exception_burden: average([toNumber(user.exception_burden, 0.5), profile.exception_burden]),
-            accountability_load: average([toNumber(user.accountability_load, 0.5), profile.accountability_load]),
-            judgment_requirement: average([toNumber(user.judgment_requirement, 0.5), profile.judgment_requirement]),
-            document_intensity: average([toNumber(user.document_intensity, 0.5), profile.document_intensity]),
-            tacit_context_dependence: average([toNumber(user.tacit_context_dependence, 0.5), profile.tacit_context_dependence])
+            exception_burden: clamp(profile.exception_burden + (toNumber(user.exception_burden, 0.5) - 0.5) * w, 0, 1),
+            accountability_load: clamp(profile.accountability_load + (toNumber(user.accountability_load, 0.5) - 0.5) * w, 0, 1),
+            judgment_requirement: clamp(profile.judgment_requirement + (toNumber(user.judgment_requirement, 0.5) - 0.5) * w, 0, 1),
+            document_intensity: clamp(profile.document_intensity + (toNumber(user.document_intensity, 0.5) - 0.5) * w, 0, 1),
+            tacit_context_dependence: clamp(profile.tacit_context_dependence + (toNumber(user.tacit_context_dependence, 0.5) - 0.5) * w, 0, 1)
         };
     }
 
@@ -280,8 +263,8 @@
                 }
 
                 var dependencyWeight = CLUSTER_DEPENDENCY_MATRIX[sourceId][targetId];
-                var sourceResidual = 1 - clamp(toNumber(source.compressibility, 0), 0, 1);
-                var targetResidual = 1 - clamp(toNumber(target.compressibility, 0), 0, 1);
+                var sourceResidual = 1 - clamp(toNumber(source.absorption_rate, 0), 0, 1);
+                var targetResidual = 1 - clamp(toNumber(target.absorption_rate, 0), 0, 1);
                 var pairPenalty = dependencyWeight * Math.min(toNumber(source.share_of_role, 0), toNumber(target.share_of_role, 0)) * sourceResidual * targetResidual;
 
                 rawPenalty += pairPenalty;
@@ -619,9 +602,6 @@
 
     function deriveQuestionnaireSignals(answers, options) {
         var seniority = clamp((toNumber(options.seniorityLevel, 3) - 1) / 4, 0, 1);
-        var roleDistinct = options.residualRoleDistinctiveness !== undefined
-            ? clamp(toNumber(options.residualRoleDistinctiveness, 0.5), 0, 1)
-            : 0.5;
 
         var q1 = normalizeAnswer(answers.Q1);
         var q2 = normalizeAnswer(answers.Q2);
@@ -632,27 +612,18 @@
         var q7 = normalizeAnswer(answers.Q7);
         var q8 = normalizeAnswer(answers.Q8);
         var q9 = normalizeAnswer(answers.Q9);
-        var q10 = normalizeAnswer(answers.Q10);
         var q11 = normalizeAnswer(answers.Q11);
         var q12 = normalizeAnswer(answers.Q12);
         var q13 = normalizeAnswer(answers.Q13);
         var q14 = normalizeAnswer(answers.Q14);
-        var q15 = normalizeAnswer(answers.Q15);
         var q16 = normalizeAnswer(answers.Q16);
-        var q17 = normalizeAnswer(answers.Q17);
-        var q18 = normalizeAnswer(answers.Q18);
-        var q19 = normalizeAnswer(answers.Q19);
 
-        var exposureReadiness = average([q1, q2, q3, q4, q5, q6, q8]);
+        var capabilitySignal = average([q1, q4, q8]);
         var couplingProtection = average([q7, q9, q11, q12]);
-        var automationSignal = average([q3, q4, q5, q6, q8, 1 - q7, 1 - q9, 1 - q11, 1 - q12]);
-        var augmentationSignal = average([q1, q4, q8, q7, q9, q11]);
-        var adoptionPressure = average([q13, q14, 1 - q15, q16]);
-        var adaptationEdge = average([q17, q18, q19]);
-        var fragility = average([q10, 1 - roleDistinct]);
+        var adoptionPressure = average([q13, q14, q16]);
         var frictionDimensions = {
             exception_burden: average([1 - q5, 1 - q6, q7, q9]),
-            accountability_load: average([q7, q10, q11]),
+            accountability_load: average([q7, q11]),
             judgment_requirement: average([q7, q9, q11]),
             document_intensity: average([q2, q3, q4, q8]),
             tacit_context_dependence: average([q7, q9, q12])
@@ -660,20 +631,13 @@
 
         return {
             seniority: seniority,
-            roleDistinctiveness: roleDistinct,
-            exposureReadiness: exposureReadiness,
+            capabilitySignal: capabilitySignal,
             couplingProtection: couplingProtection,
-            automationSignal: automationSignal,
-            augmentationSignal: augmentationSignal,
             adoptionPressure: adoptionPressure,
-            adaptationEdge: adaptationEdge,
-            fragility: fragility,
-            taskSupportSignal: clamp((options.aiToolSupportLevel !== undefined ? toNumber(options.aiToolSupportLevel, 0.5) : average([q1, q8])), 0, 1),
             frictionDimensions: frictionDimensions,
             answers: {
                 q1: q1, q2: q2, q3: q3, q4: q4, q5: q5, q6: q6, q7: q7, q8: q8, q9: q9,
-                q10: q10, q11: q11, q12: q12, q13: q13, q14: q14, q15: q15, q16: q16,
-                q17: q17, q18: q18, q19: q19
+                q11: q11, q12: q12, q13: q13, q14: q14, q16: q16
             }
         };
     }
@@ -689,61 +653,62 @@
     }
 
     function buildNarrative(result) {
+        var wt = result.wave_trajectory;
         var topCluster = result.top_exposed_work && result.top_exposed_work.label
             ? result.top_exposed_work.label
             : 'your routine task bundle';
+
+        var headline = result.primary_displacement_wave === 'current'
+            ? 'Displacement pressure is already active in the current wave.'
+            : result.primary_displacement_wave === 'next'
+                ? 'Primary displacement pressure arrives in the next wave.'
+                : 'Major displacement pressure is in the distant wave.';
+
+        var whyThisRoleChanges = headline + ' The easiest-to-automate work\u2014primarily ' + topCluster.toLowerCase() + '\u2014faces pressure first, while coordination, judgment, and relationship tasks hold longer.';
+
         var criticalCluster = result.role_defining_work && result.role_defining_work.label
             ? result.role_defining_work.label.toLowerCase()
             : null;
-        var whyThisRoleChanges = 'This role is changing primarily through pressure on ' + topCluster.toLowerCase() + ', where the selected occupation profile and your questionnaire answers both point to meaningful AI exposure.';
-
         if (criticalCluster && criticalCluster !== topCluster.toLowerCase()) {
-            whyThisRoleChanges += ' The role-defining work in ' + criticalCluster + ' is weighted separately, so the result is not driven by time share alone.';
+            whyThisRoleChanges += ' The role-defining work in ' + criticalCluster + ' is weighted separately.';
         }
 
         var whatIsUnderPressure;
-        if (result.mode_of_change === 'mostly_automation') {
-            whatIsUnderPressure = 'The highest-pressure tasks look most vulnerable to direct workflow absorption, especially where the work is reviewable, structured, and easy to separate from the rest of the role.';
-        } else if (result.mode_of_change === 'mostly_augmentation') {
-            whatIsUnderPressure = 'The highest-pressure tasks look more likely to stay inside the role as AI-assisted work than to disappear entirely.';
+        if (wt && wt.current && wt.current.automated_clusters && wt.current.automated_clusters.length) {
+            var automatedCount = wt.current.automated_clusters.length;
+            var currentRetained = Math.round((wt.current.retained_share || 0) * 100);
+            whatIsUnderPressure = automatedCount + ' task cluster' + (automatedCount === 1 ? '' : 's') + ' face' + (automatedCount === 1 ? 's' : '') + ' current-wave automation pressure. After this wave, roughly ' + currentRetained + '% of the role is retained.';
         } else {
-            whatIsUnderPressure = 'The highest-pressure tasks split between direct automation pressure and augmentation pressure, so the role is more likely to be restructured than cleanly removed.';
+            whatIsUnderPressure = 'No clusters face immediate current-wave automation. The role retains its full scope for now.';
         }
-
-        if (result.diagnostics && result.diagnostics.adoption_pressure >= 0.65) {
-            whatIsUnderPressure += ' Adoption context is also relatively supportive of turning technical exposure into workflow change.';
-        }
-
-        if (result.recomposition_summary && result.recomposition_summary.substitution_gap >= 0.12) {
-            whatIsUnderPressure += ' Even so, a meaningful share of that exposed work still looks more likely to be reorganized than converted directly into labor substitution.';
-        } else if (result.recomposition_summary && result.recomposition_summary.organizational_conversion >= 0.58) {
-            whatIsUnderPressure += ' In this case, the recomposition read leans more toward real labor substitution than internal reorganization alone.';
+        if (wt && wt.next) {
+            var nextRetained = Math.round((wt.next.retained_share || 0) * 100);
+            whatIsUnderPressure += ' After the next wave, about ' + nextRetained + '% remains.';
         }
 
         var whatStaysCore;
-        if (result.residual_role_strength === 'strong') {
-            whatStaysCore = 'The remaining bundle still looks coherent, with enough context-heavy, judgment-heavy, or coordinating work to hold the role together.';
-        } else if (result.residual_role_strength === 'moderate') {
-            whatStaysCore = 'The role still holds together, but the stable core becomes narrower and more dependent on the highest-value work.';
+        if (wt && wt.next) {
+            if (wt.next.coherence_tier === 'coherent') {
+                whatStaysCore = 'The remaining bundle after the next wave still looks coherent, with enough context-heavy, judgment-heavy, or coordinating work to hold the role together.';
+            } else if (wt.next.coherence_tier === 'narrowed') {
+                whatStaysCore = 'The role narrows after the next wave. The stable core becomes smaller and more dependent on the highest-value work.';
+            } else {
+                whatStaysCore = 'The remaining bundle after the next wave looks fragmented. The role could split unless the non-routine parts become a clearer standalone function.';
+            }
         } else {
-            whatStaysCore = 'The remaining bundle looks thin enough that the role could fragment unless the non-routine parts become a clearer standalone function.';
+            whatStaysCore = 'The role structure will depend on which task clusters face automation pressure and how the remaining work holds together.';
         }
-
         if (result.role_defining_work && result.role_defining_work.retained_share !== null && result.role_defining_work.retained_share >= 0.18) {
             whatStaysCore += ' The role-defining cluster still retains enough weight to matter in the transformed bundle.';
         }
 
         var personalizationFitSummary;
         if (result.personalization_fit === 'strong') {
-            personalizationFitSummary = 'Your answers point to a stronger fit with the retained version of the role than the occupation average, especially through leverage, context, or non-routine work.';
+            personalizationFitSummary = 'Your answers suggest strong coupling protection and low adoption pressure, positioning you well in the retained version of the role.';
         } else if (result.personalization_fit === 'moderate') {
-            personalizationFitSummary = 'Your answers point to a mixed fit with the retained version of the role: there is still room inside the transformed bundle, but not much slack.';
+            personalizationFitSummary = 'Your answers point to a mixed fit with the retained role: some coupling protection, but adoption pressure is also present.';
         } else {
-            personalizationFitSummary = 'Your answers point to a weaker fit with the retained version of the role, which means more of your current work sits inside the part of the bundle under pressure.';
-        }
-
-        if (result.diagnostics && result.diagnostics.task_support_signal >= 0.65) {
-            personalizationFitSummary += ' Current AI/tool usage also pushes the result toward a more augmentation-ready version of the role.';
+            personalizationFitSummary = 'Your answers suggest weaker coupling protection or higher adoption pressure, meaning more of your work sits in the part of the bundle under pressure.';
         }
 
         return {
@@ -810,292 +775,304 @@
             (input.roleCriticalClusters || []).forEach(function (clusterId) {
                 roleCriticalSet[clusterId] = true;
             });
-            var occupationExposure = occupationPrior ? toNumber(occupationPrior.exposure_score, 0.5) : 0.5;
-            var occupationAugmentation = occupationPrior ? toNumber(occupationPrior.augmentation_score, 0.45) : 0.45;
             var occupationAutomation = occupationPrior ? toNumber(occupationPrior.automation_score, 0.25) : 0.25;
             var occupationAdaptive = occupationPrior && occupationPrior.adaptive_capacity_score
                 ? toNumber(occupationPrior.adaptive_capacity_score, 0.5)
                 : (adaptationPrior ? toNumber(adaptationPrior.adaptive_capacity_score, 0.5) : 0.5);
 
             var currentBundle = [];
-            var exposedClusters = [];
-            var retainedClusters = [];
-            var elevatedClusters = [];
             var clusterResultsById = {};
-            var transformedShares = {};
-            var absorbedTotal = 0;
-            var exposedTaskShare = 0;
-            var automationMass = 0;
-            var augmentationMass = 0;
-            var workflowCompressionRaw = 0;
-            var criticalExposedShare = 0;
-            var criticalRetainedShare = 0;
-            var criticalAbsorbedShare = 0;
             var roleDefiningWork = null;
             var clusterPriorReliabilities = [];
             var taskDirectReliabilities = [];
-            var dependencyPenalty = 0;
-            var bindingDependencies = [];
             var bundlePriorConcentration = taskClusters.length ? toNumber(taskClusters[0].bundle_prior_concentration, 1.35) : 1.35;
+            var adoptionRealization = SCORING_CONFIG.adoptionRealizationBase + (signals.adoptionPressure * SCORING_CONFIG.adoptionRealizationScale);
+            var waveGroups = { current: [], next: [], distant: [] };
 
             taskClusters.forEach(function (cluster) {
                 var prior = taskPriorsByCluster[cluster.task_cluster_id] || {};
                 var humanAdvantage = HUMAN_ADVANTAGE_CLUSTERS[cluster.task_cluster_id] || 0.25;
                 var priorReliability = estimatePriorReliability(prior);
                 var frictionDimensions = deriveClusterFriction(signals, cluster.task_cluster_id);
-                var exposureProtection = average([
-                    frictionDimensions.exception_burden,
-                    frictionDimensions.tacit_context_dependence
-                ]);
-                var automationProtection = average([
-                    frictionDimensions.exception_burden,
-                    frictionDimensions.accountability_load,
-                    frictionDimensions.judgment_requirement,
-                    frictionDimensions.tacit_context_dependence
-                ]);
-                var rawAuto = average([
-                    toNumber(prior.partial_automation_likelihood, 0.25),
-                    toNumber(prior.high_automation_likelihood, 0.12)
-                ]);
-                var baseExposure = shrinkTowardPrior(prior.exposure_score, occupationExposure, priorReliability, 0.45);
-                var baseAug = shrinkTowardPrior(prior.augmentation_likelihood, occupationAugmentation, priorReliability, 0.45);
-                var baseAuto = shrinkTowardPrior(rawAuto, occupationAutomation, priorReliability, 0.25);
                 var isRoleCritical = !!roleCriticalSet[cluster.task_cluster_id];
-                var criticalityBoost = isRoleCritical ? SCORING_CONFIG.criticalityBoost : 0;
-                var adoptionRealization = SCORING_CONFIG.adoptionRealizationBase + (signals.adoptionPressure * SCORING_CONFIG.adoptionRealizationScale);
-                var taskSupport = signals.taskSupportSignal;
+                var clusterShare = toNumber(cluster.share_prior, 0);
                 clusterPriorReliabilities.push(priorReliability);
 
-                var exposure = clamp(
-                    baseExposure * (SCORING_CONFIG.exposureBase + (signals.exposureReadiness * SCORING_CONFIG.exposureReadinessScale)) *
-                    adoptionRealization *
-                    (1 + criticalityBoost) *
-                    (1 + (frictionDimensions.document_intensity * 0.08)) *
-                    (1 - (humanAdvantage * signals.couplingProtection * SCORING_CONFIG.exposureCouplingPenalty)) *
-                    (1 - (exposureProtection * 0.12)),
-                    0,
-                    1
+                var intrinsicFriction =
+                    FRICTION_WEIGHTS.accountability_load * frictionDimensions.accountability_load +
+                    FRICTION_WEIGHTS.judgment_requirement * frictionDimensions.judgment_requirement +
+                    FRICTION_WEIGHTS.tacit_context_dependence * frictionDimensions.tacit_context_dependence +
+                    FRICTION_WEIGHTS.exception_burden * frictionDimensions.exception_burden +
+                    FRICTION_WEIGHTS.inverse_document_intensity * (1 - frictionDimensions.document_intensity);
+
+                var humanAdvantageContribution = humanAdvantage * 0.35;
+
+                var empiricalEase = shrinkTowardPrior(
+                    average([
+                        toNumber(prior.partial_automation_likelihood, 0.25),
+                        toNumber(prior.high_automation_likelihood, 0.12)
+                    ]),
+                    occupationAutomation,
+                    priorReliability,
+                    0.25
+                );
+                var empiricalResistance = 1 - empiricalEase;
+
+                var automationDifficulty = clamp(
+                    intrinsicFriction * AUTOMATION_DIFFICULTY_WEIGHTS.intrinsicFriction +
+                    humanAdvantageContribution * AUTOMATION_DIFFICULTY_WEIGHTS.humanAdvantage +
+                    empiricalResistance * AUTOMATION_DIFFICULTY_WEIGHTS.empiricalResistance +
+                    signals.couplingProtection * AUTOMATION_DIFFICULTY_WEIGHTS.couplingProtection,
+                    0.02, 0.98
                 );
 
-                var augmentation = clamp(
-                    baseAug * (SCORING_CONFIG.augmentationBase + (signals.augmentationSignal * SCORING_CONFIG.augmentationSignalScale) + (taskSupport * SCORING_CONFIG.augmentationToolScale)) *
-                    (1 + humanAdvantage * (SCORING_CONFIG.augmentationHumanBase + taskSupport * SCORING_CONFIG.augmentationHumanToolScale)) *
-                    (1 + (frictionDimensions.document_intensity * 0.14) + (frictionDimensions.judgment_requirement * 0.04)) *
-                    (1 - (frictionDimensions.tacit_context_dependence * 0.10)) *
-                    adoptionRealization,
-                    0,
-                    1
-                );
-
-                var automation = clamp(
-                    baseAuto * (SCORING_CONFIG.automationBase + (signals.automationSignal * SCORING_CONFIG.automationSignalScale) + (signals.adoptionPressure * SCORING_CONFIG.automationAdoptionScale)) *
-                    (1 + (frictionDimensions.document_intensity * 0.06)) *
-                    (1 - (humanAdvantage * ((signals.couplingProtection * SCORING_CONFIG.automationCouplingPenalty) + (taskSupport * SCORING_CONFIG.automationToolPenalty)))) *
-                    (1 - (automationProtection * 0.30)),
-                    0,
-                    1
-                );
-
-                var likelyMode = augmentation >= automation ? 'augmentation' : 'automation';
-                var clusterShare = toNumber(cluster.share_prior, 0);
-                var clusterCompressibility = clamp(
-                    automation + ((1 - automation) * augmentation * SCORING_CONFIG.compressionAugmentationSavings),
-                    0,
-                    1
-                );
-                var compressionContribution = clusterShare * exposure * clusterCompressibility;
-                var absorbedShare = clusterShare * exposure * automation * (SCORING_CONFIG.absorbedAutomationBase + (signals.adoptionPressure * SCORING_CONFIG.absorbedAutomationAdoptionScale));
-                var retainedShare = Math.max(0, clusterShare - absorbedShare);
-                var elevationBoost = ELEVATION_CLUSTERS[cluster.task_cluster_id]
-                    ? absorbedShare * (SCORING_CONFIG.elevationBase + signals.seniority * SCORING_CONFIG.elevationSeniorityScale + signals.roleDistinctiveness * SCORING_CONFIG.elevationDistinctivenessScale + (isRoleCritical ? SCORING_CONFIG.elevationCriticalScale : 0))
-                    : 0;
-                var transformedShare = retainedShare + elevationBoost;
-
-                absorbedTotal += absorbedShare;
-                exposedTaskShare += clusterShare * exposure;
-                automationMass += clusterShare * exposure * automation;
-                augmentationMass += clusterShare * exposure * augmentation;
-                workflowCompressionRaw += compressionContribution;
-                transformedShares[cluster.task_cluster_id] = transformedShare;
                 if (isRoleCritical) {
-                    criticalExposedShare += clusterShare * exposure;
-                    criticalRetainedShare += transformedShare;
-                    criticalAbsorbedShare += absorbedShare;
+                    automationDifficulty = clamp(automationDifficulty + SCORING_CONFIG.criticalityBoost, 0.02, 0.98);
                 }
+
+                var waveAssignment;
+                if (automationDifficulty <= WAVE_THRESHOLDS.current_max) {
+                    waveAssignment = 'current';
+                } else if (automationDifficulty <= WAVE_THRESHOLDS.next_max) {
+                    waveAssignment = 'next';
+                } else {
+                    waveAssignment = 'distant';
+                }
+
+                var absorptionRate = clamp(
+                    adoptionRealization * (1 - automationDifficulty * 0.3),
+                    0.50, 0.95
+                );
 
                 var clusterResult = {
                     task_cluster_id: cluster.task_cluster_id,
                     label: slugToLabel(cluster.task_cluster_id),
                     share_of_role: clusterShare,
-                    exposure_score: exposure,
-                    augmentation_likelihood: augmentation,
-                    automation_likelihood: automation,
-                    partial_automation_likelihood: toNumber(prior.partial_automation_likelihood, automation),
-                    high_automation_likelihood: toNumber(prior.high_automation_likelihood, automation * 0.7),
-                    absorbed_share: absorbedShare,
-                    residual_relevance: transformedShare,
+                    automation_difficulty: automationDifficulty,
+                    wave_assignment: waveAssignment,
+                    absorption_rate: absorptionRate,
+                    absorbed_share: 0,
+                    residual_relevance: clusterShare,
+                    elevation_boost: 0,
                     evidence_confidence: average([
                         toNumber(cluster.evidence_confidence, 0.4),
                         priorReliability
                     ]),
                     primary_sources: parsePipeList(prior.primary_sources || cluster.source_mix || ''),
-                    likely_mode: likelyMode,
                     is_role_critical: isRoleCritical,
                     prior_reliability: priorReliability,
-                    compressibility: clusterCompressibility,
-                    friction_dimensions: frictionDimensions
+                    friction_dimensions: frictionDimensions,
+                    intrinsic_friction: intrinsicFriction,
+                    empirical_resistance: empiricalResistance
                 };
 
                 currentBundle.push(clusterResult);
                 clusterResultsById[cluster.task_cluster_id] = clusterResult;
+                waveGroups[waveAssignment].push(clusterResult);
 
                 if (isRoleCritical) {
                     roleDefiningWork = clusterResult;
                 }
-
-                if (clusterShare * exposure >= 0.045) {
-                    exposedClusters.push(clusterResult);
-                }
-
-                if (transformedShare >= 0.055) {
-                    retainedClusters.push(clusterResult);
-                }
-
-                if (elevationBoost >= 0.025) {
-                    elevatedClusters.push(clusterResult);
-                }
             });
 
-            var dependencyRead = computeDependencyPenalty(currentBundle);
-            dependencyPenalty = clamp(dependencyRead.penalty, 0, Math.max(0, workflowCompressionRaw * 0.75));
-            bindingDependencies = dependencyRead.bindings;
-
+            // --- Wave processing: compute per-wave snapshots ---
             currentBundle.sort(function (left, right) {
                 return right.share_of_role - left.share_of_role;
             });
-            exposedClusters.sort(function (left, right) {
-                return (right.share_of_role * right.exposure_score) - (left.share_of_role * left.exposure_score);
-            });
-            retainedClusters.sort(function (left, right) {
-                return right.residual_relevance - left.residual_relevance;
-            });
-            elevatedClusters.sort(function (left, right) {
-                return right.residual_relevance - left.residual_relevance;
+
+            var waves = ['current', 'next', 'distant'];
+            var waveResults = {};
+            var cumulativeAutomated = {};
+
+            waves.forEach(function (waveName) {
+                waveGroups[waveName].forEach(function (cluster) {
+                    cluster.absorbed_share = cluster.share_of_role * cluster.absorption_rate;
+                    cluster.residual_relevance = cluster.share_of_role * (1 - cluster.absorption_rate);
+                    cumulativeAutomated[cluster.task_cluster_id] = true;
+                });
+
+                var remainingClusters = currentBundle.filter(function (c) {
+                    return !cumulativeAutomated[c.task_cluster_id];
+                });
+                var automatedClusters = currentBundle.filter(function (c) {
+                    return !!cumulativeAutomated[c.task_cluster_id];
+                });
+
+                var elevationBoosts = {};
+                remainingClusters.forEach(function (cluster) {
+                    if (!ELEVATION_CLUSTERS[cluster.task_cluster_id]) return;
+                    var elevationPull = 0;
+                    automatedClusters.forEach(function (automated) {
+                        var deps = CLUSTER_DEPENDENCY_MATRIX[automated.task_cluster_id];
+                        if (deps && deps[cluster.task_cluster_id]) {
+                            elevationPull += deps[cluster.task_cluster_id] * automated.absorbed_share;
+                        }
+                    });
+                    elevationBoosts[cluster.task_cluster_id] = elevationPull * (1 + signals.seniority * 0.25);
+                });
+
+                var retainedShare = 0;
+                currentBundle.forEach(function (c) {
+                    if (cumulativeAutomated[c.task_cluster_id]) {
+                        retainedShare += c.residual_relevance;
+                    } else {
+                        retainedShare += c.share_of_role + (elevationBoosts[c.task_cluster_id] || 0);
+                    }
+                });
+                retainedShare = clamp(retainedShare, 0, 1);
+
+                var connectedWeight = 0;
+                var totalWeight = 0;
+                Object.keys(CLUSTER_DEPENDENCY_MATRIX).forEach(function (sourceId) {
+                    if (!clusterResultsById[sourceId]) return;
+                    Object.keys(CLUSTER_DEPENDENCY_MATRIX[sourceId]).forEach(function (targetId) {
+                        if (!clusterResultsById[targetId]) return;
+                        var depWeight = CLUSTER_DEPENDENCY_MATRIX[sourceId][targetId];
+                        totalWeight += depWeight;
+                        if (!cumulativeAutomated[sourceId] && !cumulativeAutomated[targetId]) {
+                            connectedWeight += depWeight;
+                        }
+                    });
+                });
+
+                var coherence = totalWeight > 0 ? (connectedWeight / totalWeight) : 0.5;
+                if (remainingClusters.length >= COHERENCE_BONUSES.clusterCountThreshold) {
+                    coherence += COHERENCE_BONUSES.clusterCountBonus;
+                }
+                if (retainedShare >= COHERENCE_BONUSES.retainedShareThreshold) {
+                    coherence += COHERENCE_BONUSES.retainedShareBonus;
+                }
+                coherence = clamp(coherence, 0, 1);
+
+                var waveState;
+                if (retainedShare >= 0.70 && coherence >= 0.50) {
+                    waveState = 'stable';
+                } else if (retainedShare >= 0.40 && coherence >= 0.35) {
+                    waveState = 'narrowed';
+                } else if (retainedShare >= 0.20) {
+                    waveState = 'transformed';
+                } else {
+                    waveState = 'displaced';
+                }
+
+                waveResults[waveName] = {
+                    wave: waveName,
+                    state: waveState,
+                    state_label: WAVE_STATE_LABELS[waveState],
+                    retained_share: Number(retainedShare.toFixed(3)),
+                    coherence: Number(coherence.toFixed(3)),
+                    coherence_tier: coherence < 0.35 ? 'fragmented' : (coherence < 0.60 ? 'narrowed' : 'coherent'),
+                    automated_clusters: automatedClusters.map(function (c) { return c.task_cluster_id; }),
+                    remaining_clusters: remainingClusters.map(function (c) { return c.task_cluster_id; }),
+                    elevation_boosts: elevationBoosts
+                };
+
+                if (waveName === 'next') {
+                    currentBundle.forEach(function (c) {
+                        c.elevation_boost = elevationBoosts[c.task_cluster_id] || 0;
+                        if (cumulativeAutomated[c.task_cluster_id]) {
+                            c.residual_relevance = c.share_of_role * (1 - c.absorption_rate);
+                        } else {
+                            c.residual_relevance = c.share_of_role + c.elevation_boost;
+                        }
+                    });
+                }
             });
 
-            exposedTaskShare = clamp(exposedTaskShare, 0, 1);
-            var automationShare = automationMass + augmentationMass > 0 ? clamp(automationMass / (automationMass + augmentationMass), 0, 1) : 0.5;
-            var augmentationShare = 1 - automationShare;
-            var bundleFriction = summarizeBundleFriction(currentBundle);
-            var workflowCompression = clamp(
-                Math.max(0, workflowCompressionRaw - dependencyPenalty) * (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)),
-                0,
-                1
-            );
-            var conversionWeights = SCORING_CONFIG.organizationalConversionWeights;
-            var organizationalConversion = clamp(
-                (signals.adoptionPressure * conversionWeights.adoptionPressure) +
-                (automationShare * conversionWeights.automationShare) +
-                (signals.fragility * conversionWeights.fragility) +
-                ((1 - signals.couplingProtection) * conversionWeights.lowCoupling) +
-                ((1 - signals.roleDistinctiveness) * conversionWeights.lowDistinctiveness) +
-                ((1 - signals.taskSupportSignal) * conversionWeights.lowToolSupport) +
-                (exposedTaskShare * conversionWeights.exposedTaskShare) +
-                (bundleFriction.document_intensity * conversionWeights.documentIntensity) +
-                ((1 - bundleFriction.accountability_load) * conversionWeights.lowAccountability) +
-                ((1 - bundleFriction.judgment_requirement) * conversionWeights.lowJudgment) +
-                ((1 - bundleFriction.tacit_context_dependence) * conversionWeights.lowTacit),
-                0,
-                1
-            );
-            var substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
-            var substitutionGap = clamp(workflowCompression - substitutionPotential, 0, 1);
-            var selector = store.selectorByOcc[occupationId] || {};
+            // --- Primary displacement wave ---
+            var primaryDisplacementWave = 'distant';
+            if (waveResults.current.state === 'displaced' || waveResults.current.state === 'transformed') {
+                primaryDisplacementWave = 'current';
+            } else if (waveResults.next.state === 'displaced' || waveResults.next.state === 'transformed') {
+                primaryDisplacementWave = 'next';
+            }
 
-            var strategicResidualShare = sum(retainedClusters.map(function (cluster) {
-                return ELEVATION_CLUSTERS[cluster.task_cluster_id] ? cluster.residual_relevance : 0;
-            }));
-            var criticalRoleBuffer = Object.keys(roleCriticalSet).length
-                ? average([
-                    criticalRetainedShare,
-                    1 - clamp(criticalExposedShare * Math.max(automationShare, 0.45), 0, 1)
-                ])
-                : signals.roleDistinctiveness;
-
+            // --- Residual viability (anchored on next wave) ---
+            var adoptionFriction = 1 - signals.adoptionPressure;
             var residualViabilityScore = clamp(
-                average([
-                    1 - signals.fragility,
-                    signals.roleDistinctiveness,
-                    signals.couplingProtection,
-                    strategicResidualShare,
-                    criticalRoleBuffer,
-                    1 - automationShare
-                ]) * 0.68 + clamp(sum(Object.keys(transformedShares).map(function (key) { return transformedShares[key]; })), 0, 1) * 0.32,
-                0,
-                1
+                waveResults.next.retained_share * 0.45 +
+                waveResults.next.coherence * 0.35 +
+                signals.couplingProtection * 0.10 +
+                adoptionFriction * 0.10,
+                0, 1
             );
 
+            // --- Legacy role state mapping ---
+            var roleState;
+            var cwState = waveResults.current.state;
+            var nwState = waveResults.next.state;
+            if (cwState === 'displaced') {
+                roleState = 'high_displacement_risk';
+            } else if (cwState === 'transformed') {
+                roleState = 'role_fragments';
+            } else if (cwState === 'stable' && nwState === 'stable') {
+                roleState = 'mostly_augmented';
+            } else if (cwState === 'stable' && nwState === 'narrowed') {
+                roleState = 'routine_tasks_absorbed';
+            } else if (cwState === 'stable' && nwState === 'transformed') {
+                roleState = 'role_becomes_more_senior';
+            } else if (cwState === 'stable' && nwState === 'displaced') {
+                roleState = 'role_narrows_but_remains_viable';
+            } else if (cwState === 'narrowed') {
+                roleState = 'role_narrows_but_remains_viable';
+            } else {
+                roleState = 'routine_tasks_absorbed';
+            }
+
+            // --- Personalization fit ---
             var personalizationFitScore = clamp(
                 average([
                     occupationAdaptive,
-                    strategicResidualShare,
-                    criticalRetainedShare || signals.roleDistinctiveness,
                     signals.couplingProtection,
-                    signals.adaptationEdge,
-                    signals.taskSupportSignal,
-                    signals.seniority * 0.55 + signals.roleDistinctiveness * 0.45,
-                    1 - signals.fragility
+                    signals.seniority * 0.60 + signals.capabilitySignal * 0.40,
+                    waveResults.next.retained_share,
+                    waveResults.next.coherence
                 ]),
-                0,
-                1
+                0, 1
             );
 
-            var roleState;
-            if (residualViabilityScore < SCORING_CONFIG.roleState.highDisplacementResidualMax &&
-                automationShare >= SCORING_CONFIG.roleState.highDisplacementAutomationMin &&
-                exposedTaskShare >= SCORING_CONFIG.roleState.highDisplacementExposureMin) {
-                roleState = 'high_displacement_risk';
-            } else if (residualViabilityScore < SCORING_CONFIG.roleState.fragmentsResidualMax &&
-                exposedTaskShare >= SCORING_CONFIG.roleState.fragmentsExposureMin) {
-                roleState = 'role_fragments';
-            } else if (strategicResidualShare >= SCORING_CONFIG.roleState.moreSeniorStrategicResidualMin &&
-                automationShare < SCORING_CONFIG.roleState.moreSeniorAutomationMax &&
-                signals.seniority >= SCORING_CONFIG.roleState.moreSeniorSeniorityMin &&
-                workflowCompression <= SCORING_CONFIG.roleState.moreSeniorCompressionMax &&
-                substitutionGap >= SCORING_CONFIG.roleState.moreSeniorGapMin) {
-                roleState = 'role_becomes_more_senior';
-            } else if (residualViabilityScore >= SCORING_CONFIG.roleState.mostlyAugmentedResidualMin &&
-                augmentationShare >= SCORING_CONFIG.roleState.mostlyAugmentedAugmentationMin &&
-                workflowCompression <= SCORING_CONFIG.roleState.mostlyAugmentedCompressionMax) {
-                roleState = 'mostly_augmented';
-            } else if (residualViabilityScore >= SCORING_CONFIG.roleState.routineResidualMin) {
-                roleState = 'routine_tasks_absorbed';
-            } else {
-                roleState = 'role_narrows_but_remains_viable';
-            }
+            // --- Recomposition summary (derived from wave data) ---
+            var selector = store.selectorByOcc[occupationId] || {};
+            var bundleFriction = summarizeBundleFriction(currentBundle);
+            var currentWaveAbsorbed = 0;
+            waveGroups.current.forEach(function (c) {
+                currentWaveAbsorbed += c.absorbed_share;
+            });
+            var workflowCompression = clamp(
+                currentWaveAbsorbed * (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)),
+                0, 1
+            );
+            var organizationalConversion = clamp(
+                signals.adoptionPressure * 0.30 +
+                (1 - signals.couplingProtection) * 0.25 +
+                currentWaveAbsorbed * 0.20 +
+                (1 - bundleFriction.accountability_load) * 0.10 +
+                (1 - bundleFriction.judgment_requirement) * 0.08 +
+                bundleFriction.document_intensity * 0.07,
+                0, 1
+            );
+            var substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
+            var substitutionGap = clamp(workflowCompression - substitutionPotential, 0, 1);
 
-            var topExposed = (exposedClusters.slice().sort(function (left, right) {
-                var leftScore = (left.share_of_role * left.exposure_score) * (left.is_role_critical ? 1.35 : 1);
-                var rightScore = (right.share_of_role * right.exposure_score) * (right.is_role_critical ? 1.35 : 1);
+            // --- Top exposed cluster (easiest to automate with most share) ---
+            var topExposed = currentBundle.slice().sort(function (left, right) {
+                var leftScore = left.share_of_role * (1 - left.automation_difficulty) * (left.is_role_critical ? 1.35 : 1);
+                var rightScore = right.share_of_role * (1 - right.automation_difficulty) * (right.is_role_critical ? 1.35 : 1);
                 return rightScore - leftScore;
-            })[0]) || currentBundle[0] || null;
+            })[0] || null;
+
             var viabilityTier = toTier(residualViabilityScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
             var personalizationTier = toTier(personalizationFitScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
-            var balanceTier = automationShare >= 0.60
-                ? 'mostly_automation'
-                : (automationShare <= 0.42 ? 'mostly_augmentation' : 'mixed');
             var exposureLevel = topExposed
-                ? toTier(topExposed.exposure_score, [0.40, 0.68], ['low', 'moderate', 'high'])
+                ? toTier(1 - topExposed.automation_difficulty, [0.40, 0.68], ['low', 'moderate', 'high'])
                 : 'low';
             var occupationAnchorConfidence = average([
                 occupationPrior ? toNumber(occupationPrior.confidence, 0.45) : 0.40,
                 selector ? toNumber(selector.selector_weight, 0.50) : 0.50
             ]);
             var personalizationConfidence = average([
-                signals.roleDistinctiveness,
-                1 - signals.fragility,
                 signals.couplingProtection,
-                signals.taskSupportSignal,
+                signals.capabilitySignal,
                 average(currentBundle.map(function (cluster) {
                     return cluster.evidence_confidence;
                 }))
@@ -1103,9 +1080,29 @@
             var laborContextConfidence = laborContext
                 ? toNumber(laborContext.labor_market_confidence, 0.55)
                 : 0;
-            var roleSummary = occupation.title + ' shows ' + Math.round(exposedTaskShare * 100) + '% exposed task share, led by ' + (topExposed ? topExposed.label.toLowerCase() : 'the current bundle') + ', while the retained bundle looks ' + viabilityTier + '.';
+
+            // --- Derived lists ---
+            var exposedClusters = currentBundle.filter(function (c) {
+                return c.wave_assignment === 'current' || c.wave_assignment === 'next';
+            }).sort(function (left, right) {
+                return left.automation_difficulty - right.automation_difficulty;
+            });
+            var retainedClusters = currentBundle.filter(function (c) {
+                return c.residual_relevance >= 0.055;
+            }).sort(function (left, right) {
+                return right.residual_relevance - left.residual_relevance;
+            });
+            var elevatedClusters = currentBundle.filter(function (c) {
+                return c.elevation_boost >= 0.015;
+            }).sort(function (left, right) {
+                return right.elevation_boost - left.elevation_boost;
+            });
+
+            var exposedTaskShare = clamp(currentWaveAbsorbed + sum(waveGroups.next.map(function (c) { return c.absorbed_share; })), 0, 1);
+
+            var roleSummary = occupation.title + ': primary displacement pressure arrives in the ' + primaryDisplacementWave + ' wave. After the next wave, ' + Math.round(waveResults.next.retained_share * 100) + '% retained (' + waveResults.next.coherence_tier + ' coherence). Residual role strength looks ' + viabilityTier + '.';
             if (roleDefiningWork) {
-                roleSummary += ' The role-defining work in ' + roleDefiningWork.label.toLowerCase() + ' carries extra weight in the retained-bundle calculation.';
+                roleSummary += ' The role-defining work in ' + roleDefiningWork.label.toLowerCase() + ' (' + roleDefiningWork.wave_assignment + ' wave) carries extra weight.';
             }
 
             var taskRowsByCluster = {};
@@ -1155,21 +1152,12 @@
                     var evidence = row.evidence;
                     var membership = row.membership;
                     var taskShare = clusterResult.share_of_role * (row.raw_weight / totalRawWeight);
-                    var taskExposure = evidence
-                        ? shrinkTowardPrior(evidence.exposure_score, clusterResult.exposure_score, estimateTaskEvidenceReliability(evidence), clusterResult.exposure_score)
-                        : clusterResult.exposure_score;
-                    var taskAugmentation = evidence
-                        ? shrinkTowardPrior(evidence.augmentation_score, clusterResult.augmentation_likelihood, estimateTaskEvidenceReliability(evidence), clusterResult.augmentation_likelihood)
-                        : clusterResult.augmentation_likelihood;
-                    var taskAutomation = evidence
-                        ? shrinkTowardPrior(evidence.automation_score, clusterResult.automation_likelihood, estimateTaskEvidenceReliability(evidence), clusterResult.automation_likelihood)
-                        : clusterResult.automation_likelihood;
-                    var taskAbsorbedShare = taskShare * taskExposure * taskAutomation * (SCORING_CONFIG.absorbedAutomationBase + (signals.adoptionPressure * SCORING_CONFIG.absorbedAutomationAdoptionScale));
-                    var taskRetainedShare = Math.max(0, taskShare - taskAbsorbedShare);
-                    var taskElevationBoost = ELEVATION_CLUSTERS[clusterId]
-                        ? taskAbsorbedShare * (SCORING_CONFIG.elevationBase + signals.seniority * SCORING_CONFIG.elevationSeniorityScale + signals.roleDistinctiveness * SCORING_CONFIG.elevationDistinctivenessScale + (clusterResult.is_role_critical ? SCORING_CONFIG.elevationCriticalScale : 0))
+                    var taskAbsorbedShare = cumulativeAutomated[clusterId]
+                        ? taskShare * clusterResult.absorption_rate
                         : 0;
-                    var transformedTaskShare = taskRetainedShare + taskElevationBoost;
+                    var taskRetainedShare = taskShare - taskAbsorbedShare;
+                    var taskElevationBoost = (clusterResult.elevation_boost || 0) * (row.raw_weight / totalRawWeight);
+                    var transformedTaskShare = Math.max(0, taskRetainedShare + taskElevationBoost);
                     var hasDirectEvidence = !!(evidence && evidence.source_id && String(evidence.source_id).indexOf('src_internal_stub') !== 0);
                     var taskEvidenceReliability = hasDirectEvidence ? estimateTaskEvidenceReliability(evidence) : 0;
 
@@ -1187,13 +1175,13 @@
                         task_cluster_id: clusterId,
                         task_cluster_label: clusterResult.label,
                         share_of_role: Number(taskShare.toFixed(4)),
-                        exposed_share: Number((taskShare * taskExposure).toFixed(4)),
+                        automation_difficulty: Number(clusterResult.automation_difficulty.toFixed(3)),
+                        wave_assignment: clusterResult.wave_assignment,
+                        exposed_share: Number(taskAbsorbedShare.toFixed(4)),
                         retained_share: Number(transformedTaskShare.toFixed(4)),
-                        exposure_score: Number(taskExposure.toFixed(3)),
-                        exposure_level: toTier(taskExposure, [0.40, 0.68], ['low', 'moderate', 'high']),
-                        augmentation_likelihood: Number(taskAugmentation.toFixed(3)),
-                        automation_likelihood: Number(taskAutomation.toFixed(3)),
-                        likely_mode: taskAugmentation >= taskAutomation ? 'augmentation' : 'automation',
+                        exposure_score: Number((1 - clusterResult.automation_difficulty).toFixed(3)),
+                        exposure_level: toTier(1 - clusterResult.automation_difficulty, [0.40, 0.68], ['low', 'moderate', 'high']),
+                        likely_mode: clusterResult.wave_assignment,
                         evidence_confidence: Number(average([
                             clusterResult.evidence_confidence,
                             evidence ? toNumber(evidence.confidence, 0.55) : null,
@@ -1221,14 +1209,16 @@
 
             var totalTaskRows = directTaskEvidenceCount + fallbackTaskCount;
             var directCoverageRatio = totalTaskRows ? (directTaskEvidenceCount / totalTaskRows) : 0.35;
+            var dependencyRead = computeDependencyPenalty(currentBundle);
+            var dependencyPenalty = clamp(dependencyRead.penalty, 0, 0.5);
+            var bindingDependencies = dependencyRead.bindings;
             var recompositionConfidence = clamp(average([
                 average(currentBundle.map(function (cluster) {
                     return cluster.evidence_confidence;
                 })),
                 occupationAnchorConfidence,
                 personalizationConfidence,
-                directCoverageRatio,
-                1 - clamp(dependencyPenalty / Math.max(workflowCompressionRaw || 0.01, 0.01), 0, 1) * 0.45
+                directCoverageRatio
             ]), 0, 1);
             var recompositionBandHalfWidth = clamp(
                 0.06 +
@@ -1291,7 +1281,7 @@
                 } : null,
                 direct_task_evidence_count: directTaskEvidenceCount,
                 fallback_task_count: fallbackTaskCount,
-                questionnaire_effect: 'Your task-family choices change role-share weights. Your questionnaire answers then change exposure, augmentation, automation, and retained-share estimates inside that occupation anchor.'
+                questionnaire_effect: 'Your task-family choices change role-share weights. Your questionnaire answers shape automation difficulty per cluster and the wave-based displacement trajectory.'
             };
 
             var evidenceSummary = {
@@ -1318,12 +1308,12 @@
                 },
                 notes: [
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
-                    'Headline outputs are driven by O*NET task structure plus Anthropic task-level transformation evidence.',
-                    'Task-family friction is now scored explicitly across exception burden, accountability load, judgment requirement, document intensity, and tacit/context dependence.',
-                    'Cluster priors are shrunk toward occupation-level priors using evidence confidence, and direct task evidence is shrunk toward cluster estimates using task-count-weighted reliability.',
-                    'Recomposition layer: workflow compression=' + Number(recompositionSummary.workflow_compression.toFixed(2)) + ', organizational conversion=' + Number(recompositionSummary.organizational_conversion.toFixed(2)) + ', substitution gap=' + Number(recompositionSummary.substitution_gap.toFixed(2)) + ', confidence=' + recompositionSummary.confidence_label.toLowerCase() + '.',
-                    roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + '.') : 'No explicit role-defining task input selected.',
-                    'Current AI/tool support signal=' + Number(signals.taskSupportSignal.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
+                    'v2.1 wave-based model: automation difficulty per cluster drives wave assignment (current/next/distant).',
+                    'Task-family friction scored across exception burden, accountability load, judgment requirement, document intensity, and tacit/context dependence.',
+                    'Cluster priors are shrunk toward occupation-level priors using evidence confidence.',
+                    'Wave trajectory: current=' + waveResults.current.state + ', next=' + waveResults.next.state + ', distant=' + waveResults.distant.state + '. Primary displacement wave: ' + primaryDisplacementWave + '.',
+                    roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + ' (wave: ' + roleDefiningWork.wave_assignment + ').') : 'No explicit role-defining task input selected.',
+                    'Capability signal=' + Number(signals.capabilitySignal.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
                     'Labor-market data is shown as context and does not drive the main role labels.',
                     laborContext ? ('Labor context includes employment=' + laborContext.employment_us + ', median_wage=' + laborContext.median_wage_usd + ', growth=' + laborContext.projection_growth_pct + '%.') : 'Labor context unavailable for this occupation.',
                     laborContext && laborContext.unemployment_group_label ? ('Latest official BLS unemployment for ' + laborContext.unemployment_group_label + ' is ' + laborContext.latest_unemployment_rate + '% (' + laborContext.latest_unemployment_period + ').') : 'No mapped BLS unemployment series for this occupation yet.'
@@ -1338,24 +1328,29 @@
                 role_outlook_label: ROLE_STATE_LABELS[roleState],
                 role_summary: roleSummary,
                 occupation_assignment: occupationAssignment,
+                primary_displacement_wave: primaryDisplacementWave,
+                wave_trajectory: {
+                    current: waveResults.current,
+                    next: waveResults.next,
+                    distant: waveResults.distant
+                },
                 top_exposed_work: topExposed ? {
                     task_cluster_id: topExposed.task_cluster_id,
                     label: topExposed.label,
                     share_of_role: Number(topExposed.share_of_role.toFixed(3)),
-                    exposure_score: Number(topExposed.exposure_score.toFixed(3)),
+                    automation_difficulty: Number(topExposed.automation_difficulty.toFixed(3)),
+                    wave_assignment: topExposed.wave_assignment,
                     exposure_level: exposureLevel
                 } : null,
                 role_defining_work: roleDefiningWork ? {
                     task_cluster_id: roleDefiningWork.task_cluster_id,
                     label: roleDefiningWork.label,
                     share_of_role: Number(roleDefiningWork.share_of_role.toFixed(3)),
-                    retained_share: Number((transformedShares[roleDefiningWork.task_cluster_id] || 0).toFixed(3)),
-                    exposed_share: Number((roleDefiningWork.share_of_role * roleDefiningWork.exposure_score).toFixed(3))
+                    retained_share: Number(roleDefiningWork.residual_relevance.toFixed(3)),
+                    wave_assignment: roleDefiningWork.wave_assignment,
+                    automation_difficulty: Number(roleDefiningWork.automation_difficulty.toFixed(3))
                 } : null,
                 exposed_task_share: Number(exposedTaskShare.toFixed(3)),
-                mode_of_change: balanceTier,
-                augmentation_share: Number(augmentationShare.toFixed(3)),
-                automation_share: Number(automationShare.toFixed(3)),
                 residual_role_strength: viabilityTier,
                 personalization_fit: personalizationTier,
                 recomposition_summary: recompositionSummary,
@@ -1397,8 +1392,6 @@
                 } : null,
                 diagnostics: {
                     occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
-                    occupation_prior_exposure: Number(occupationExposure.toFixed(3)),
-                    occupation_prior_augmentation: Number(occupationAugmentation.toFixed(3)),
                     occupation_prior_automation: Number(occupationAutomation.toFixed(3)),
                     occupation_prior_adaptive_capacity: Number(occupationAdaptive.toFixed(3)),
                     bundle_prior_concentration: Number(bundlePriorConcentration.toFixed(3)),
@@ -1411,29 +1404,25 @@
                     recomposition_confidence: Number(recompositionConfidence.toFixed(3)),
                     dependency_penalty: Number(dependencyPenalty.toFixed(3)),
                     adoption_pressure: Number(signals.adoptionPressure.toFixed(3)),
-                    task_support_signal: Number(signals.taskSupportSignal.toFixed(3)),
-                    fragility: Number(signals.fragility.toFixed(3)),
+                    capability_signal: Number(signals.capabilitySignal.toFixed(3)),
+                    coupling_protection: Number(signals.couplingProtection.toFixed(3)),
                     exception_burden: Number(bundleFriction.exception_burden.toFixed(3)),
                     accountability_load: Number(bundleFriction.accountability_load.toFixed(3)),
                     judgment_requirement: Number(bundleFriction.judgment_requirement.toFixed(3)),
                     document_intensity: Number(bundleFriction.document_intensity.toFixed(3)),
                     tacit_context_dependence: Number(bundleFriction.tacit_context_dependence.toFixed(3)),
-                    critical_exposed_share: Number(clamp(criticalExposedShare, 0, 1).toFixed(3)),
-                    critical_retained_share: Number(clamp(criticalRetainedShare, 0, 1).toFixed(3)),
-                    critical_absorbed_share: Number(clamp(criticalAbsorbedShare, 0, 1).toFixed(3)),
+                    primary_displacement_wave: primaryDisplacementWave,
+                    current_wave_state: waveResults.current.state,
+                    next_wave_state: waveResults.next.state,
+                    next_wave_retained: waveResults.next.retained_share,
+                    next_wave_coherence: waveResults.next.coherence,
                     personalization_fit_score: Number(personalizationFitScore.toFixed(3)),
-                    residual_role_strength_score: Number(residualViabilityScore.toFixed(3)),
-                    retained_transformed_share: Number(clamp(sum(Object.keys(transformedShares).map(function (key) {
-                        return transformedShares[key];
-                    })), 0, 1).toFixed(3)),
-                    absorbed_share: Number(clamp(absorbedTotal, 0, 1).toFixed(3))
+                    residual_role_strength_score: Number(residualViabilityScore.toFixed(3))
                 },
                 likely_role_state: roleState,
                 likely_role_state_label: ROLE_STATE_LABELS[roleState],
                 top_exposed_task_cluster: topExposed ? topExposed.label : 'Unknown',
-                automation_vs_augmentation_balance: balanceTier,
-                residual_role_viability: viabilityTier,
-                adaptation_capacity: personalizationTier
+                residual_role_viability: viabilityTier
             };
 
             result.narrative_summary = buildNarrative(result);
@@ -1580,6 +1569,7 @@
     return {
         create: create,
         ROLE_STATE_LABELS: ROLE_STATE_LABELS,
+        WAVE_STATE_LABELS: WAVE_STATE_LABELS,
         DATA_FILES: DATA_FILES
     };
 });

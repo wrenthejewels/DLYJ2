@@ -15,31 +15,13 @@ async function main() {
   const result = engine.computeResult({
     roleCategory: 'software',
     answers: {
-      Q1: 4,
-      Q2: 4,
-      Q3: 4,
-      Q4: 5,
-      Q5: 4,
-      Q6: 3,
-      Q7: 3,
-      Q8: 4,
-      Q9: 2,
-      Q10: 3,
-      Q11: 2,
-      Q12: 1,
-      Q13: 4,
-      Q14: 3,
-      Q15: 2,
-      Q16: 4,
-      Q17: 4,
-      Q18: 4,
-      Q19: 4
+      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 3,
+      Q7: 3, Q8: 4, Q9: 2,
+      Q11: 2, Q12: 1, Q13: 4, Q14: 3, Q16: 4
     },
     seniorityLevel: 3,
     dominantTaskClusters: ['cluster_drafting', 'cluster_qa_review'],
-    roleCriticalClusters: ['cluster_oversight_strategy'],
-    aiToolSupportLevel: 0.65,
-    residualRoleDistinctiveness: 0.70
+    roleCriticalClusters: ['cluster_oversight_strategy']
   });
 
   if (!result.recomposition_summary) {
@@ -76,16 +58,36 @@ async function main() {
     assertBounded(`evidence_summary.friction_dimensions.${key}`, result.evidence_summary.friction_dimensions[key]);
   });
 
+  if (!result.wave_trajectory) {
+    throw new Error('Expected wave_trajectory in result payload.');
+  }
+  ['current', 'next', 'distant'].forEach((wave) => {
+    if (!result.wave_trajectory[wave]) {
+      throw new Error(`Expected wave_trajectory.${wave} in result payload.`);
+    }
+    assertBounded(`wave_trajectory.${wave}.retained_share`, result.wave_trajectory[wave].retained_share);
+    assertBounded(`wave_trajectory.${wave}.coherence`, result.wave_trajectory[wave].coherence);
+  });
+
+  if (!result.primary_displacement_wave) {
+    throw new Error('Expected primary_displacement_wave in result payload.');
+  }
+
   console.log(JSON.stringify({
     summary: {
       occupation: result.selected_occupation_title,
       roleOutlook: result.role_outlook_label,
+      primaryDisplacementWave: result.primary_displacement_wave,
       topExposed: result.top_exposed_work?.label || null,
-      topExposureLevel: result.top_exposed_work?.exposure_level || null,
-      modeOfChange: result.mode_of_change,
+      topExposedWave: result.top_exposed_work?.wave_assignment || null,
       residualRoleStrength: result.residual_role_strength,
       personalizationFit: result.personalization_fit,
       recompositionRead: result.recomposition_summary.summary_label
+    },
+    waveTrajectory: {
+      current: result.wave_trajectory.current.state + ' (' + result.wave_trajectory.current.retained_share + ')',
+      next: result.wave_trajectory.next.state + ' (' + result.wave_trajectory.next.retained_share + ')',
+      distant: result.wave_trajectory.distant.state + ' (' + result.wave_trajectory.distant.retained_share + ')'
     },
     counts: {
       currentBundle: result.transformation_map.current_bundle.length,

@@ -120,16 +120,15 @@ async function main() {
 
   for (const row of rows) {
     const answers = {};
-    for (let index = 1; index <= 19; index += 1) {
+    var activeQs = [1,2,3,4,5,6,7,8,9,11,12,13,14,16];
+    activeQs.forEach(function(index) {
       answers[`Q${index}`] = toNumber(row[`Q${index}`], 3);
-    }
+    });
 
     const input = {
       roleCategory: row.role_category,
       occupationId: row.occupation_id,
       seniorityLevel: toNumber(row.seniority_level, 3),
-      aiToolSupportLevel: toNumber(row.ai_tool_support_level, 0.5),
-      residualRoleDistinctiveness: toNumber(row.residual_role_distinctiveness, 0.6),
       dominantTaskClusters: splitPipe(row.dominant_task_clusters),
       roleCriticalClusters: splitPipe(row.role_critical_clusters),
       answers
@@ -138,7 +137,7 @@ async function main() {
     const result = engine.computeResult(input);
     const checks = {
       role_outlook: checkAccepted(result.role_outlook, row.accepted_role_outlook),
-      mode_of_change: checkAccepted(result.mode_of_change, row.accepted_mode_of_change),
+      primary_displacement_wave: checkAccepted(result.primary_displacement_wave, row.accepted_primary_displacement_wave),
       residual_role_strength: checkAccepted(result.residual_role_strength, row.accepted_residual_role_strength),
       personalization_fit: checkAccepted(result.personalization_fit, row.accepted_personalization_fit),
       top_exposed_cluster: checkAccepted(result.top_exposed_work ? result.top_exposed_work.task_cluster_id : null, row.accepted_top_exposed_clusters),
@@ -155,7 +154,7 @@ async function main() {
       caseId: row.case_id,
       occupation: result.selected_occupation_title,
       roleOutlook: result.role_outlook,
-      modeOfChange: result.mode_of_change,
+      primaryDisplacementWave: result.primary_displacement_wave,
       residualRoleStrength: result.residual_role_strength,
       topExposedCluster: result.top_exposed_work ? result.top_exposed_work.task_cluster_id : null,
       exposedTaskShare: result.exposed_task_share,
@@ -169,7 +168,7 @@ async function main() {
 
   const averageScore = evaluations.reduce((sum, entry) => sum + entry.score, 0) / Math.max(evaluations.length, 1);
   const failedCases = evaluations.filter((entry) => entry.score < 1);
-  const metricSummary = ['role_outlook', 'mode_of_change', 'residual_role_strength', 'personalization_fit', 'top_exposed_cluster', 'exposed_task_share', 'workflow_compression', 'substitution_gap']
+  const metricSummary = ['role_outlook', 'primary_displacement_wave', 'residual_role_strength', 'personalization_fit', 'top_exposed_cluster', 'exposed_task_share', 'workflow_compression', 'substitution_gap']
     .map((metric) => {
       const applicable = evaluations.filter((entry) => entry.checks[metric]);
       const passed = applicable.filter((entry) => entry.checks[metric].pass).length;
@@ -196,10 +195,10 @@ async function main() {
   lines.push('');
   lines.push('## Case results');
   lines.push('');
-  lines.push('| Occupation | Score | Outlook | Mode | Top exposed | Compression | Gap | Notes |');
+  lines.push('| Occupation | Score | Outlook | Wave | Top exposed | Compression | Gap | Notes |');
   lines.push('| --- | ---: | --- | --- | --- | ---: | ---: | --- |');
   evaluations.forEach((entry) => {
-    lines.push(`| ${entry.occupation} | ${entry.score.toFixed(3)} | ${entry.roleOutlook} | ${entry.modeOfChange} | ${entry.topExposedCluster || '-'} | ${entry.workflowCompression.toFixed(3)} | ${entry.substitutionGap.toFixed(3)} | ${entry.notes || '-'} |`);
+    lines.push(`| ${entry.occupation} | ${entry.score.toFixed(3)} | ${entry.roleOutlook} | ${entry.primaryDisplacementWave} | ${entry.topExposedCluster || '-'} | ${entry.workflowCompression.toFixed(3)} | ${entry.substitutionGap.toFixed(3)} | ${entry.notes || '-'} |`);
   });
 
   if (failedCases.length) {

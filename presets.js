@@ -24,82 +24,82 @@
     'custom':                { friction: 1.20, reliabilityBase: 0.92 },
   };
 
-  // Baseline (neutral) answers for all 19 questions
+  // Baseline (neutral) answers for 14 questions (v2.1)
   const NEUTRAL_ANSWERS = {
     Q1: 3, Q2: 3, Q3: 3, Q4: 3, Q5: 3,
-    Q6: 3, Q7: 3, Q8: 3, Q9: 3, Q10: 3,
-    Q11: 3, Q12: 3, Q13: 3, Q14: 3, Q15: 3,
-    Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+    Q6: 3, Q7: 3, Q8: 3, Q9: 3,
+    Q11: 3, Q12: 3, Q13: 3, Q14: 3,
+    Q16: 3,
   };
 
-  // Baseline per-role answers for Q1-Q19 (derived from role_preset_template.md)
+  // Baseline per-role answers for Q1-Q14,Q16 (v2.1, derived from role_preset_template.md)
   const ROLE_QUESTION_PRESETS = {
     'software': {
-      Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 3, Q9: 2, Q10: 2,
-      Q11: 1, Q12: 2, Q13: 4, Q14: 3, Q15: 3, Q16: 4, Q17: 4, Q18: 3, Q19: 3,
+      Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 3, Q9: 2,
+      Q11: 1, Q12: 2, Q13: 4, Q14: 3, Q16: 4,
     },
     'admin': {
-      Q1: 3, Q2: 4, Q3: 3, Q4: 4, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2, Q10: 3,
-      Q11: 2, Q12: 3, Q13: 3, Q14: 4, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 3, Q2: 4, Q3: 3, Q4: 4, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2,
+      Q11: 2, Q12: 3, Q13: 3, Q14: 4, Q16: 3,
     },
     'data-analysis': {
-      Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2, Q10: 2,
-      Q11: 1, Q12: 2, Q13: 3, Q14: 3, Q15: 3, Q16: 4, Q17: 4, Q18: 3, Q19: 3,
+      Q1: 5, Q2: 5, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2,
+      Q11: 1, Q12: 2, Q13: 3, Q14: 3, Q16: 4,
     },
     'finance': {
-      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2, Q10: 2,
-      Q11: 1, Q12: 4, Q13: 3, Q14: 4, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 4, Q2: 4, Q3: 4, Q4: 5, Q5: 4, Q6: 4, Q7: 2, Q8: 4, Q9: 2,
+      Q11: 1, Q12: 4, Q13: 3, Q14: 4, Q16: 3,
     },
     'sales': {
-      Q1: 3, Q2: 3, Q3: 2, Q4: 3, Q5: 3, Q6: 2, Q7: 4, Q8: 3, Q9: 4, Q10: 4,
-      Q11: 3, Q12: 3, Q13: 3, Q14: 3, Q15: 3, Q16: 3, Q17: 4, Q18: 4, Q19: 3,
+      Q1: 3, Q2: 3, Q3: 2, Q4: 3, Q5: 3, Q6: 2, Q7: 4, Q8: 3, Q9: 4,
+      Q11: 3, Q12: 3, Q13: 3, Q14: 3, Q16: 3,
     },
     'creative': {
-      Q1: 4, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 2, Q7: 3, Q8: 3, Q9: 3, Q10: 3,
-      Q11: 2, Q12: 2, Q13: 3, Q14: 3, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 4, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 2, Q7: 3, Q8: 3, Q9: 3,
+      Q11: 2, Q12: 2, Q13: 3, Q14: 3, Q16: 3,
     },
     'legal': {
-      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 4, Q8: 2, Q9: 4, Q10: 4,
-      Q11: 2, Q12: 5, Q13: 2, Q14: 3, Q15: 4, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 4, Q8: 2, Q9: 4,
+      Q11: 2, Q12: 5, Q13: 2, Q14: 3, Q16: 3,
     },
     'product-management': {
-      Q1: 3, Q2: 3, Q3: 2, Q4: 4, Q5: 3, Q6: 3, Q7: 4, Q8: 3, Q9: 4, Q10: 4,
-      Q11: 2, Q12: 3, Q13: 3, Q14: 3, Q15: 3, Q16: 3, Q17: 4, Q18: 4, Q19: 3,
+      Q1: 3, Q2: 3, Q3: 2, Q4: 4, Q5: 3, Q6: 3, Q7: 4, Q8: 3, Q9: 4,
+      Q11: 2, Q12: 3, Q13: 3, Q14: 3, Q16: 3,
     },
     'consulting': {
-      Q1: 3, Q2: 3, Q3: 2, Q4: 4, Q5: 3, Q6: 2, Q7: 4, Q8: 3, Q9: 4, Q10: 5,
-      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q15: 3, Q16: 3, Q17: 4, Q18: 4, Q19: 3,
+      Q1: 3, Q2: 3, Q3: 2, Q4: 4, Q5: 3, Q6: 2, Q7: 4, Q8: 3, Q9: 4,
+      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q16: 3,
     },
     'hr': {
-      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 3, Q10: 4,
-      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 3,
+      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q16: 3,
     },
     'content-writing': {
-      Q1: 4, Q2: 4, Q3: 3, Q4: 5, Q5: 4, Q6: 3, Q7: 2, Q8: 4, Q9: 2, Q10: 2,
-      Q11: 1, Q12: 2, Q13: 3, Q14: 4, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 4, Q2: 4, Q3: 3, Q4: 5, Q5: 4, Q6: 3, Q7: 2, Q8: 4, Q9: 2,
+      Q11: 1, Q12: 2, Q13: 3, Q14: 4, Q16: 3,
     },
     'journalism': {
-      Q1: 4, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 3, Q10: 3,
-      Q11: 2, Q12: 3, Q13: 2, Q14: 4, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 4, Q2: 3, Q3: 3, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 3,
+      Q11: 2, Q12: 3, Q13: 2, Q14: 4, Q16: 3,
     },
     'engineering': {
-      Q1: 4, Q2: 4, Q3: 4, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 4, Q10: 3,
-      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 4, Q2: 4, Q3: 4, Q4: 4, Q5: 3, Q6: 3, Q7: 3, Q8: 3, Q9: 4,
+      Q11: 3, Q12: 4, Q13: 3, Q14: 3, Q16: 3,
     },
     'operations': {
-      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 4, Q6: 4, Q7: 3, Q8: 4, Q9: 3, Q10: 3,
-      Q11: 2, Q12: 3, Q13: 3, Q14: 3, Q15: 3, Q16: 3, Q17: 3, Q18: 3, Q19: 3,
+      Q1: 3, Q2: 3, Q3: 3, Q4: 4, Q5: 4, Q6: 4, Q7: 3, Q8: 4, Q9: 3,
+      Q11: 2, Q12: 3, Q13: 3, Q14: 3, Q16: 3,
     },
     'custom': { ...NEUTRAL_ANSWERS },
   };
 
   // Additive deltas by seniority level (Level 1..5 → Entry..Executive)
   const SENIORITY_Q_DELTAS = {
-    1: { Q10: +1, Q17: -1 }, // Entry: easier to reallocate, slightly lower transferability
+    1: {},                   // Entry: neutral deltas
     2: {},                   // Mid: neutral deltas
-    3: { Q7: +1, Q9: +1, Q10: -1, Q12: +1, Q17: 0 }, // Senior: more context/tacit/trust, harder to reallocate
-    4: { Q7: +1, Q9: +1, Q10: 0,  Q12: +1, Q17: 0 }, // Lead: harder to reallocate
-    5: { Q7: +2, Q9: +2, Q10: 0,  Q12: +2, Q17: 0 }, // Executive: hardest to reallocate, high context/tacit/trust
+    3: { Q7: +1, Q9: +1, Q12: +1 }, // Senior: more context/tacit/trust
+    4: { Q7: +1, Q9: +1, Q12: +1 }, // Lead: more context/tacit/trust
+    5: { Q7: +2, Q9: +2, Q12: +2 }, // Executive: highest context/tacit/trust
   };
 
   // Additive reliability adjustments by seniority index (1..5 -> 0..4)
@@ -138,9 +138,8 @@
       preset.Q9 = 5;  // Mostly tacit
     }
 
-    // Consulting/strategy execs: reallocation should not be "very easy"; physical presence moderate
+    // Consulting/strategy execs: moderate physical presence
     if (roleKey === 'consulting' && level >= 4) {
-      preset.Q10 = 3; // Moderately difficult
       preset.Q12 = 3; // Moderate physical presence
     }
 
@@ -152,7 +151,7 @@
     return preset;
   }
 
-  // Helper: build recommended Q1-Q19 answers for a role + seniority (clamped 1..5)
+  // Helper: build recommended answers for a role + seniority (clamped 1..5)
   function buildQuestionPreset(roleKey, seniorityLevel){
     const base = ROLE_QUESTION_PRESETS[roleKey] || ROLE_QUESTION_PRESETS.custom || NEUTRAL_ANSWERS;
     const deltas = SENIORITY_Q_DELTAS[seniorityLevel] || {};

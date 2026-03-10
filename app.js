@@ -16,21 +16,16 @@ const QUESTION_LABELS = {
     Q2: 'Example Work and Documentation',
     Q3: 'Benchmark and Review Clarity',
     Q4: 'Task Digitization',
-    Q5: 'Task Decomposability',
+    Q5: 'Task Independence',
     Q6: 'Task Standardization',
     Q7: 'Context Dependency',
     Q8: 'Feedback and Review Speed',
     Q9: 'Tacit Knowledge',
-    Q10: 'Residual Bundle Fragility',
     Q11: 'Human Judgment and Relationship Load',
     Q12: 'Physical or On-Site Dependence',
     Q13: 'Organization AI Adoption Readiness',
     Q14: 'Labor Cost Pressure',
-    Q15: 'Labor Market Tightness',
-    Q16: 'Workflow Integration Readiness',
-    Q17: 'Skill Transferability',
-    Q18: 'Adaptability and Learning Speed',
-    Q19: 'Relative Performance in Current Role'
+    Q16: 'Workflow Integration Readiness'
 };
 const QUESTION_IDS = Object.keys(QUESTION_LABELS);
 const CORE_REFINEMENT_QUESTIONS = [1, 5, 7, 11, 13, 16];
@@ -95,7 +90,8 @@ function applyQuestionPreset() {
 function resetQuestionsToNeutral() {
     const presets = window.WWILMJ_PRESETS;
     const neutral = presets && presets.NEUTRAL_ANSWERS ? presets.NEUTRAL_ANSWERS : {};
-    for (let i = 1; i <= 19; i++) {
+    const activeQs = [1,2,3,4,5,6,7,8,9,11,12,13,14,16];
+    for (const i of activeQs) {
         const target = neutral[`Q${i}`] ?? 3;
         const radio = document.querySelector(`input[name="q${i}"][value="${target}"]`);
         if (radio) {
@@ -555,7 +551,7 @@ function renderV2EvidenceSummary(summary) {
     safeSetText(
         'v2-evidence-notes',
         summary
-            ? `Evidence strength is the average source strength across the role-specific task families used in this result after sparse task rows are shrunk toward broader priors. ${coverageNote} ${frictionNote} Personalization signal strength combines role distinctiveness, lower fragility, coupling protection, current AI-tool support, and evidence strength.`
+            ? `Evidence strength is the average source strength across the role-specific task families used in this result after sparse task rows are shrunk toward broader priors. ${coverageNote} ${frictionNote} Personalization signal strength combines coupling protection, capability signal, and evidence strength.`
             : 'Choose a mapped occupation to see how evidence strength and personalization signal are scored.'
     );
 }
@@ -758,14 +754,9 @@ function getDirectV2Inputs() {
     const dedupedClusters = Array.from(new Set(dominantTaskClusters));
     const roleCriticalClusters = criticalCluster ? [criticalCluster] : [];
 
-    const aiToolRaw = document.getElementById('v2-tool-support')?.value || '';
-    const residualRaw = document.getElementById('v2-role-distinctiveness')?.value || '';
-
     return {
         dominantTaskClusters: dedupedClusters,
-        roleCriticalClusters: roleCriticalClusters,
-        aiToolSupportLevel: aiToolRaw ? norm(parseFloat(aiToolRaw)) : null,
-        residualRoleDistinctiveness: residualRaw ? norm(parseFloat(residualRaw)) : null
+        roleCriticalClusters: roleCriticalClusters
     };
 }
 
@@ -790,9 +781,14 @@ function resetV2Results(message, detail) {
     safeSetText('v2-task-confidence', '-');
     safeSetText('v2-prior-confidence', '-');
     safeSetText('v2-evidence-notes', 'Choose a mapped occupation to see how evidence strength, personalization signal, occupation anchoring, and task coverage are scored.');
-    safeSetText('v2-map-subtitle', 'This map is derived from the live task rows below. It ranks the occupation’s mapped tasks by current share, exposed share, and retained share after your inputs are applied.');
+    safeSetText(‘v2-map-subtitle’, ‘This map is derived from the live task rows below. It ranks the occupation\’s mapped tasks by automation difficulty, wave assignment, and retained share.’);
     safeSetText('v2-task-note', 'This view reorders the selected occupation\'s tasks as your task-family inputs and questionnaire answers change the underlying task shares and exposure estimates.');
     safeSetText('v2-recomposition-conversion', '-');
+    ['current', 'next', 'distant'].forEach(function (w) {
+        safeSetText('v2-wave-' + w + '-state', '-');
+        safeSetText('v2-wave-' + w + '-retained', '-');
+        safeSetText('v2-wave-' + w + '-coherence', '-');
+    });
     renderV2LaborMarketContext(null, '');
     renderV2OccupationAssignment(null);
     renderV2ClusterList('v2-current-bundle', [], { emptyText: 'Choose a mapped occupation to populate the current bundle.' });
@@ -841,17 +837,12 @@ async function updateV2Results(options = {}) {
     }
 
     const answers = {};
-    for (let i = 1; i <= 19; i++) {
+    const activeQs = [1,2,3,4,5,6,7,8,9,11,12,13,14,16];
+    for (const i of activeQs) {
         answers['Q' + i] = getQuestionValue(i);
     }
     const seniorityLevel = parseFloat(document.getElementById('hierarchy-select')?.value || '1');
     const directInputs = getDirectV2Inputs();
-    const aiToolSupportLevel = directInputs.aiToolSupportLevel !== null
-        ? directInputs.aiToolSupportLevel
-        : Math.max(0, Math.min(1, (norm(answers.Q1) + norm(answers.Q4) + norm(answers.Q8)) / 3));
-    const residualRoleDistinctiveness = directInputs.residualRoleDistinctiveness !== null
-        ? directInputs.residualRoleDistinctiveness
-        : Math.max(0, Math.min(1, ((1 - norm(answers.Q10)) + norm(answers.Q7) + norm(answers.Q9) + norm(answers.Q11)) / 4));
 
     let result;
     try {
@@ -861,9 +852,7 @@ async function updateV2Results(options = {}) {
             answers: answers,
             seniorityLevel: seniorityLevel,
             dominantTaskClusters: directInputs.dominantTaskClusters,
-            roleCriticalClusters: directInputs.roleCriticalClusters,
-            aiToolSupportLevel: aiToolSupportLevel,
-            residualRoleDistinctiveness: residualRoleDistinctiveness
+            roleCriticalClusters: directInputs.roleCriticalClusters
         });
     } catch (error) {
         console.error('[V2] Failed to compute result:', error);
@@ -874,21 +863,33 @@ async function updateV2Results(options = {}) {
     lastV2Result = result;
 
     const topExposedLabel = result.top_exposed_work?.label
-        ? `${result.top_exposed_work.label} · ${formatV2Label(result.top_exposed_work.exposure_level)} exposure`
+        ? `${result.top_exposed_work.label} · ${result.top_exposed_work.wave_assignment} wave`
         : '-';
 
+    const wt = result.wave_trajectory || {};
+    const waveHeadline = `Primary displacement: ${result.primary_displacement_wave} wave`;
+
     safeSetText('v2-role-state-label', `${result.selected_occupation_title} · ${result.role_outlook_label}`);
-    safeSetText('v2-role-summary', result.role_summary || 'The transformation view is driven by task exposure, mode of change, residual role strength, and labor-market context.');
-    safeSetText('v2-outlook-summary-copy', result.role_summary || 'The transformation view is driven by task exposure, mode of change, residual role strength, and labor-market context.');
+    safeSetText('v2-role-summary', result.role_summary || 'The wave-based model ranks task clusters by automation difficulty into current, next, and distant waves.');
+    safeSetText('v2-outlook-summary-copy', result.role_summary || 'The wave-based model ranks task clusters by automation difficulty.');
     safeSetText('v2-role-state-card', result.role_outlook_label || '-');
     safeSetText('v2-score-role-outlook', result.role_outlook_label || '-');
     safeSetText('v2-top-cluster', topExposedLabel);
-    safeSetText('v2-balance', formatV2Label(result.mode_of_change));
-    safeSetText('v2-score-mode', formatV2Label(result.mode_of_change));
+    safeSetText('v2-balance', waveHeadline);
+    safeSetText('v2-score-mode', waveHeadline);
     safeSetText('v2-viability', formatV2Label(result.residual_role_strength));
     safeSetText('v2-score-residual', formatV2Label(result.residual_role_strength));
     safeSetText('v2-adaptation', formatV2Label(result.personalization_fit));
     safeSetText('v2-score-fit', formatV2Label(result.personalization_fit));
+
+    // Wave trajectory cards
+    ['current', 'next', 'distant'].forEach(function (waveName) {
+        var ws = wt[waveName];
+        if (!ws) return;
+        safeSetText('v2-wave-' + waveName + '-state', ws.state_label || formatV2Label(ws.state));
+        safeSetText('v2-wave-' + waveName + '-retained', Math.round((ws.retained_share || 0) * 100) + '% retained');
+        safeSetText('v2-wave-' + waveName + '-coherence', formatV2Label(ws.coherence_tier) + ' coherence');
+    });
     safeSetText('v2-what-changing', result.narrative_summary?.why_this_role_changes || '-');
     safeSetText('v2-what-absorbed', result.narrative_summary?.what_is_under_pressure || '-');
     safeSetText('v2-what-remains', result.narrative_summary?.what_stays_core || '-');
@@ -896,11 +897,11 @@ async function updateV2Results(options = {}) {
     renderV2EvidenceSummary(result.evidence_summary);
     safeSetText(
         'v2-map-subtitle',
-        `${result.selected_occupation_title} shows ${Math.round((result.exposed_task_share || 0) * 100)}% exposed task share. The three columns below are derived from the live mapped task rows: current share, exposed share, and retained share after personalization.`
+        `${result.selected_occupation_title}: primary displacement in the ${result.primary_displacement_wave} wave. After the next wave, ${Math.round((wt.next?.retained_share || 0) * 100)}% retained (${wt.next?.coherence_tier || '-'} coherence).`
     );
     safeSetText(
         'v2-task-note',
-        `${result.selected_occupation_title} uses its mapped O*NET task list as the baseline. The bars below show current role share in blue and exposed share in amber, and they update live as your questionnaire changes the task-weighting and exposure math.`
+        `${result.selected_occupation_title} uses its mapped O*NET task list as the baseline. Each task inherits automation difficulty and wave assignment from its cluster, and updates live as your questionnaire changes the scoring.`
     );
     renderV2RecompositionSummary(result.recomposition_summary);
     renderV2OccupationAssignment(result.occupation_assignment);

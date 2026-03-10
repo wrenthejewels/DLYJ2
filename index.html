@@ -185,31 +185,6 @@
                             <p>Pick the task family that most explains why the role exists, even if it is not the largest share of your week.</p>
                         </div>
 
-                        <div class="v2-input-field">
-                            <label for="v2-tool-support">Current AI/tool support in your workflow</label>
-                            <select id="v2-tool-support" class="plane-dropdown v2-direct-input">
-                                <option value="">Infer from questionnaire</option>
-                                <option value="1">Little to none</option>
-                                <option value="2">Early experimentation</option>
-                                <option value="3">Useful in pockets</option>
-                                <option value="4">Common part of the workflow</option>
-                                <option value="5">Central to the workflow</option>
-                            </select>
-                            <p>This should reflect current practical usage, not what the tools might be able to do in theory.</p>
-                        </div>
-
-                        <div class="v2-input-field">
-                            <label for="v2-role-distinctiveness">Residual role strength if routine work is absorbed</label>
-                            <select id="v2-role-distinctiveness" class="plane-dropdown v2-direct-input">
-                                <option value="">Infer from questionnaire</option>
-                                <option value="1">Very little remains</option>
-                                <option value="2">Leftover admin / fragmented work</option>
-                                <option value="3">A narrower but real role remains</option>
-                                <option value="4">Higher-value review / coordination remains</option>
-                                <option value="5">The role becomes more strategic or senior</option>
-                            </select>
-                            <p>This is the direct decoupling question: if AI absorbs exposed tasks, does the remaining bundle still stand on its own?</p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -376,7 +351,7 @@
                     <div class="category-header">
                         <div class="category-title">
                             Bundle Integrity
-                            <span class="category-count">6 questions</span>
+                            <span class="category-count">5 questions</span>
                         </div>
                         <div class="category-toggle">
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -387,8 +362,8 @@
                     <div class="category-content">
                         <div class="question-grid">
                     <div class="question">
-                        <h5>5. Task Decomposability</h5>
-                        <p>Can the work be broken into discrete pieces that can be delegated, reviewed, or benchmarked separately?</p>
+                        <h5>5. Task Independence</h5>
+                        <p>Does the task need to be done as part of a larger workflow, or can it be isolated and handled independently?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q5-1" name="q5" value="1">
@@ -521,32 +496,6 @@
                         </div>
                     </div>
 
-                    <div class="question">
-                        <h5>10. Residual bundle fragility</h5>
-                        <p>If routine parts of the role were absorbed, how easily would the remaining work fragment or get redistributed instead of staying a distinct job?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q10-1" name="q10" value="1">
-                                <label for="q10-1">Nearly impossible - unique expertise and relationships</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q10-2" name="q10" value="2">
-                                <label for="q10-2">Very difficult - would take 6-12 months to transfer</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q10-3" name="q10" value="3" checked>
-                                <label for="q10-3">Moderately difficult - requires 2-6 months training</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q10-4" name="q10" value="4">
-                                <label for="q10-4">Fairly easily - needs 1-2 months knowledge transfer</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q10-5" name="q10" value="5">
-                                <label for="q10-5">Very easily - others already do similar work</label>
-                            </div>
-                        </div>
-                    </div>
                     </div>
                     </div><!-- End category-content -->
                 </div><!-- End category -->
@@ -626,7 +575,7 @@
                     <div class="category-header">
                         <div class="category-title">
                             Adoption Context
-                            <span class="category-count">4 questions</span>
+                            <span class="category-count">3 questions</span>
                         </div>
                         <div class="category-toggle">
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -691,33 +640,6 @@
                     </div>
 
                     <div class="question">
-                        <h5>15. Labor Market Tightness</h5>
-                        <p>How difficult is it for employers like yours to hire and retain people with this skill mix?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q15-1" name="q15" value="5">
-                                <label for="q15-1">Very Difficult</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q15-2" name="q15" value="4">
-                                <label for="q15-2">Difficult</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q15-3" name="q15" value="3" checked>
-                                <label for="q15-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q15-4" name="q15" value="2">
-                                <label for="q15-4">Easy</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q15-5" name="q15" value="1">
-                                <label for="q15-5">Very Easy</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
                         <h5>16. Workflow integration readiness</h5>
                         <p>How ready is the organization to plug new AI systems into the tools, data, and review loops this work depends on?</p>
                         <div class="radio-group">
@@ -747,104 +669,6 @@
                     </div><!-- End category-content -->
                 </div><!-- End category -->
 
-                <div class="category">
-                    <div class="category-header">
-                        <div class="category-title">
-                            Personalization Fit
-                            <span class="category-count">3 questions</span>
-                        </div>
-                        <div class="category-toggle">
-                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
-                    </div>
-                    <div class="category-content">
-                        <div class="question-grid">
-                    <div class="question">
-                        <h5>17. Skill Transferability</h5>
-                        <p>How transferable are your core skills to adjacent work or to the retained version of this role if the bundle narrows?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q17-1" name="q17" value="1">
-                                <label for="q17-1">Highly Specific</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q17-2" name="q17" value="2">
-                                <label for="q17-2">Somewhat Specific</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q17-3" name="q17" value="3" checked>
-                                <label for="q17-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q17-4" name="q17" value="4">
-                                <label for="q17-4">Transferable</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q17-5" name="q17" value="5">
-                                <label for="q17-5">Highly Transferable</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>18. Adaptability and learning speed</h5>
-                        <p>How quickly can you absorb new tools, workflows, and expectations when the role changes?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q18-1" name="q18" value="1">
-                                <label for="q18-1">Very Slow</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q18-2" name="q18" value="2">
-                                <label for="q18-2">Slow</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q18-3" name="q18" value="3" checked>
-                                <label for="q18-3">Moderate</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q18-4" name="q18" value="4">
-                                <label for="q18-4">Fast</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q18-5" name="q18" value="5">
-                                <label for="q18-5">Very Fast</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="question">
-                        <h5>19. Relative performance in current role</h5>
-                        <p>How strong is your performance in this role relative to peers doing comparable work?</p>
-                        <div class="radio-group">
-                            <div class="radio-option">
-                                <input type="radio" id="q19-1" name="q19" value="1">
-                                <label for="q19-1">Below Average</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q19-2" name="q19" value="2">
-                                <label for="q19-2">Average</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q19-3" name="q19" value="3" checked>
-                                <label for="q19-3">Above Average</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q19-4" name="q19" value="4">
-                                <label for="q19-4">Excellent</label>
-                            </div>
-                            <div class="radio-option">
-                                <input type="radio" id="q19-5" name="q19" value="5">
-                                <label for="q19-5">Top Performer</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    </div>
-                    </div><!-- End category-content -->
-                </div><!-- End category -->
 
                 </div><!-- End card -->
             </div><!-- End setup-section -->
@@ -855,10 +679,10 @@
                 <div class="model-explanation hidden-block" id="model-explanation-section" style="margin-top: 48px; margin-bottom: 32px;">
                     <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Understanding your output</h3>
                     <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 12px;">
-                        Your `2.0` result is an empirical role briefing, not a certainty. It estimates which parts of your role are exposed, whether the change looks more like augmentation or automation, and whether the remaining bundle still looks like a viable job.
+                        Your v2.1 result is an empirical role briefing, not a certainty. It ranks your task clusters by automation difficulty into three waves (current, next, distant) and estimates whether the remaining bundle holds together as a coherent role.
                     </p>
                     <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary);">
-                        The main result is driven by O*NET task structure, Anthropic task-level evidence, and BLS labor-market context. Visit the <a href="/method2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Methodology</a> for the pipeline and the <a href="/guide2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Guide</a> for how to interpret the briefing.
+                        The main result is driven by O*NET task structure, friction profiles, empirical automation priors, and your questionnaire answers. Visit the <a href="/method2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Methodology</a> for the pipeline and the <a href="/guide2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Guide</a> for how to interpret the briefing.
                     </p>
                 </div>
 
@@ -867,7 +691,7 @@
             <div class="v2-results-panel">
                 <div class="v2-results-header">
                     <div class="v2-results-copy">
-                        <div class="v2-results-kicker">V2.0 Empirical Role Briefing</div>
+                        <div class="v2-results-kicker">V2.1 Wave-Based Role Briefing</div>
                         <h3 id="v2-role-state-label">Select a category to begin</h3>
                         <p id="v2-role-summary">Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.</p>
                     </div>
@@ -893,7 +717,7 @@
                                         <strong id="v2-top-cluster">-</strong>
                                     </div>
                                     <div class="v2-outlook-note">
-                                        <span>Mode of change</span>
+                                        <span>Displacement wave</span>
                                         <strong id="v2-balance">-</strong>
                                     </div>
                                     <div class="v2-outlook-note">
@@ -906,23 +730,44 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="v2-score-stack" hidden aria-hidden="true">
-                                <div class="v2-score-card">
-                                    <span>Role outlook</span>
-                                    <strong id="v2-score-role-outlook">-</strong>
-                                </div>
-                                <div class="v2-score-card">
-                                    <span>Transformation mode</span>
-                                    <strong id="v2-score-mode">-</strong>
-                                </div>
-                                <div class="v2-score-card">
-                                    <span>Retained bundle</span>
-                                    <strong id="v2-score-residual">-</strong>
-                                </div>
-                                <div class="v2-score-card">
-                                    <span>Questionnaire fit</span>
-                                    <strong id="v2-score-fit">-</strong>
-                                </div>
+                        </div>
+                        <div class="v2-section-label" style="margin-top: 24px;">Wave trajectory</div>
+                        <div class="v2-outlook-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                            <div class="v2-score-card" style="padding: 16px; border-radius: 8px; background: var(--surface-alt, #f5f5f5);">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Current wave</div>
+                                <strong id="v2-wave-current-state" style="display: block; font-size: 1.1rem;">-</strong>
+                                <span id="v2-wave-current-retained" style="font-size: 0.85rem; color: var(--text-secondary);">-</span>
+                                <span id="v2-wave-current-coherence" style="font-size: 0.85rem; color: var(--text-secondary); display: block;">-</span>
+                            </div>
+                            <div class="v2-score-card" style="padding: 16px; border-radius: 8px; background: var(--surface-alt, #f5f5f5);">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Next wave</div>
+                                <strong id="v2-wave-next-state" style="display: block; font-size: 1.1rem;">-</strong>
+                                <span id="v2-wave-next-retained" style="font-size: 0.85rem; color: var(--text-secondary);">-</span>
+                                <span id="v2-wave-next-coherence" style="font-size: 0.85rem; color: var(--text-secondary); display: block;">-</span>
+                            </div>
+                            <div class="v2-score-card" style="padding: 16px; border-radius: 8px; background: var(--surface-alt, #f5f5f5);">
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px;">Distant wave</div>
+                                <strong id="v2-wave-distant-state" style="display: block; font-size: 1.1rem;">-</strong>
+                                <span id="v2-wave-distant-retained" style="font-size: 0.85rem; color: var(--text-secondary);">-</span>
+                                <span id="v2-wave-distant-coherence" style="font-size: 0.85rem; color: var(--text-secondary); display: block;">-</span>
+                            </div>
+                        </div>
+                        <div class="v2-score-stack" hidden aria-hidden="true">
+                            <div class="v2-score-card">
+                                <span>Role outlook</span>
+                                <strong id="v2-score-role-outlook">-</strong>
+                            </div>
+                            <div class="v2-score-card">
+                                <span>Displacement wave</span>
+                                <strong id="v2-score-mode">-</strong>
+                            </div>
+                            <div class="v2-score-card">
+                                <span>Retained bundle</span>
+                                <strong id="v2-score-residual">-</strong>
+                            </div>
+                            <div class="v2-score-card">
+                                <span>Questionnaire fit</span>
+                                <strong id="v2-score-fit">-</strong>
                             </div>
                         </div>
                     </section>
