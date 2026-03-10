@@ -734,7 +734,7 @@ function renderV2EvidenceSummary(summary) {
     safeSetText(
         'v2-evidence-notes',
         summary
-            ? `Evidence strength is the average source strength across the role-specific task families used in this result after sparse task rows are shrunk toward broader priors. ${coverageNote} ${frictionNote} Personalization signal strength combines coupling protection, capability signal, and evidence strength.`
+            ? `Evidence strength is the average source strength across the role-specific task families used in this result after sparse task rows are shrunk toward broader priors. ${coverageNote} ${frictionNote} Personalization signal strength combines retained-function protection, substitution pressure, and evidence strength.`
             : 'Choose a mapped occupation to see how evidence strength and personalization signal are scored.'
     );
 }
@@ -915,7 +915,7 @@ function renderV2TaskBreakdown(taskBreakdown, assignment) {
     safeSetText(
         'v2-task-summary-copy',
         assignment
-            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped role tasks. This list live-updates as your selected occupation, task picks, and questionnaire answers change role share, direct pressure, spillover pressure, and retained leverage inside that occupation anchor. Use “Show model details” if you want the evidence and fallback notes.`
+            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped role tasks. This list live-updates as your selected occupation, task picks, and role-refinement answers change role share, direct pressure, spillover pressure, and retained leverage inside that occupation anchor. Use “Show model details” if you want the evidence and fallback notes.`
             : 'Choose a mapped occupation to load its task inventory and the blended role-fate view.'
     );
 
@@ -980,7 +980,7 @@ function getDirectV2Inputs() {
 function resetV2Results(message, detail) {
     v2TaskBreakdownExpanded = false;
     safeSetText('v2-role-state-label', message || 'Select a role to begin');
-    safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.');
+    safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or role-structure detail.');
     safeSetText('v2-outlook-summary-copy', detail || 'This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.');
     safeSetText('v2-role-state-card', '-');
     safeSetText('v2-score-role-outlook', '-');
@@ -999,7 +999,7 @@ function resetV2Results(message, detail) {
     safeSetText('v2-prior-confidence', '-');
     safeSetText('v2-evidence-notes', 'Choose a mapped occupation to see how evidence strength, personalization signal, occupation anchoring, and task coverage are scored.');
     safeSetText('v2-map-subtitle', "This map starts from the current task mix, then shows which tasks hold bargaining power, face direct AI pressure, lose value through spillover, or remain central to the retained role.");
-    safeSetText('v2-task-note', 'This view reorders the selected occupation\'s task inventory as your task picks and questionnaire answers change role share, pressure, spillover, and retained leverage.');
+    safeSetText('v2-task-note', 'This view reorders the selected occupation\'s task inventory as your task picks and role-refinement answers change role share, pressure, spillover, and retained leverage.');
     safeSetText('v2-recomposition-conversion', '-');
     ['current', 'next', 'distant'].forEach(function (w) {
         safeSetText('v2-wave-' + w + '-state', '-');
@@ -1022,7 +1022,7 @@ async function updateV2Results(options = {}) {
     const roleCategory = selectedRole;
 
     if (!roleCategory) {
-        resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.');
+        resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or role-structure detail.');
         return null;
     }
 
@@ -1129,7 +1129,7 @@ async function updateV2Results(options = {}) {
     );
     safeSetText(
         'v2-task-note',
-        `${result.selected_occupation_title} uses its mapped task inventory as the baseline. Each task updates live as your task picks and questionnaire answers change role share, direct pressure, spillover risk, and retained leverage.`
+        `${result.selected_occupation_title} uses its mapped task inventory as the baseline. Each task updates live as your task picks and role-refinement answers change role share, direct pressure, spillover risk, and retained leverage.`
     );
     renderV2RecompositionSummary(result.recomposition_summary);
     renderV2OccupationAssignment(result.occupation_assignment);
@@ -1408,7 +1408,7 @@ document.addEventListener('DOMContentLoaded', function() {
         syncSearchInputWithOccupation(selectedOccupationId);
 
         if (!roleValue) {
-            resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and complete the questionnaire to generate the transformation briefing.');
+            resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and complete the role refinement to generate the transformation briefing.');
         }
 
         tryShowResults();

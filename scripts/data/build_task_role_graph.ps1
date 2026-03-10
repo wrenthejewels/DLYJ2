@@ -35,8 +35,10 @@ $taskPriors = Import-Csv (Join-Path $OutputDir 'task_augmentation_automation_pri
 $occupations = Import-Csv (Join-Path $OutputDir 'occupations.csv')
 $manualTaskExpansionPath = Join-Path $metadataDir 'manual_task_inventory_expansions.csv'
 $manualDependencyPath = Join-Path $metadataDir 'manual_task_dependency_overrides.csv'
+$jobDescriptionEvidencePath = Join-Path $OutputDir 'job_description_task_evidence.csv'
 $manualTaskExpansions = if (Test-Path $manualTaskExpansionPath) { Import-Csv $manualTaskExpansionPath } else { @() }
 $manualDependencyOverrides = if (Test-Path $manualDependencyPath) { Import-Csv $manualDependencyPath } else { @() }
+$jobDescriptionEvidence = if (Test-Path $jobDescriptionEvidencePath) { Import-Csv $jobDescriptionEvidencePath } else { @() }
 
 $occupationIds = $occupations | Select-Object -ExpandProperty occupation_id
 
@@ -65,6 +67,20 @@ foreach ($task in $manualTaskExpansions) {
         frequency = $task.frequency
         source_mix = $task.source_mix
         notes = $task.notes
+        seeded_task_cluster_id = $task.task_family_id
+        is_manual = '1'
+    })
+}
+foreach ($task in $jobDescriptionEvidence) {
+    $allTasks.Add([PSCustomObject]@{
+        occupation_id = $task.occupation_id
+        onet_task_id = $task.evidence_id
+        task_statement = $task.task_statement
+        task_type = $task.task_type
+        importance = $task.importance
+        frequency = $task.frequency
+        source_mix = 'src_manual_job_description_review_2026_03'
+        notes = if ($task.notes) { $task.notes } else { 'job_description_task_expansion' }
         seeded_task_cluster_id = $task.task_family_id
         is_manual = '1'
     })
@@ -228,6 +244,14 @@ foreach ($task in $allTasks) {
         $sourceMix = "$sourceMix|src_v2_role_graph_seed_2026_03"
     }
 
+    $note = if ($task.onet_task_id -like 'manual_*') {
+        'seeded_from_manual_task_expansion'
+    } elseif ($task.onet_task_id -like 'jd_*') {
+        'seeded_from_job_description_expansion'
+    } else {
+        'seeded_from_onet_task_inventory'
+    }
+
     $row = [PSCustomObject]@{
         occupation_id = $task.occupation_id
         task_id = $taskId
@@ -242,7 +266,7 @@ foreach ($task in $allTasks) {
         ai_support_observability = Format-Decimal -Value $aiSupportObservability -Digits 4
         source_mix = $sourceMix
         source_confidence = Format-Decimal -Value $sourceConfidence -Digits 4
-        notes = 'seeded_from_onet_task_inventory'
+        notes = $note
     }
     $inventory.Add($row)
 

@@ -42,7 +42,7 @@ function Get-ActionForDriver([string]$Driver) {
         'legacy_fallback_gap' { return 'expand Anthropic 2026 task mapping for this occupation before changing score logic' }
         'stub_dependency' { return 'replace stub-heavy clusters with direct Anthropic or stronger O*NET-derived evidence' }
         'low_confidence_review' { return 'review task-cluster mapping and confidence calibration before trusting the disagreement' }
-        default { return 'perform manual concept review against AIOE and confirm whether the mismatch is expected' }
+        default { return 'perform manual concept review against the benchmark bundle and confirm whether the mismatch is expected' }
     }
 }
 
@@ -161,7 +161,7 @@ $driverCounts = @($topRows | Group-Object driver | Sort-Object Count -Descending
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add('# Benchmark Disagreement Diagnostics')
 $lines.Add('')
-$lines.Add('This report classifies the largest AIOE benchmark disagreements into likely evidence-gap versus conceptual-gap buckets. It is intended to drive review work, not to auto-update public scoring.')
+$lines.Add('This report classifies the largest benchmark-bundle disagreements into likely evidence-gap versus conceptual-gap buckets. It is intended to drive review work, not to auto-update public scoring.')
 $lines.Add('')
 $lines.Add('## Driver summary')
 $lines.Add('')

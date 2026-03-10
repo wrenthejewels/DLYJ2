@@ -26,13 +26,24 @@ Core join path:
 6. `occupation_exposure_priors.csv`
 7. `occupation_adaptation_priors.csv`
 8. `occupation_benchmark_scores.csv`
-9. `occupation_quality_indicators.csv`
-10. `occupation_labor_market_context.csv`
+9. `occupation_benchmark_source_scores.csv`
+10. `task_benchmark_gpt4_labels.csv`
+11. `ability_benchmark_scores.csv`
+12. `occupation_quality_indicators.csv`
+13. `occupation_labor_market_context.csv`
 
 Next role-fate extension:
-11. `occupation_task_inventory.csv` (scaffolded richer task contract)
-12. `task_dependency_edges.csv` (scaffolded role-graph edges)
-13. `occupation_task_role_profiles.csv` (scaffolded role-graph summaries)
+14. `occupation_task_inventory.csv` (scaffolded richer task contract)
+15. `task_dependency_edges.csv` (scaffolded role-graph edges)
+16. `occupation_task_role_profiles.csv` (scaffolded role-graph summaries)
+17. `job_description_task_evidence.csv` (pilot task-gap expansion evidence)
+18. `task_source_evidence.csv` (source-specific task evidence contract)
+19. `occupation_source_priors.csv` (source-specific occupation prior contract)
+20. `role_functions.csv` (role summary and function anchors)
+21. `occupation_function_map.csv` (occupation-to-function binding and guardrails)
+22. `task_function_edges.csv` (task-to-function graph edges)
+23. `function_accountability_profiles.csv` (judgment, trust, liability, authority profiles)
+24. `occupation_role_transformation.csv` (first-pass role-fate outputs)
 
 ## Purpose of the normalized layer
 
@@ -47,3 +58,4 @@ This layer is designed so the future v2.0 model can answer:
 - how adaptable the worker is relative to transformed role states
 
 See `docs/data/task_role_graph_contract.md` for the first-step contract behind the role-fate redesign.
+See `docs/data/role_transformation_contract.md` for the first-pass function and role-transformation layer.

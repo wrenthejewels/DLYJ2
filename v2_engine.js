@@ -387,6 +387,78 @@
         return clamp((value - 1) / 4, 0, 1);
     }
 
+    function normalizeProfileMetric(rawValue, fallback) {
+        return clamp(toNumber(rawValue, fallback), 0, 1);
+    }
+
+    function getDefaultQuestionnaireProfile() {
+        return {
+            function_centrality: 0.5,
+            human_signoff_requirement: 0.5,
+            liability_and_regulatory_burden: 0.5,
+            relationship_ownership: 0.5,
+            exception_and_context_load: 0.5,
+            workflow_decomposability: 0.5,
+            organizational_adoption_readiness: 0.5,
+            ai_observability_of_work: 0.5,
+            dependency_bottleneck_strength: 0.5,
+            handoff_and_coordination_complexity: 0.5,
+            external_trust_requirement: 0.5,
+            stakeholder_alignment_burden: 0.5,
+            execution_vs_judgment_mix: 0.5,
+            augmentation_fit: 0.5,
+            substitution_risk_modifier: 0.5
+        };
+    }
+
+    function buildQuestionnaireProfileFromAnswers(answers, options) {
+        var seniority = clamp((toNumber(options.seniorityLevel, 3) - 1) / 4, 0, 1);
+        var q1 = normalizeAnswer(answers.Q1);
+        var q2 = normalizeAnswer(answers.Q2);
+        var q3 = normalizeAnswer(answers.Q3);
+        var q4 = normalizeAnswer(answers.Q4);
+        var q5 = normalizeAnswer(answers.Q5);
+        var q6 = normalizeAnswer(answers.Q6);
+        var q7 = normalizeAnswer(answers.Q7);
+        var q8 = normalizeAnswer(answers.Q8);
+        var q9 = normalizeAnswer(answers.Q9);
+        var q11 = normalizeAnswer(answers.Q11);
+        var q12 = normalizeAnswer(answers.Q12);
+        var q13 = normalizeAnswer(answers.Q13);
+        var q14 = normalizeAnswer(answers.Q14);
+        var q16 = normalizeAnswer(answers.Q16);
+
+        return {
+            function_centrality: clamp((q11 * 0.35) + (q7 * 0.25) + (q9 * 0.20) + (seniority * 0.20), 0, 1),
+            human_signoff_requirement: clamp((q11 * 0.50) + (q7 * 0.20) + (seniority * 0.30), 0, 1),
+            liability_and_regulatory_burden: clamp((q11 * 0.35) + (q7 * 0.30) + ((1 - q5) * 0.20) + (seniority * 0.15), 0, 1),
+            relationship_ownership: clamp((q11 * 0.45) + (q7 * 0.20) + (q9 * 0.20) + (seniority * 0.15), 0, 1),
+            exception_and_context_load: clamp(((1 - q5) * 0.30) + ((1 - q6) * 0.15) + (q7 * 0.30) + (q9 * 0.25), 0, 1),
+            workflow_decomposability: clamp((q5 * 0.40) + (q6 * 0.30) + (q4 * 0.30), 0, 1),
+            organizational_adoption_readiness: clamp((q13 * 0.45) + (q14 * 0.20) + (q16 * 0.35), 0, 1),
+            ai_observability_of_work: clamp((q1 * 0.25) + (q2 * 0.15) + (q3 * 0.15) + (q4 * 0.30) + (q8 * 0.15), 0, 1),
+            dependency_bottleneck_strength: clamp(((1 - q5) * 0.30) + (q7 * 0.30) + (q11 * 0.25) + (seniority * 0.15), 0, 1),
+            handoff_and_coordination_complexity: clamp(((1 - q5) * 0.25) + (q7 * 0.25) + (q11 * 0.20) + (seniority * 0.30), 0, 1),
+            external_trust_requirement: clamp((q11 * 0.45) + (q12 * 0.15) + (q7 * 0.20) + (seniority * 0.20), 0, 1),
+            stakeholder_alignment_burden: clamp((q11 * 0.35) + (q7 * 0.20) + (seniority * 0.45), 0, 1),
+            execution_vs_judgment_mix: clamp((q5 * 0.25) + (q6 * 0.25) + ((1 - q11) * 0.25) + ((1 - q7) * 0.25), 0, 1),
+            augmentation_fit: clamp((q1 * 0.35) + (q11 * 0.20) + (q7 * 0.20) + ((1 - q13) * 0.10) + (seniority * 0.15), 0, 1),
+            substitution_risk_modifier: clamp((q1 * 0.30) + (q4 * 0.20) + (q5 * 0.20) + (q6 * 0.15) + ((1 - q11) * 0.15), 0, 1)
+        };
+    }
+
+    function normalizeQuestionnaireProfile(questionnaireProfile, fallbackProfile) {
+        var defaults = fallbackProfile || getDefaultQuestionnaireProfile();
+        var profile = questionnaireProfile || {};
+        var normalized = {};
+
+        Object.keys(defaults).forEach(function (key) {
+            normalized[key] = normalizeProfileMetric(profile[key], defaults[key]);
+        });
+
+        return normalized;
+    }
+
     function toNumber(rawValue, fallback) {
         if (fallback === undefined) {
             fallback = 0;
@@ -1042,7 +1114,11 @@
     }
 
     function deriveQuestionnaireSignals(answers, options) {
+        answers = answers || {};
         var seniority = clamp((toNumber(options.seniorityLevel, 3) - 1) / 4, 0, 1);
+        var legacyProfile = buildQuestionnaireProfileFromAnswers(answers || {}, options || {});
+        var questionnaireProfile = normalizeQuestionnaireProfile(options.questionnaireProfile, legacyProfile);
+        var profileSource = options.questionnaireProfile ? 'structured_profile' : 'legacy_answers';
 
         var q1 = normalizeAnswer(answers.Q1);
         var q2 = normalizeAnswer(answers.Q2);
@@ -1059,15 +1135,45 @@
         var q14 = normalizeAnswer(answers.Q14);
         var q16 = normalizeAnswer(answers.Q16);
 
-        var capabilitySignal = average([q1, q4, q8]);
-        var couplingProtection = average([q7, q9, q11, q12]);
-        var adoptionPressure = average([q13, q14, q16]);
+        var functionRetention = average([
+            questionnaireProfile.function_centrality,
+            questionnaireProfile.human_signoff_requirement,
+            questionnaireProfile.liability_and_regulatory_burden,
+            questionnaireProfile.relationship_ownership
+        ]);
+        var capabilitySignal = average([
+            questionnaireProfile.ai_observability_of_work,
+            questionnaireProfile.workflow_decomposability,
+            questionnaireProfile.substitution_risk_modifier
+        ]);
+        var couplingProtection = average([
+            functionRetention,
+            questionnaireProfile.exception_and_context_load,
+            questionnaireProfile.dependency_bottleneck_strength,
+            questionnaireProfile.external_trust_requirement
+        ]);
+        var adoptionPressure = questionnaireProfile.organizational_adoption_readiness;
         var frictionDimensions = {
-            exception_burden: average([1 - q5, 1 - q6, q7, q9]),
-            accountability_load: average([q7, q11]),
-            judgment_requirement: average([q7, q9, q11]),
-            document_intensity: average([q2, q3, q4, q8]),
-            tacit_context_dependence: average([q7, q9, q12])
+            exception_burden: questionnaireProfile.exception_and_context_load,
+            accountability_load: average([
+                questionnaireProfile.human_signoff_requirement,
+                questionnaireProfile.liability_and_regulatory_burden,
+                questionnaireProfile.function_centrality
+            ]),
+            judgment_requirement: average([
+                questionnaireProfile.function_centrality,
+                1 - questionnaireProfile.execution_vs_judgment_mix,
+                questionnaireProfile.relationship_ownership
+            ]),
+            document_intensity: average([
+                questionnaireProfile.ai_observability_of_work,
+                questionnaireProfile.workflow_decomposability
+            ]),
+            tacit_context_dependence: average([
+                questionnaireProfile.exception_and_context_load,
+                questionnaireProfile.dependency_bottleneck_strength,
+                questionnaireProfile.external_trust_requirement
+            ])
         };
 
         return {
@@ -1075,6 +1181,11 @@
             capabilitySignal: capabilitySignal,
             couplingProtection: couplingProtection,
             adoptionPressure: adoptionPressure,
+            functionRetention: functionRetention,
+            augmentationFit: questionnaireProfile.augmentation_fit,
+            substitutionRiskModifier: questionnaireProfile.substitution_risk_modifier,
+            questionnaireProfile: questionnaireProfile,
+            questionnaireProfileSource: profileSource,
             frictionDimensions: frictionDimensions,
             answers: {
                 q1: q1, q2: q2, q3: q3, q4: q4, q5: q5, q6: q6, q7: q7, q8: q8, q9: q9,
@@ -1146,11 +1257,11 @@
 
         var personalizationFitSummary;
         if (result.personalization_fit === 'strong') {
-            personalizationFitSummary = 'Your answers suggest strong coupling protection and lower adoption pressure, so you line up well with the retained version of the role.';
+            personalizationFitSummary = 'Your answers suggest strong retained function, sign-off burden, or human-owned responsibility, so you line up well with the retained version of the role.';
         } else if (result.personalization_fit === 'moderate') {
-            personalizationFitSummary = 'Your answers point to a mixed fit with the retained role: some protection remains, but adoption pressure is also present.';
+            personalizationFitSummary = 'Your answers point to a mixed fit with the retained role: some human-retained constraints remain, but adoption and substitution pressure are also present.';
         } else {
-            personalizationFitSummary = 'Your answers suggest weaker coupling protection or higher adoption pressure, so more of your work sits in the part of the role under pressure.';
+            personalizationFitSummary = 'Your answers suggest weaker retained-function protection or higher substitution pressure, so more of your work sits in the part of the role under pressure.';
         }
 
         return {
@@ -1429,10 +1540,13 @@
                 );
                 automationDifficulty = clamp(
                     automationDifficulty +
+                    (humanAdvantage * signals.functionRetention * 0.08) +
+                    (signals.augmentationFit * 0.04) +
                     (graphBargainingWeight * 0.10) +
                     (graphCoreShare * 0.05) +
                     (Math.max(0, graphValueCentrality - 0.5) * 0.04) -
-                    (graphAiSupport * 0.07),
+                    (graphAiSupport * 0.07) -
+                    (signals.substitutionRiskModifier * 0.08),
                     0.02, 0.98
                 );
 
@@ -1450,7 +1564,11 @@
                 }
 
                 var absorptionRate = clamp(
-                    adoptionRealization * (1 - automationDifficulty * 0.3) * (0.92 + (graphAiSupport * 0.10) - (graphCoreShare * 0.06)),
+                    adoptionRealization *
+                    (1 - automationDifficulty * 0.3) *
+                    (0.92 + (graphAiSupport * 0.10) - (graphCoreShare * 0.06)) *
+                    (1 - (signals.questionnaireProfile.dependency_bottleneck_strength * 0.10)) *
+                    (1 - (signals.questionnaireProfile.human_signoff_requirement * 0.08)),
                     0.45, 0.95
                 );
 
@@ -1624,8 +1742,9 @@
             var residualViabilityScore = clamp(
                 waveResults.next.retained_share * 0.45 +
                 waveResults.next.coherence * 0.35 +
-                signals.couplingProtection * 0.10 +
-                adoptionFriction * 0.10,
+                signals.functionRetention * 0.10 +
+                signals.questionnaireProfile.human_signoff_requirement * 0.05 +
+                adoptionFriction * 0.05,
                 0, 1
             );
 
@@ -1655,8 +1774,9 @@
             var personalizationFitScore = clamp(
                 average([
                     occupationAdaptive,
+                    signals.functionRetention,
                     signals.couplingProtection,
-                    signals.seniority * 0.60 + signals.capabilitySignal * 0.40,
+                    signals.seniority * 0.30 + signals.capabilitySignal * 0.30 + signals.augmentationFit * 0.40,
                     waveResults.next.retained_share,
                     waveResults.next.coherence
                 ]),
@@ -1671,7 +1791,9 @@
                 currentWaveAbsorbed += c.absorbed_share;
             });
             var workflowCompression = clamp(
-                currentWaveAbsorbed * (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)),
+                currentWaveAbsorbed *
+                (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)) *
+                (1 - (signals.functionRetention * 0.10)),
                 0, 1
             );
             var organizationalConversion = clamp(
@@ -1680,7 +1802,9 @@
                 currentWaveAbsorbed * 0.20 +
                 (1 - bundleFriction.accountability_load) * 0.10 +
                 (1 - bundleFriction.judgment_requirement) * 0.08 +
-                bundleFriction.document_intensity * 0.07,
+                bundleFriction.document_intensity * 0.07 -
+                (signals.questionnaireProfile.human_signoff_requirement * 0.05) -
+                (signals.questionnaireProfile.liability_and_regulatory_burden * 0.05),
                 0, 1
             );
             var substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
@@ -1890,7 +2014,7 @@
                 assignment_method: input.occupationId
                     ? 'Using the occupation you explicitly selected from the mapped launch set.'
                     : 'Using the top mapped occupation for the selected launch category.',
-                task_assignment_method: 'The model starts from the occupation task inventory, blends O*NET task rows with reviewed role-graph expansions where coverage is thin, maps those tasks into task families, and applies direct plus dependency-driven pressure before reweighting the bundle with your questionnaire.',
+                task_assignment_method: 'The model starts from the occupation task inventory, blends O*NET task rows with reviewed role-graph expansions where coverage is thin, maps those tasks into task families, and applies direct plus dependency-driven pressure before reweighting the bundle with your role refinement profile.',
                 dominant_task_clusters: dominantTaskClusters.map(function (clusterId) {
                     return {
                         task_cluster_id: clusterId,
@@ -1909,7 +2033,7 @@
                 } : null,
                 direct_task_evidence_count: directTaskEvidenceCount,
                 fallback_task_count: fallbackTaskCount,
-                questionnaire_effect: 'Your task picks change which work the model treats as current, value-defining, AI-assisted, or vulnerable to spillover. Your questionnaire answers then shape automation difficulty per cluster, the dependency-adjusted task graph, and the wave-based displacement trajectory.'
+                questionnaire_effect: 'Your task picks change which work the model treats as current, value-defining, AI-assisted, or vulnerable to spillover. Your role-refinement answers then shape retained function, sign-off burden, substitution pressure, dependency drag, and the wave-based displacement trajectory.'
             };
 
             var evidenceSummary = {
@@ -1925,6 +2049,21 @@
                     judgment_requirement: Number(bundleFriction.judgment_requirement.toFixed(3)),
                     document_intensity: Number(bundleFriction.document_intensity.toFixed(3)),
                     tacit_context_dependence: Number(bundleFriction.tacit_context_dependence.toFixed(3))
+                },
+                questionnaire_profile_source: signals.questionnaireProfileSource,
+                questionnaire_profile: {
+                    function_centrality: Number(signals.questionnaireProfile.function_centrality.toFixed(3)),
+                    human_signoff_requirement: Number(signals.questionnaireProfile.human_signoff_requirement.toFixed(3)),
+                    liability_and_regulatory_burden: Number(signals.questionnaireProfile.liability_and_regulatory_burden.toFixed(3)),
+                    relationship_ownership: Number(signals.questionnaireProfile.relationship_ownership.toFixed(3)),
+                    exception_and_context_load: Number(signals.questionnaireProfile.exception_and_context_load.toFixed(3)),
+                    workflow_decomposability: Number(signals.questionnaireProfile.workflow_decomposability.toFixed(3)),
+                    organizational_adoption_readiness: Number(signals.questionnaireProfile.organizational_adoption_readiness.toFixed(3)),
+                    ai_observability_of_work: Number(signals.questionnaireProfile.ai_observability_of_work.toFixed(3)),
+                    dependency_bottleneck_strength: Number(signals.questionnaireProfile.dependency_bottleneck_strength.toFixed(3)),
+                    external_trust_requirement: Number(signals.questionnaireProfile.external_trust_requirement.toFixed(3)),
+                    augmentation_fit: Number(signals.questionnaireProfile.augmentation_fit.toFixed(3)),
+                    substitution_risk_modifier: Number(signals.questionnaireProfile.substitution_risk_modifier.toFixed(3))
                 },
                 source_coverage: {
                     occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
@@ -1944,7 +2083,7 @@
                     'Cluster priors are shrunk toward occupation-level priors using evidence confidence.',
                     'Wave trajectory: current=' + waveResults.current.state + ', next=' + waveResults.next.state + ', distant=' + waveResults.distant.state + '. Primary displacement wave: ' + primaryDisplacementWave + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + ' (wave: ' + roleDefiningWork.wave_assignment + ').') : 'No explicit role-defining task input selected.',
-                    'Capability signal=' + Number(signals.capabilitySignal.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
+                    'Capability signal=' + Number(signals.capabilitySignal.toFixed(2)) + '; function retention=' + Number(signals.functionRetention.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
                     'Labor-market data is shown as context and does not drive the main role labels.',
                     laborContext ? ('Labor context includes employment=' + laborContext.employment_us + ', median_wage=' + laborContext.median_wage_usd + ', growth=' + laborContext.projection_growth_pct + '%.') : 'Labor context unavailable for this occupation.',
                     laborContext && laborContext.unemployment_group_label ? ('Latest official BLS unemployment for ' + laborContext.unemployment_group_label + ' is ' + laborContext.latest_unemployment_rate + '% (' + laborContext.latest_unemployment_period + ').') : 'No mapped BLS unemployment series for this occupation yet.'
@@ -1964,6 +2103,8 @@
                 fate_drivers: [],
                 fate_counterweights: [],
                 role_summary: roleSummary,
+                questionnaire_profile: evidenceSummary.questionnaire_profile,
+                questionnaire_profile_source: signals.questionnaireProfileSource,
                 occupation_assignment: occupationAssignment,
                 primary_displacement_wave: primaryDisplacementWave,
                 wave_trajectory: {
@@ -2046,6 +2187,9 @@
                     adoption_pressure: Number(signals.adoptionPressure.toFixed(3)),
                     capability_signal: Number(signals.capabilitySignal.toFixed(3)),
                     coupling_protection: Number(signals.couplingProtection.toFixed(3)),
+                    function_retention: Number(signals.functionRetention.toFixed(3)),
+                    augmentation_fit: Number(signals.augmentationFit.toFixed(3)),
+                    substitution_risk_modifier: Number(signals.substitutionRiskModifier.toFixed(3)),
                     direct_exposure_pressure: taskGraphSummary ? Number(taskGraphSummary.direct_exposure_pressure.toFixed(3)) : null,
                     indirect_dependency_pressure: taskGraphSummary ? Number(taskGraphSummary.indirect_dependency_pressure.toFixed(3)) : null,
                     residual_role_integrity: taskGraphSummary ? Number(taskGraphSummary.residual_role_integrity.toFixed(3)) : null,

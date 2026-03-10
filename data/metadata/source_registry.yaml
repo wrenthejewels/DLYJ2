@@ -153,6 +153,61 @@ sources:
     granularity: occupation_level
     status: active_benchmark_only
     notes: 'Imported and normalized as a benchmark-only layer. Used to validate directional rankings against the live Anthropic-driven exposure stack, not to drive public headline outputs.'
+  - source_id: src_webb_2020
+    name: Webb AI exposure paper
+    category: occupation_prior
+    version_label: 'NBER Working Paper 24762 / JLE publication lineage'
+    release_date: '2020-12-01'
+    download_url: 'https://www.michaelwebb.co/webb_ai.pdf'
+    license: 'Paper terms'
+    geography: us
+    granularity: occupation_level
+    status: active_benchmark_only
+    notes: 'Normalized occupation-level AI, robotics, and software exposure measures from the mirrored OpenAI GPTs-are-GPTs autoScores extract, with the paper PDF mirrored locally for provenance.'
+  - source_id: src_brynjolfsson_mitchell_rock_2018
+    name: Suitability for Machine Learning rubric
+    category: occupation_prior
+    version_label: 'AEA P&P 2018'
+    release_date: '2018-05-01'
+    download_url: 'https://doi.org/10.1257/pandp.20181019'
+    license: 'Paper terms'
+    geography: us
+    granularity: occupation_level
+    status: active_benchmark_only
+    notes: 'Normalized occupation-level SML values from the mirrored OpenAI GPTs-are-GPTs autoScores extract. Crossref metadata is mirrored locally because the paper does not expose an equivalent stable raw CSV URL.'
+  - source_id: src_openai_gpts_are_gpts_2023
+    name: GPTs are GPTs
+    category: task_exposure
+    version_label: 'GitHub repository snapshot'
+    release_date: '2023-03-17'
+    download_url: 'https://github.com/openai/GPTs-are-GPTs'
+    license: 'Repository terms'
+    geography: us
+    granularity: occupation_and_task
+    status: active_benchmark_only
+    notes: 'Mirrored raw occupation-level and task-level benchmark files from the OpenAI repository. Used for benchmark comparison and task-label inspection, not runtime scoring.'
+  - source_id: src_acemoglu_online_vacancies_2022
+    name: Artificial Intelligence and Jobs: Evidence from Online Vacancies
+    category: benchmark_article
+    version_label: 'JLE 2022 / NBER w28257'
+    release_date: '2022-04-01'
+    download_url: 'https://doi.org/10.1086/718327'
+    license: 'Paper terms'
+    geography: us
+    granularity: article_only
+    status: raw_imported_pending_extraction
+    notes: 'Paper PDF and metadata are mirrored locally for completeness review. No separate public benchmark CSV has been normalized yet.'
+  - source_id: src_benchmark_bundle_2026_03
+    name: Benchmark bundle aggregate
+    category: occupation_prior
+    version_label: '2026-03-10 merged benchmark table'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_level
+    status: active_benchmark_only
+    notes: 'Derived wide benchmark table combining AIOE, Webb, SML, and GPTs-are-GPTs occupation-level signals while preserving source-specific rows in occupation_benchmark_source_scores.csv.'
   - source_id: src_ilo_genai_2025_05
     name: ILO refined global GenAI exposure index
     category: occupation_prior
@@ -175,3 +230,69 @@ sources:
     granularity: occupation_and_task
     status: active_stub
     notes: 'Temporary generated placeholders used until real raw-source normalization is implemented.'
+  - source_id: src_manual_job_description_review_2026_03
+    name: Manual job description review seed
+    category: occupation_structure
+    version_label: '2026-03-10 pilot seed'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_task_evidence
+    status: active_seed
+    notes: 'Pilot task-gap expansion rows curated from internal review for launch occupations that were likely to be underdescribed by O*NET alone. This is scaffolding for the job-description research layer, not full market coverage.'
+  - source_id: src_role_function_seed_2026_03
+    name: Role function seed layer
+    category: role_function_structure
+    version_label: '2026-03-10 first-pass function anchors'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_function_graph
+    status: active_seed
+    notes: 'First-pass role summary, function anchor, and accountability profile layer used to move from task exposure toward role transformation scoring.'
+  - source_id: src_v2_cluster_prior_proxy_2026_03
+    name: V2 cluster prior proxy
+    category: task_exposure
+    version_label: '2026-03-10 task proxy'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_and_task
+    status: active_supporting_derived
+    notes: 'Derived task-level proxy built by attaching occupation-cluster priors to individual task inventory rows when direct task evidence is missing or partial.'
+  - source_id: src_source_comparison_layer_2026_03
+    name: Source comparison layer
+    category: occupation_prior
+    version_label: '2026-03-10 unified source contract'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: task_and_occupation
+    status: active
+    notes: 'Unified comparison-ready layer that preserves task evidence rows and occupation priors by source before promotion into downstream scoring.'
+  - source_id: src_role_transformation_model_2026_03
+    name: Role transformation model
+    category: role_fate_scoring
+    version_label: '2026-03-10 first-pass role fate model'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_level
+    status: active
+    notes: 'First-pass function-aware role transformation output derived from task evidence, dependency structure, function anchors, and labor market context.'
+  - source_id: src_reviewed_role_calibration_2026_03
+    name: Reviewed role calibration overrides
+    category: role_fate_scoring
+    version_label: '2026-03-10 pilot calibration pass'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_level
+    status: active_targeted_override
+    notes: 'Targeted calibration adjustments for the reviewed pilot occupations after job-description evidence and function-graph review.'

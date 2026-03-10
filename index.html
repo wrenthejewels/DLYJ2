@@ -94,7 +94,7 @@
                         <div class="step-card step-card-button sequence-item" data-seq="6" style="min-height:70px;">
                             <button id="questionnaire-button" class="step-button" style="width:100%; height:100%;">Refine result (optional)</button>
                         </div>
-                        <div class="step-caption sequence-item" data-seq="7">Optional: add task-mix and workflow detail if you want a more personalized read.</div>
+                        <div class="step-caption sequence-item" data-seq="7">Optional: add task-mix and role-structure detail if you want a more personalized read.</div>
                     </div>
                 </div>
                 <hr class="resources-divider">
@@ -174,8 +174,8 @@
                     <div class="card-header">
                         <div class="section-title--with-actions">
                             <div>
-                                <h2 class="card-title">Optional questionnaire</h2>
-                                <p class="card-description">Use this if you want to refine the occupation baseline around exposure conditions, bundle integrity, adoption context, and fit.</p>
+                                <h2 class="card-title">Optional role refinement</h2>
+                                <p class="card-description">Use this if you want to refine how your version of the occupation actually works: what must stay human, what is easier to delegate, and where accountability still sits.</p>
                             </div>
                             <label class="task-bucket-toggle" style="margin-left:auto;">
                                 <input type="checkbox" id="prefill-questions">
@@ -185,12 +185,12 @@
                     </div>
 
                     <div class="v2-refinement-intro">
-                        <p>Start with a short refinement set. The full 19-question instrument is still available if you want a deeper calibration.</p>
+                        <p>Start with a short core set. Expand only if you want a deeper read on retained function, authority, workflow structure, and adoption context.</p>
                     </div>
                     <div class="v2-core-refinement">
                         <div class="v2-core-refinement-header">
-                            <div class="v2-section-label">Core refinement</div>
-                            <p class="card-description">These six questions have the highest leverage on exposure conditions, context dependence, retained-role structure, and adoption readiness.</p>
+                            <div class="v2-section-label">Core role refinement</div>
+                            <p class="card-description">These six questions do the most to determine whether AI mainly assists your role, compresses it, or leaves a human-retained core because of function, sign-off, and context.</p>
                         </div>
                         <div class="question-grid" id="v2-core-refinement-grid"></div>
                     </div>
@@ -205,7 +205,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Exposure Conditions
+                            Exposure And Evidence
                             <span class="category-count">4 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -217,8 +217,8 @@
                     <div class="category-content">
                         <div class="question-grid">
                     <div class="question">
-                        <h5>1. Observed AI capability in this work</h5>
-                        <p>How well can current AI systems already handle the kinds of tasks most relevant to this occupation?</p>
+                        <h5>1. AI observability in this work</h5>
+                        <p>How visible and legible is the work to current AI systems through prompts, artifacts, outputs, or structured traces?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q1-1" name="q1" value="1">
@@ -244,8 +244,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>2. Example work and documentation</h5>
-                        <p>How much role-relevant example work exists for imitation, benchmarking, training, or structured review?</p>
+                        <h5>2. Evidence and work trail</h5>
+                        <p>How much role-relevant work trail exists for imitation, benchmarking, training, or structured review?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q2-1" name="q2" value="1">
@@ -271,8 +271,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>3. Benchmark and review clarity</h5>
-                        <p>How easy is it to tell whether work in this role is good, correct, or complete using clear criteria?</p>
+                        <h5>3. Human review and sign-off clarity</h5>
+                        <p>How clearly can a human reviewer tell whether the work is acceptable, and how formal is the review or approval burden?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q3-1" name="q3" value="1">
@@ -298,8 +298,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>4. Task Digitization</h5>
-                        <p>What share of your work inputs and outputs already live in digital, text, spreadsheet, or system-readable form?</p>
+                        <h5>4. Work digitization and machine readability</h5>
+                        <p>What share of the work inputs, context, and outputs already live in digital or system-readable form?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q4-1" name="q4" value="1">
@@ -330,7 +330,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Bundle Integrity
+                            Role Structure
                             <span class="category-count">5 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -342,8 +342,8 @@
                     <div class="category-content">
                         <div class="question-grid">
                     <div class="question">
-                        <h5>5. Task Independence</h5>
-                        <p>Does the task need to be done as part of a larger workflow, or can it be isolated and handled independently?</p>
+                        <h5>5. Workflow decomposability</h5>
+                        <p>Can the work be cleanly split into independent units, or does it need to stay bundled in a larger sequence?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q5-1" name="q5" value="1">
@@ -369,7 +369,7 @@
                     </div>
 
                     <div class="question">
-                        <h5>6. Task Standardization</h5>
+                        <h5>6. Procedure standardization</h5>
                         <p>How standardized are the procedures, templates, and workflow steps in this role?</p>
                         <div class="radio-group">
                             <div class="radio-option">
@@ -396,8 +396,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>7. Context Dependency</h5>
-                        <p>How much does good performance depend on local organizational context, unwritten norms, or situation-specific judgment?</p>
+                        <h5>7. Context and exception load</h5>
+                        <p>How much does good performance depend on local context, exception handling, unwritten norms, or situation-specific judgment?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q7-1" name="q7" value="5">
@@ -423,8 +423,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>8. Feedback and review speed</h5>
-                        <p>How quickly does the role usually get feedback that reveals whether output quality is acceptable?</p>
+                        <h5>8. Review loop speed</h5>
+                        <p>How quickly does the work get reviewed, corrected, or accepted in ways that AI systems could learn from?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q8-1" name="q8" value="1">
@@ -450,7 +450,7 @@
                     </div>
 
                     <div class="question">
-                        <h5>9. Tacit Knowledge</h5>
+                        <h5>9. Tacit rules and unwritten context</h5>
                         <p>How much of the expertise in this role is learned through experience rather than fully documented in explicit procedures?</p>
                         <div class="radio-group">
                             <div class="radio-option">
@@ -483,7 +483,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Retained Work
+                            Function And Authority
                             <span class="category-count">2 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -495,8 +495,8 @@
                     <div class="category-content">
                         <div class="question-grid">
                     <div class="question">
-                        <h5>11. Human judgment and relationship load</h5>
-                        <p>How much does the role depend on trust, stakeholder sensitivity, negotiation, empathy, or human accountability?</p>
+                        <h5>11. Human sign-off and relationship ownership</h5>
+                        <p>How much does the role depend on trust, stakeholder ownership, negotiation, approval, or a human being accountable for the final call?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q11-1" name="q11" value="5">
@@ -522,8 +522,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>12. Physical or on-site dependence</h5>
-                        <p>How much does the role depend on physical presence, site-specific work, or non-digitizable activity?</p>
+                        <h5>12. External trust or on-site dependence</h5>
+                        <p>How much does the role depend on physical presence, site-specific work, or trust-bearing interaction that cannot be fully abstracted away?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q12-1" name="q12" value="5">
@@ -554,7 +554,7 @@
                 <div class="category">
                     <div class="category-header">
                         <div class="category-title">
-                            Adoption Context
+                            Adoption And Embedding
                             <span class="category-count">3 questions</span>
                         </div>
                         <div class="category-toggle">
@@ -593,8 +593,8 @@
                     </div>
 
                     <div class="question">
-                        <h5>14. Labor Cost Pressure</h5>
-                        <p>How strong is the pressure to reduce labor cost or increase output without adding headcount?</p>
+                        <h5>14. Pressure to delegate or compress work</h5>
+                        <p>How strong is the pressure to reduce labor cost, delegate execution, or increase output without adding headcount?</p>
                         <div class="radio-group">
                             <div class="radio-option">
                                 <input type="radio" id="q14-1" name="q14" value="1">
@@ -662,7 +662,7 @@
                         Your v2.1 result is an empirical role briefing, not a certainty. It ranks your task clusters by automation difficulty into three waves (current, next, distant) and estimates whether the remaining bundle holds together as a coherent role.
                     </p>
                     <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-secondary);">
-                        The main result is driven by the occupation task inventory, dependency links between tasks, friction profiles, empirical automation priors, and your questionnaire answers. Visit the <a href="/method2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Methodology</a> for the pipeline and the <a href="/guide2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Guide</a> for how to interpret the briefing.
+                        The main result is driven by the occupation task inventory, dependency links between tasks, retained-function signals, empirical automation priors, and your role-refinement answers. Visit the <a href="/method2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Methodology</a> for the pipeline and the <a href="/guide2" style="color: var(--accent); text-decoration: underline; font-weight: 500;">Guide</a> for how to interpret the briefing.
                     </p>
                 </div>
 
@@ -673,7 +673,7 @@
                     <div class="v2-results-copy">
                         <div class="v2-results-kicker">V2.1 Role Fate Briefing</div>
                         <h3 id="v2-role-state-label">Select a category to begin</h3>
-                        <p id="v2-role-summary">Choose a category, select the closest occupation, and optionally refine the result with task-mix or questionnaire detail.</p>
+                        <p id="v2-role-summary">Choose a category, select the closest occupation, and optionally refine the result with task-mix or role-structure detail.</p>
                     </div>
                     <div class="v2-occupation-picker">
                         <label for="occupation-match-select">Occupation anchor</label>
@@ -809,7 +809,7 @@
                     <div class="v2-map-header">
                         <div class="v2-section-label">Task-level view</div>
                         <h3 class="chart-title">Live Task Breakdown</h3>
-                        <p class="chart-subtitle" id="v2-task-note">This view reorders the selected occupation&apos;s task inventory as your task picks and questionnaire answers change the underlying role share, direct pressure, spillover risk, and retained leverage.</p>
+                        <p class="chart-subtitle" id="v2-task-note">This view reorders the selected occupation&apos;s task inventory as your task picks and role-refinement answers change the underlying role share, direct pressure, spillover risk, and retained leverage.</p>
                     </div>
                     <div class="v2-task-summary">
                         <p class="v2-task-summary-copy" id="v2-task-summary-copy">Choose a mapped occupation to load its task inventory and the blended role-fate breakdown.</p>

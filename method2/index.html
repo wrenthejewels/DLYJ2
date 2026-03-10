@@ -114,7 +114,7 @@
 
                 <section>
                     <h2>How Your Answers Matter</h2>
-                    <p>The questionnaire does not directly output a job verdict. It changes the conditions around the work: how observable the work is, how much context it needs, how quickly an organization could adopt AI into it, and how much judgment or accountability still matters.</p>
+                    <p>The role-refinement layer does not directly output a job verdict. It changes the conditions around the work: how observable the work is, how much of the function must still stay human, how much sign-off or accountability remains, and how quickly an organization could embed AI into the workflow.</p>
                     <div class="equation-callout">
                         <span class="callout-label">Normalization</span>
                         <div class="equation-display">$$q_k = \operatorname{clamp}\!\left(\frac{Q_k-1}{4},0,1\right), \qquad s = \operatorname{clamp}\!\left(\frac{\text{seniorityLevel}-1}{4},0,1\right)$$</div>
@@ -131,7 +131,7 @@
                         <div class="equation-display">$$f^{\text{exception}}=\operatorname{avg}(1-q_5,1-q_6,q_7,q_9), \quad f^{\text{accountability}}=\operatorname{avg}(q_7,q_{11})$$</div>
                         <div class="equation-display">$$f^{\text{judgment}}=\operatorname{avg}(q_7,q_9,q_{11}), \quad f^{\text{document}}=\operatorname{avg}(q_2,q_3,q_4,q_8), \quad f^{\text{tacit}}=\operatorname{avg}(q_7,q_9,q_{12})$$</div>
                     </div>
-                    <p>In plain English: the questionnaire tells the model whether your role is the kind of work AI can slide into cleanly, or the kind of work where context, accountability, and messy exceptions still slow that down.</p>
+                    <p>In plain English: the role refinement tells the model whether AI mainly helps your role, compresses it, or still leaves a human-retained core because of function, accountability, and messy exceptions.</p>
                 </section>
 
                 <section>

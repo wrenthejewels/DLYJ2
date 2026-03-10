@@ -206,7 +206,8 @@ function Normalize-SocCode([string]$Code) {
 function New-PercentileMap {
     param(
         [Parameter(Mandatory)] [object[]]$Rows,
-        [Parameter(Mandatory)] [string]$ScoreColumn
+        [Parameter(Mandatory)] [string]$ScoreColumn,
+        [string]$KeyColumn = 'occupation_id'
     )
 
     $scored = @($Rows | Where-Object { $_.$ScoreColumn -ne '' } | Sort-Object { [double]$_.($ScoreColumn) })
@@ -214,7 +215,7 @@ function New-PercentileMap {
     if (-not $scored.Count) { return $map }
 
     for ($index = 0; $index -lt $scored.Count; $index++) {
-        $key = [string]$scored[$index].occupation_id
+        $key = [string]$scored[$index].($KeyColumn)
         $percentile = if ($scored.Count -eq 1) { 1.0 } else { [double]$index / [double]($scored.Count - 1) }
         $map[$key] = $percentile
     }
@@ -231,6 +232,7 @@ $appendixPath = Join-Path $SourceDir 'AIOE_DataAppendix.xlsx'
 $languageModelPath = Join-Path $SourceDir 'Language Modeling AIOE and AIIE.xlsx'
 
 $aioeRows = Import-XlsxSheet -Path $appendixPath -SheetName 'Appendix A'
+$abilityRows = Import-XlsxSheet -Path $appendixPath -SheetName 'Appendix E'
 $lmRows = Import-XlsxSheet -Path $languageModelPath -SheetName 'LM AIOE'
 
 $aioeBySoc = @{}
@@ -268,6 +270,62 @@ foreach ($occupation in $occupations) {
 $aioePercentiles = New-PercentileMap -Rows $rawBenchmarkRows -ScoreColumn 'aioe_score'
 $lmPercentiles = New-PercentileMap -Rows $rawBenchmarkRows -ScoreColumn 'lm_aioe_score'
 
+$rawAbilityRows = New-Object System.Collections.Generic.List[object]
+foreach ($row in $abilityRows) {
+    if ([string]::IsNullOrWhiteSpace($row.'O*NET Abilities') -or [string]::IsNullOrWhiteSpace($row.'Ability-Level AI Exposure')) {
+        continue
+    }
+
+    $rawAbilityRows.Add([PSCustomObject]@{
+        ability_name = [string]$row.'O*NET Abilities'
+        aioe_ability_exposure_score = [double]$row.'Ability-Level AI Exposure'
+    })
+}
+
+$abilityPercentiles = New-PercentileMap -Rows $rawAbilityRows -ScoreColumn 'aioe_ability_exposure_score' -KeyColumn 'ability_name'
+
+$abilityOutputRows = New-Object System.Collections.Generic.List[object]
+foreach ($row in $rawAbilityRows | Sort-Object ability_name) {
+    $abilityOutputRows.Add([PSCustomObject]@{
+        ability_name = $row.ability_name
+        aioe_ability_exposure_score = '{0:N6}' -f [double]$row.aioe_ability_exposure_score
+        aioe_ability_exposure_percentile = '{0:N4}' -f [double]$abilityPercentiles[$row.ability_name]
+        source_id = 'src_aioe_2023'
+        notes = 'benchmark_only|matched_via_appendix_e'
+    })
+}
+
+$sourceRows = New-Object System.Collections.Generic.List[object]
+foreach ($row in $rawBenchmarkRows | Sort-Object occupation_id) {
+    if ($row.aioe_score -ne '') {
+        $sourceRows.Add([PSCustomObject]@{
+            occupation_id = $row.occupation_id
+            benchmark_key = 'aioe'
+            benchmark_label = 'AIOE'
+            benchmark_group = 'occupation_exposure'
+            raw_score = '{0:N6}' -f [double]$row.aioe_score
+            percentile = '{0:N4}' -f [double]$aioePercentiles[$row.occupation_id]
+            source_id = 'src_aioe_2023'
+            release_date = '2023-03-01'
+            notes = 'benchmark_only|matched_via_soc'
+        })
+    }
+
+    if ($row.lm_aioe_score -ne '') {
+        $sourceRows.Add([PSCustomObject]@{
+            occupation_id = $row.occupation_id
+            benchmark_key = 'lm_aioe'
+            benchmark_label = 'Language Modeling AIOE'
+            benchmark_group = 'occupation_exposure'
+            raw_score = '{0:N6}' -f [double]$row.lm_aioe_score
+            percentile = '{0:N4}' -f [double]$lmPercentiles[$row.occupation_id]
+            source_id = 'src_aioe_2023'
+            release_date = '2023-03-01'
+            notes = 'benchmark_only|matched_via_soc'
+        })
+    }
+}
+
 $outputRows = New-Object System.Collections.Generic.List[object]
 foreach ($row in $rawBenchmarkRows | Sort-Object occupation_id) {
     $aioePct = if ($aioePercentiles.ContainsKey($row.occupation_id)) { $aioePercentiles[$row.occupation_id] } else { $null }
@@ -284,18 +342,34 @@ foreach ($row in $rawBenchmarkRows | Sort-Object occupation_id) {
         aioe_percentile = if ($null -ne $aioePct) { '{0:N4}' -f [double]$aioePct } else { '' }
         lm_aioe_score = if ($row.lm_aioe_score -ne '') { '{0:N6}' -f [double]$row.lm_aioe_score } else { '' }
         lm_aioe_percentile = if ($null -ne $lmPct) { '{0:N4}' -f [double]$lmPct } else { '' }
+        webb_ai_score = ''
+        webb_ai_percentile = ''
+        webb_robot_score = ''
+        webb_robot_percentile = ''
+        webb_software_score = ''
+        webb_software_percentile = ''
+        sml_score = ''
+        sml_percentile = ''
+        gpts_dv_beta_score = ''
+        gpts_dv_beta_percentile = ''
+        gpts_human_beta_score = ''
+        gpts_human_beta_percentile = ''
         benchmark_mean_percentile = if ($null -ne $benchmarkMean) { '{0:N4}' -f [double]$benchmarkMean } else { '' }
-        source_id = 'src_aioe_2023'
+        source_id = 'src_benchmark_bundle_2026_03'
         confidence = '{0:N2}' -f $confidence
         notes = ('benchmark_only|matched_via_soc|aioe={0}|lm_aioe={1}' -f ([bool]($row.aioe_score -ne '')).ToString().ToLowerInvariant(), ([bool]($row.lm_aioe_score -ne '')).ToString().ToLowerInvariant())
     })
 }
 
+$sourceRows | Export-Csv -Path (Join-Path $OutputDir 'occupation_benchmark_source_scores.csv') -NoTypeInformation -Encoding UTF8
+$abilityOutputRows | Export-Csv -Path (Join-Path $OutputDir 'ability_benchmark_scores.csv') -NoTypeInformation -Encoding UTF8
 $outputRows | Export-Csv -Path (Join-Path $OutputDir 'occupation_benchmark_scores.csv') -NoTypeInformation -Encoding UTF8
 
 [PSCustomObject]@{
     benchmark_rows = $outputRows.Count
     aioe_coverage = (@($outputRows | Where-Object { $_.aioe_score }).Count)
     lm_aioe_coverage = (@($outputRows | Where-Object { $_.lm_aioe_score }).Count)
+    aioe_ability_rows = $abilityOutputRows.Count
+    benchmark_source_rows = $sourceRows.Count
     source_dir = $SourceDir
 } | Format-List

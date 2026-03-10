@@ -6,6 +6,7 @@ Local raw files currently present:
 
 Current use:
 - `normalize_aioe.ps1` reads the occupation-level `AIOE` appendix and the language-model-specific `LM AIOE` workbook
+- `normalize_aioe.ps1` also reads `Appendix E` for ability-level exposure values
 - the resulting normalized file is benchmark-only and is not used in public `2.0` scoring
 
 Important note:

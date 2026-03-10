@@ -33,6 +33,16 @@ async function main() {
     throw new Error('Expected recomposition_summary in result payload.');
   }
 
+  if (result.questionnaire_profile_source !== 'legacy_answers') {
+    throw new Error(`Expected legacy answer compatibility path, received ${result.questionnaire_profile_source}.`);
+  }
+  if (!result.questionnaire_profile) {
+    throw new Error('Expected questionnaire_profile in result payload.');
+  }
+  ['function_centrality', 'human_signoff_requirement', 'organizational_adoption_readiness', 'augmentation_fit', 'substitution_risk_modifier'].forEach((key) => {
+    assertBounded(`questionnaire_profile.${key}`, result.questionnaire_profile[key]);
+  });
+
   assertBounded('recomposition_summary.workflow_compression', result.recomposition_summary.workflow_compression);
   assertBounded('recomposition_summary.organizational_conversion', result.recomposition_summary.organizational_conversion);
   assertBounded('recomposition_summary.substitution_potential', result.recomposition_summary.substitution_potential);
@@ -150,6 +160,37 @@ async function main() {
   assertBounded('businessOps.diagnostics.direct_exposure_pressure', businessOps.diagnostics.direct_exposure_pressure);
   assertBounded('businessOps.diagnostics.indirect_dependency_pressure', businessOps.diagnostics.indirect_dependency_pressure);
 
+  const structuredProfileResult = engine.computeResult({
+    occupationId: result.selected_occupation_id,
+    roleCategory: 'software',
+    questionnaireProfile: {
+      function_centrality: 0.72,
+      human_signoff_requirement: 0.68,
+      liability_and_regulatory_burden: 0.61,
+      relationship_ownership: 0.48,
+      exception_and_context_load: 0.63,
+      workflow_decomposability: 0.71,
+      organizational_adoption_readiness: 0.67,
+      ai_observability_of_work: 0.83,
+      dependency_bottleneck_strength: 0.58,
+      handoff_and_coordination_complexity: 0.54,
+      external_trust_requirement: 0.46,
+      stakeholder_alignment_burden: 0.59,
+      execution_vs_judgment_mix: 0.43,
+      augmentation_fit: 0.77,
+      substitution_risk_modifier: 0.64
+    },
+    seniorityLevel: 3
+  });
+
+  if (structuredProfileResult.questionnaire_profile_source !== 'structured_profile') {
+    throw new Error(`Expected structured questionnaire profile path, received ${structuredProfileResult.questionnaire_profile_source}.`);
+  }
+  assertBounded('structuredProfileResult.role_fate_confidence', structuredProfileResult.role_fate_confidence);
+  assertBounded('structuredProfileResult.diagnostics.function_retention', structuredProfileResult.diagnostics.function_retention);
+  assertBounded('structuredProfileResult.diagnostics.augmentation_fit', structuredProfileResult.diagnostics.augmentation_fit);
+  assertBounded('structuredProfileResult.diagnostics.substitution_risk_modifier', structuredProfileResult.diagnostics.substitution_risk_modifier);
+
   console.log(JSON.stringify({
     summary: {
       occupation: result.selected_occupation_title,
@@ -194,6 +235,11 @@ async function main() {
       occupation: businessOps.selected_occupation_title,
       taskCount: businessOps.task_breakdown.total_tasks_considered,
       topExposed: businessOps.top_exposed_work?.label || null
+    },
+    structuredProfile: {
+      roleFate: structuredProfileResult.role_fate_label,
+      functionRetention: structuredProfileResult.diagnostics.function_retention,
+      substitutionRiskModifier: structuredProfileResult.diagnostics.substitution_risk_modifier
     }
   }, null, 2));
 }
