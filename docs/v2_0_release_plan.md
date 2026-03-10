@@ -2,975 +2,187 @@
 
 ## Purpose
 
-This document is the working source of truth for the `2.0` release.
+This document is the current source of truth for the next `2.0` redesign pass.
 
-Use it to track:
-- product decisions
-- current implementation status
-- completed work
-- open questions
-- next steps
-
-Future sessions should update this file when material progress is made.
+That pass replaces the interim role-transformation briefing with a `Role Fate Map` built on better task coverage, explicit task dependencies, and clearer public role outcomes.
 
 ## Product Goal
 
-`2.0` replaces the current `1.0` homepage experience.
+`2.0` should answer:
+- what the role is made of today
+- which tasks carry bargaining power
+- which tasks face direct AI pressure
+- which supporting tasks weaken because they depend on exposed core work
+- whether the role is more likely to augment, compress, elevate, split, expand, or collapse
 
-The current `1.0` model is a hazard-first displacement timeline model:
-- questionnaire-driven
-- METR-based capability curve
-- job-level automation hazard
-- compression hazard
-- re-employment estimate
-
-`2.0` is a different model.
-
-It should primarily answer:
-- which parts of a role are exposed
-- whether that exposure is more likely augmentation or automation
-- whether exposed tasks can be decoupled from the rest of the role
-- what the residual task bundle looks like
-- whether the transformed role remains viable
-- whether the worker can adapt into the transformed role
-
-Displacement timing may remain in some form, but only as a secondary output.
+The product should not lead with:
+- timing forecasts
+- generic exposure labels without task grounding
+- unexplained structural metrics such as `coherence`
 
 ## Locked Product Decisions
 
-These decisions are currently settled unless explicitly revised:
-
-- `1.0` remains the live default experience on the existing public routes until `2.0` is fully ready.
-- `2.0` will be developed on parallel preview routes first:
-  - `main2/index.html`
-  - `guide2/index.html`
-  - `method2/index.html`
-- `1.0` will eventually be archived separately rather than kept as the main product.
-- The current hazard model will not remain the primary product ontology.
-- The questionnaire concept stays, but outputs and internal mapping will change.
-- The broad UI role categories from `1.0` remain useful as the front-door entry point.
-
-## Proposed V2.0 Output Contract
-
-The current recommended headline outputs are:
-
-1. `Role Outlook`
-2. `Top Exposed Work`
-3. `Mode Of Change`
-4. `Residual Role Strength`
-5. `Personalization Fit`
-
-The public `2.0` main page should not include a timing panel or METR-derived hazard outputs.
-
-## Conceptual Shift From 1.0 To 2.0
-
-### 1.0 ontology
-
-`1.0` is built around:
-- METR capability growth
-- task-duration buckets
-- job-level hazard activation
-- implementation delay
-- compression hazard
-- displacement timing
-
-### 2.0 ontology
-
-`2.0` should be built around:
-- occupation prior
-- task bundle structure
-- task exposure evidence
-- augmentation vs automation split
-- bundle decoupling / O-Ring logic
-- residual role viability
-- worker-specific fit with the retained role
-- labor-market context as a separate panel
-
-### Practical implication
-
-`2.0` is not a coefficient update to `1.0`.
-
-It is a new primary model and should stand on its own without the old timing layer.
+- The new public ontology is `Role Fate`, not the old five-card briefing.
+- Default intake follows `progressive depth`: light by default, more structured if the user wants it.
+- First-wave data strategy is `public sources + internal curation`.
+- First-wave user evidence is structured task selection, not freeform document upload.
+- Demand expansion remains a first-class modifier, but not the main headline ontology.
+- The public role-fate taxonomy is:
+  - `Augmented`
+  - `Compressed`
+  - `Elevated`
+  - `Split`
+  - `Expanded`
+  - `Collapsed`
+  - `Mixed transition`
 
 ## Current Repo State
 
-### 2.0 is now the live product surface
-
-The live homepage at `index.html` is now the `2.0` role-transformation model.
-
-The codebase was split from a single 10K-line monolith into separate files:
-- `index.html` — clean HTML structure only (~1,100 lines)
-- `styles.css` — all presentation (~3,700 lines)
-- `app.js` — v2-only application logic (~1,100 lines)
-- `v2_engine.js` — v2 scoring engine (unchanged)
-- `presets.js` — role/seniority presets (unchanged)
-- `navigation.js` — client-side routing (unchanged)
-
-All v1/legacy METR model code, hazard calculations, chart rendering, Monte Carlo confidence bands, model tuning UI, test suites, benchmark loading, re-employment calculations, and timing outputs have been removed from the main page.
-
-### 1.0 archived at /main-old
-
-The full original `1.0 + 2.0` monolith is preserved at:
-- `main-old/index.html`
-
-This archive retains the complete v1 METR capability model, blue/green hazard curves, and all legacy timing outputs for reference.
-
-### Parallel preview pages (legacy)
-
-The earlier parallel preview pages still exist at:
-- `main2/index.html`
-- `guide2/index.html`
-- `method2/index.html`
-
-These are pre-split copies and may be removed or redirected in a future cleanup.
-
-### 2.0 data foundation now exists
-
-The repo now contains a substantial data and normalization layer for `2.0`.
-
-Top-level additions:
-- `data/`
-- `docs/data/`
-- `scripts/data/`
-
-Key data/model infrastructure already added:
-- normalized occupation tables
-- task cluster tables
-- task exposure evidence tables
-- occupation prior tables
-- labor market context tables
-- source metadata and provenance
-- normalization scripts and validators
-
-## Data Work Completed
-
-### Real sources integrated
-
-The following real sources are already in the repo and wired into normalized outputs:
-
-- `O*NET`
-- `Anthropic Economic Index`
-- `BLS OEWS 2024`
-- `BLS employment projections`
-- `BLS CPS occupation-group unemployment`
-
-### Archived source
-
-The following source remains in the repo only as archived reference material:
-
-- `Manning / Aguirre 2026`
-
-Important caveat:
-- it is no longer part of the active `2.0` selector, prior, or runtime logic
-- published paper tables still do not cover the launch set cleanly enough for launch use
-
-## Launch Occupation Coverage
-
-The launch seed has been rebalanced to align with the broad role categories already exposed in the `1.0` UI.
-
-Current launch scope:
-- `34` selected occupations
-- `2` stretch candidates
-
-Important bridge file:
-- `data/metadata/ui_role_category_map.csv`
-
-This file maps the current broad role categories such as:
-- `Administrative`
-- `Data Analysis`
-- `Product Management`
-- `Journalism`
-- `Engineering`
-
-to backing occupations in the `2.0` launch set.
-
-## Key Files
-
-### Product pages
-
-Live `2.0` pages:
-- `index.html` — v2-only HTML shell
-- `styles.css` — extracted CSS
-- `app.js` — v2-only application JS
-- `v2_engine.js` — v2 scoring engine
-- `guide2/index.html`
-- `method2/index.html`
-
-Archived `1.0` page:
-- `main-old/index.html` — full original monolith with v1 METR model
-
-### 2.0 planning / docs
-
-- `docs/v2_0_release_plan.md`
-- `docs/data/launch_coverage.md`
-- `docs/data/schema_overview.md`
-- `docs/data/source_priority.md`
-- `data/metadata/normalization_notes.md`
-- `data/metadata/source_registry.yaml`
-
-### Core normalized data
-
-- `data/normalized/occupations.csv`
-- `data/normalized/occupation_selector_index.csv`
-- `data/normalized/occupation_tasks.csv`
-- `data/normalized/task_cluster_membership.csv`
-- `data/normalized/occupation_task_clusters.csv`
-- `data/normalized/task_exposure_evidence.csv`
-- `data/normalized/task_augmentation_automation_priors.csv`
-- `data/normalized/occupation_exposure_priors.csv`
-- `data/normalized/occupation_adaptation_priors.csv`
-- `data/normalized/occupation_benchmark_scores.csv`
-- `data/normalized/occupation_labor_market_context.csv`
-- `data/normalized/occupation_unemployment_monthly.csv`
-
-### Metadata controlling launch behavior
-
-- `data/metadata/launch_occupation_seed.csv`
-- `data/metadata/ui_role_category_map.csv`
-- `data/metadata/role_family_stub_profiles.csv`
-- `data/metadata/role_family_cluster_profiles.csv`
-- `data/metadata/occupation_stub_overrides.csv`
-
-### Data pipeline scripts
-
-- `scripts/data/seed_launch_stubs.ps1`
-- `scripts/data/build_selector_index.ps1`
-- `scripts/data/validate_normalized_data.ps1`
-- `scripts/data/normalize_onet.ps1`
-- `scripts/data/infer_task_clusters.ps1`
-- `scripts/data/normalize_anthropic_ei.ps1`
-- `scripts/data/normalize_bls.ps1`
-- `scripts/data/normalize_bls_unemployment.ps1`
-- `scripts/data/normalize_manning_aguirre.ps1`
-- `scripts/data/rebuild_v2_priors.ps1`
-
-## Current Validation Status
-
-The normalized layer currently validates successfully.
-
-Latest known validated state:
-- `34` occupations
-- `669` normalized occupation-task rows
-- `12` task clusters
-- `12` registered sources
-- `34` selected launch occupations
-- `2` stretch occupations
-
-## What Is Done
-
-### Completed
-
-- established the `2.0` data directory and schema structure
-- created normalized CSV contracts
-- created source registry and normalization notes
-- built launch occupation seed and UI-to-occupation bridge
-- integrated real O*NET occupation/task structure
-- integrated real Anthropic task-level evidence
-- integrated real BLS wage/employment/projection context
-- integrated BLS monthly occupation-group unemployment context
-- rebuilt active occupation priors from O*NET, Anthropic, and BLS
-- rebalanced launch occupations to cover the broad public role categories
-- built validators and normalization scripts
-- created parallel `2.0` preview routes at `main2/index.html`, `guide2/index.html`, and `method2/index.html`
-- added a labor-market context panel and unemployment chart to the `2.0` preview
-
-### Completed but still provisional
-
-- role-family fallback priors
-- task-cluster inference
-- quality indicators
-- transition adjacency
-
-These exist, but some are still heuristic rather than final research-grade inputs.
-
-## What Is Not Done
-
-### Product / UX
-
-- the live homepage is now `2.0` with no v1 timing outputs
-- the main page codebase has been split into `index.html` + `styles.css` + `app.js`
-- the METR capability curve has not yet been rewired into the v2 model (deferred to a future session)
-
-### Model logic
-
-- a first-pass `2.0` transformation engine now exists in `v2_engine.js` and is wired into the preview route
-- the preview result now includes labor-market context and a 12-month BLS unemployment chart for the selected occupation's mapped occupation group
-- residual bundle scoring still needs better calibration and direct task-bundle inputs
-- decoupling / O-Ring logic is still only partial / heuristic
-- personalization-fit scoring using the new normalized layer is still heuristic rather than final
-
-### Questionnaire
-
-- current questionnaire still reflects `1.0` hazard logic
-- no finalized `2.0` mapping from questionnaire responses to:
-  - task mix
-  - exposure mode
-  - coupling
-  - residual role strength
-  - personalization fit
-
-### Documentation
-
-- the `2.0` documentation lives at `guide2/index.html` and `method2/index.html`
-- these docs still need a full rewrite to match the current five-factor model and the new file structure
-
-## Major Open Questions
-
-These decisions should be resolved before large UI implementation begins:
-
-1. Which parts of the current questionnaire remain unchanged, and which must be redesigned?
-2. How much personalization should come from explicit task-mix input versus occupation priors?
-3. Do we want occupation selection to be:
-   - broad category only
-   - category then occupation
-   - inferred occupation candidates after questionnaire answers
-
-The results-page structure and headline output contract are now documented in:
-- `docs/v2_0_results_spec.md`
-
-## Recommended V2.0 Architecture
-
-### Intake
-
-- keep broad role category entry
-- map category to occupation candidates
-- use questionnaire to personalize within the occupation prior
-
-### Engine
-
-1. occupation prior
-2. task bundle reconstruction
-3. task exposure scoring
-4. augmentation vs automation split
-5. workflow compression and recomposition gap
-6. bundle decoupling / residual role estimation
-7. personalization-fit scoring
-
-### Result
-
-- transformation-first summary
-- task-level explanation
-- recomposition panel
-- residual role narrative
-- personalization-fit summary
-- labor-market context panel
-
-## Recommended Workstreams
-
-### Workstream 1: Output contract
-
-Define:
-- final headline cards
-- narrative sections
-- main chart
-- secondary chart or timing panel
+The current live homepage is still an interim `2.0` result:
+- it uses occupation-specific tasks, but task coverage is often thin
+- it still relies on a flat task list plus cluster-level structure
+- it uses a lightweight dependency proxy instead of a task graph
+- it still exposes internal concepts such as residual-bundle quality too indirectly for public use
+
+Current task-data snapshot:
+- `669` normalized task rows across `33` occupations with task rows present
+- average `20.3` task rows per covered occupation
+- median `20`
+- minimum `11`
+- one mapped occupation currently has no normalized task rows:
+  - `Business Operations Specialists, All Other`
+
+Thin-coverage occupations already visible in the current normalized layer include:
+- `Management Analysts` (`11` task rows)
+- `Paralegals and Legal Assistants` (`12`)
+- `Market Research Analysts and Marketing Specialists` (`13`)
+- `Customer Service Representatives` (`13`)
+- `Statistical Assistants` (`14`)
+- `Technical Writers` (`15`)
+- `Sales Representatives of Services...` (`15`)
+
+## Workstreams
+
+### 1. Result-surface redesign
+
+Replace the current verdict surface with:
+- current role breakdown
+- role fate map
+- bargaining-power summary
+- direct pressure tasks
+- indirect spillover tasks
+- retained leverage summary
 
 Status:
-- substantially locked in `docs/v2_0_results_spec.md`
+- spec approved
+- implementation not started
 
-Remaining work:
-- translate the spec into actual UI implementation
+### 2. Task-data foundation
 
-### Workstream 2: Questionnaire redesign
-
-Define the `2.0` questionnaire schema and mapping rules.
-
-Target dimensions:
-- occupation anchoring
-- task composition
-- coupling / decoupling
-- adoption context
-- adaptation capacity
+Add the data needed for fuller role coverage:
+- richer canonical task inventories
+- core vs supporting task labels
+- value-centrality / bargaining-power annotations
+- task dependency edges
 
 Status:
-- now documented in `docs/v2_0_questionnaire_spec.md`
+- first-step contract documented in `docs/data/task_role_graph_contract.md`
+- scaffold CSVs added under `data/normalized/`
+- seeded role-graph generator added at `scripts/data/build_task_role_graph.ps1`
+- current seeded outputs:
+  - `669` task inventory rows
+  - `893` dependency edges
+  - `34` occupation role profiles
+  - `8` occupations still flagged for thin or missing task coverage
 
-Remaining work:
-- translate the spec into actual input fields and scoring code
+### 3. Intake redesign
 
-### Workstream 3: Transformation model logic
-
-Implement:
-- exposure scoring
-- automation vs augmentation balance
-- workflow compression
-- organizational conversion / substitution gap
-- residual bundle viability
-- personalization fit
+Replace the current direct-input block with a structured task-intake flow:
+- high-time tasks
+- value-defining tasks
+- AI-supported tasks
+- AI-danger tasks
+- support-task dependencies
+- residual-role distinctiveness
 
 Status:
-- runtime scaffold now exists in `v2_engine.js`, including a secondary recomposition layer
+- approved in `docs/v2_0_questionnaire_spec.md`
+- implementation not started
 
-Remaining work:
-- improve scoring quality
-- calibrate the new recomposition metrics against reviewed occupations
-- reduce fallback-heavy bundle mappings before adding more structural terms
-- keep demand rebound and labor-demand logic in the roadmap until stronger data exists
+### 4. Engine redesign
 
-### Workstream 8: Recomposition research backlog
+Replace the current wave-first scoring with a role-fate model driven by:
+- direct exposure pressure
+- indirect dependency pressure
+- residual role integrity
+- elevation potential
+- split risk
+- demand expansion modifier
 
-Defer these until the current role-briefing model is better calibrated:
+Status:
+- approved conceptually
+- implementation not started
 
-- dependency-graph penalties beyond the current lightweight proxy
-- time-varying AI capability frontier
-- demand rebound decomposition
-- labor-demand equations and employment forecasting
-- calibrated role-state transition models
-- occupation-specific elasticity estimation
+### 5. Documentation rewrite
 
-### Workstream 4: Occupation prior improvement
+Rewrite user-facing methodology and guide pages after the new result contract is live enough to document faithfully.
 
-Improve occupation-level priors and precision on top of the launch-safe stack.
+## Near-Term Sequence
 
-Current active stack:
-- O*NET task structure
-- Anthropic task exposure / augmentation evidence
-- BLS labor-market context
+1. lock the v2 docs around the role-fate ontology
+2. audit task coverage and define the task/dependency contract
+3. extend the normalized layer for role-task graph support
+4. redesign the task intake to populate the new contract
+5. replace the current outlook calculation with role-fate scoring
+6. redesign the results surface around the new ordering and language
+7. rewrite guide and methodology pages to match the shipped model
 
-Next candidate additions:
-- Eloundou / GPTs-are-GPTs / EIG-style exposure dataset
-- OECD / PIAAC benchmarks in a later phase
+## Acceptance Criteria
 
-### Workstream 5: Source integration roadmap
+`2.0` is ready for the redesign cutover when:
 
-Integrate additional sources in strict priority order:
-
-1. `Anthropic Economic Index 2026-01-15`
-   - normalize the imported raw release into the existing task and task-cluster pipeline
-   - use it as the primary Anthropic task exposure and augmentation/automation layer
-   - retain the older Anthropic extract only as documented fallback coverage where the 2026 release still does not resolve a mapped row
-
-2. `Benchmark validation layer`
-   - add `AIOE` and optionally `ILO refined GenAI exposure index` only as comparison layers
-   - use them to sanity-check occupation priors and directional rankings
-   - do not let them drive headline outputs unless they clearly outperform the active stack
-
-3. `OECD / PIAAC phase`
-   - use OECD only after the main role-briefing model is stable
-   - apply it to autonomy, learning intensity, quality-of-work, and resilience context rather than primary exposure scoring
-
-Explicit non-goals:
-- do not restore `Manning / Aguirre` to active scoring
-- do not promote internal stubs into public headline outputs
-- do not reintroduce METR timing outputs into the `2.0` main page
-
-### Workstream 6: Product migration
-
-Continue building `2.0` on the parallel preview routes, then replace the current homepage experience only once the new outputs are ready. Retain the `1.0` model as a separate archive after cutover.
-
-### Workstream 7: Documentation rewrite
-
-Rewrite:
-- `guide/index.html`
-- `method/index.html`
-
-so the public explanation matches the `2.0` ontology.
-
-## Recommended Near-Term Sequence
-
-1. keep the live `1.0` routes stable while iterating on `main2/index.html`, `guide2/index.html`, and `method2/index.html`
-2. improve the `2.0` transformation-engine scoring with the new intake fields
-3. tighten category-to-occupation selection so launch roles map more precisely to O*NET / BLS / Anthropic evidence
-4. import any remaining benchmark data for `ILO` once a stable raw occupational extract is available
-5. review the new benchmark validation report and inspect large disagreements before changing any public score logic
-6. rewrite the preview guide and methodology pages
-
-## Acceptance Criteria For V2.0
-
-`2.0` is ready when:
-
-1. ~~the homepage experience is transformation-first~~ ✓ (done — v2 is now the live homepage)
-2. ~~the result distinguishes exposure from displacement~~ ✓
-3. ~~the result distinguishes augmentation from automation~~ ✓
-4. ~~the result shows what remains after exposed tasks are absorbed~~ ✓
-5. ~~the result expresses whether the residual bundle is still viable~~ ✓
-6. ~~the result includes worker-specific fit with the retained role~~ ✓
-7. ~~the public `2.0` main page does not depend on timing or hazard outputs~~ ✓ (done — all v1 code removed from main page)
-8. public docs describe the actual `2.0` model rather than the current `1.0` model
+1. the page shows current role makeup before the verdict
+2. the page clearly distinguishes direct AI pressure from indirect dependency spillover
+3. the page identifies bargaining-power tasks explicitly
+4. the public result never uses `coherence`
+5. the engine can output one of the locked role-fate states with confidence
+6. the task inventory for launch occupations is no longer obviously skeletal
+7. labor-market context remains secondary to role-structure explanation
 
 ## Current Source Strategy
 
-### Active for public `2.0`
+Use:
+- `O*NET` as the task-structure spine
+- `Anthropic Economic Index` as the main task-level AI evidence layer
+- `BLS` as labor-market context
+- internal curation where public task coverage is too thin or too generic
 
-- `O*NET`
-  - occupation structure
-  - task bundle priors
-  - work-context scaffolding
-- `Anthropic Economic Index 2026-01-15 normalized task telemetry`
-  - task exposure
-  - augmentation vs automation split
-  - evidence confidence inputs from work-use share, human-only ability, task success, and AI autonomy
-- `BLS OEWS / projections / CPS`
-  - labor-market context
-  - selector support
-  - monthly unemployment chart
-- `src_v2_launch_aggregate_2026_03`
-  - derived occupation prior built from the active stack above
+Candidate additions for this redesign phase:
+- O*NET Detailed Work Activities
+- BLS Occupational Outlook narrative task descriptions
+- ESCO occupation-skill/task structure
 
-### Present but not active in headline scoring
+Do not make these headline scoring inputs in the first pass:
+- benchmark-only comparison layers
+- freeform user documents
+- labor-demand forecasting equations
 
-- `Anthropic Economic Index 2025-03-27 legacy extract`
-  - retained only as fallback supporting coverage behind the primary 2026 Anthropic layer
-- `AIOE`
-  - imported and normalized as a benchmark-only validation layer
-- `ILO refined GenAI exposure index`
-  - raw chart data imported locally, but normalization is still blocked by the weak O*NET-to-ISCO join path
-- `OECD / PIAAC`
-  - planned later resilience / quality layer
-
-### Explicitly excluded
-
-- `Manning / Aguirre`
-- legacy `METR` timing logic
-- internal stub layers as public scoring inputs
-
-## Session Update Protocol
-
-When future sessions make meaningful progress, update this file with:
-
-- what changed
-- what remains blocked
-- whether any major decisions changed
-- whether the recommended next steps changed
-
-Suggested update format:
-
-### Session Update - YYYY-MM-DD
+## Session Update - 2026-03-10-D
 
 - completed:
+  - approved the `Role Fate Map` redesign plan
+  - replaced the v2 results and questionnaire specs with the new ontology
+  - documented a first-step task/dependency data contract
+  - added normalized CSV scaffolds for the task-role graph layer
+  - added and ran a seeded role-graph build script to populate the new normalized files
+  - extended normalized-data validation to cover the new role-graph files
 - changed decisions:
+  - `Role Fate` replaces the old public five-card framing
+  - explicit indirect task risk is now a first-class requirement
+  - task coverage quality is now a blocker for trustworthy role-fate outputs
 - new blockers:
+  - normalized task coverage is thin for several launch occupations
+  - the engine has no explicit task dependency graph yet
+  - the intake does not yet collect value-defining tasks or support-task dependencies
 - next recommended step:
-
-## Session Update - 2026-03-06
-
-- completed:
-  - created the `2.0` data foundation
-  - integrated real O*NET, Anthropic, BLS, and partial Manning data
-  - expanded and rebalanced the launch occupation set to `34` selected occupations
-  - added a UI role-category bridge file
-  - separated fallback priors from real Manning priors
-- changed decisions:
-  - `2.0` is now the intended default homepage experience
-  - `1.0` will eventually be archived rather than remain the main public model
-- new blockers:
-  - no full `2.0` transformation engine yet
-  - no final questionnaire redesign yet
-  - Manning coverage remains partial
-- next recommended step:
-  - lock the `2.0` results-page structure and data contract before more implementation
-
-## Session Update - 2026-03-06-B
-
-- completed:
-  - created `docs/v2_0_results_spec.md`
-  - locked the recommended `2.0` headline cards
-  - locked the recommended transformation-first page structure
-  - defined a minimum app-facing `V2Result` contract
-  - moved the old `1.0` timeline outputs into a secondary-panel role in the spec
-- changed decisions:
-  - the primary `2.0` chart should be a `Role Transformation Map`
-  - the current `1.0` chart should not remain the main result visual
-- new blockers:
-  - no questionnaire-to-result mapping yet
-  - no actual `2.0` transformation engine implementing the result contract yet
-- next recommended step:
-  - define the `2.0` questionnaire mapping against the locked result contract
-
-## Session Update - 2026-03-06-C
-
-- completed:
-  - created `docs/v2_0_questionnaire_spec.md`
-  - mapped the current `Q1-Q19` intake into the `2.0` transformation model
-  - identified which legacy questions can be kept, reinterpreted, or renamed
-  - identified the minimum new `2.0`-specific fields needed for first launch
-- changed decisions:
-  - `Q1-Q19` can remain temporarily as an internal migration layer
-  - a full questionnaire rewrite is not required before the first transformation-engine scaffold
-- new blockers:
-  - no model code yet turns questionnaire answers into the new `V2Result` contract
-- next recommended step:
-  - implement the first `2.0` transformation-engine scaffold against the normalized data and questionnaire mapping
-
-## Session Update - 2026-03-08
-
-- completed:
-  - removed Manning from the active `2.0` selector and prior stack
-  - rebuilt occupation exposure and adaptation priors from O*NET, Anthropic, and BLS inputs
-  - added normalized BLS monthly unemployment data for mapped occupation groups
-  - extended `v2_engine.js` to return labor-market context plus a 12-month unemployment series
-  - added a labor-market context panel and unemployment chart to `main2/index.html`
-- changed decisions:
-  - Manning remains archived only and is not a launch input
-  - official BLS monthly occupation-group unemployment is the launch unemployment chart, not custom role-level monthly estimates
-- new blockers:
-  - occupation-to-BLS unemployment mapping is still group-level rather than detailed-role monthly
-  - preview guide and methodology pages still need to explain the new labor-market panel
-- next recommended step:
-  - retrofit the intake and role selector so users choose a more precise launch occupation before role-specific panels render
-
-## Session Update - 2026-03-09-B
-
-- completed:
-  - removed the secondary timing view from the main `2.0` page surface
-  - reworked the main `2.0` result into a five-factor role briefing
-  - changed the main outputs to role outlook, top exposed work, mode of change, residual role strength, and personalization fit
-  - kept labor-market metrics as a separate context panel rather than a headline score input
-  - changed `Other/Custom` so it no longer falls back to the old timing-only behavior on the main `2.0` page
-- changed decisions:
-  - the main `2.0` page is now a role-structure briefing only, not a timing forecast
-  - timing and METR hazard outputs are excluded from the public `2.0` main-page experience
-- new blockers:
-  - the guide and methodology pages still describe older output labels and timing concepts
-  - the embedded legacy hazard code still exists under the hood and should be removed in a future cleanup pass
-- next recommended step:
-  - rewrite `guide2` and `method2` so the public explanation matches the new five-factor model contract
-
-## Session Update - 2026-03-09-C
-
-- completed:
-  - defined a strict source-integration roadmap for `2.0`
-  - locked Anthropic `2026-01-15` as the next real integration target
-  - locked `AIOE` and `ILO` as benchmark-only layers unless proven better than the active stack
-  - locked `OECD / PIAAC` as a later resilience / job-quality phase rather than a launch exposure input
-- changed decisions:
-  - the active public `2.0` role model is now explicitly `O*NET + Anthropic + BLS + derived launch prior`
-  - non-active sources must be documented as either `benchmark`, `future phase`, or `excluded`
-- new blockers:
-  - no raw benchmark-source files for `AIOE` or `ILO` are present locally yet
-  - the docs still need a corresponding rewrite on `guide2` and `method2`
-- next recommended step:
-  - import benchmark datasets and build a benchmark comparison normalizer against the now-live Anthropic 2026 stack
-
-## Session Update - 2026-03-09-D
-
-- completed:
-  - integrated the Anthropic `2026-01-15` raw release into `normalize_anthropic_ei.ps1`
-  - switched the live v2 normalized Anthropic path to the 2026 release with explicit O*NET-task aggregation rules
-  - retained the older Anthropic `2025-03-27` extract only as fallback coverage for unresolved rows
-  - added `scripts/data/compare_anthropic_releases.ps1` and generated `docs/data/anthropic_2026_integration_report.md`
-- changed decisions:
-  - the active public `2.0` task-evidence stack is now `O*NET + Anthropic 2026 + BLS`, with Anthropic `2025-03-27` retained as fallback only
-  - richer Anthropic task telemetry now informs evidence confidence, not just exposure and mode shares
-- new blockers:
-  - no raw `AIOE` or `ILO` files are present locally yet, so benchmark validation cannot be implemented beyond documentation and source registration
-  - a small number of legacy Anthropic fallback rows still remain until the 2026 release covers those mapped tasks directly
-- next recommended step:
-  - import benchmark datasets and build a benchmark comparison normalizer rather than expanding the public score stack further
-
-## Session Update - 2026-03-09-E
-
-- completed:
-  - imported the raw `AIOE` benchmark workbooks into `data/raw/aioe`
-  - imported the raw ILO occupation-exposure article and chart dataset into `data/raw/ilo`
-  - added `scripts/data/normalize_aioe.ps1` to generate `occupation_benchmark_scores.csv`
-  - added `scripts/data/compare_benchmark_sources.ps1` and generated `docs/data/benchmark_validation_report.md`
-  - updated validation and schema docs so the benchmark layer is a first-class normalized contract
-- changed decisions:
-  - `AIOE` is now an imported benchmark-only source, not just a planned source-registry placeholder
-  - `ILO` raw data is now imported, but normalization still remains pending until a stronger `O*NET -> ISCO` bridge exists
-- new blockers:
-  - the current `crosswalk_onet_to_isco.csv` is still explicitly a placeholder, which blocks credible ILO occupation benchmarking
-  - benchmark disagreements now need substantive review before any source-promotion decision is made
-- next recommended step:
-  - inspect the largest benchmark disagreements and decide whether they reflect Anthropic task coverage issues, occupation bundling issues, or expected conceptual differences
-
-## Session Update - 2026-03-09-F
-
-- completed:
-  - added `scripts/data/diagnose_benchmark_disagreements.ps1`
-  - generated `docs/data/benchmark_disagreement_diagnostics.md` to classify large AIOE disagreements into coverage-gap, stub-dependency, low-confidence, or conceptual-review buckets
-- changed decisions:
-  - benchmark review is now a reproducible diagnostic step, not a manual interpretation pass
-- new blockers:
-  - several high-gap occupations still need human review even after automated bucketing, especially where the benchmark is high but the live exposure prior remains low
-- next recommended step:
-  - review the `conceptual_gap_review` occupations first and decide whether the issue is occupation bundling, Anthropic task coverage, or an expected methodology difference with AIOE
-
-## Session Update - 2026-03-06-D
-
-- completed:
-  - added `v2_engine.js` as the first runtime-capable `2.0` transformation-engine scaffold
-  - added `scripts/test_v2_engine.js` as a local harness for validating the scaffold
-  - implemented occupation resolution from the new UI role-category bridge
-  - implemented first-pass scoring for:
-    - exposed task share
-    - automation vs augmentation balance
-    - residual role viability
-    - adaptation capacity
-    - transformation pressure by 2030
-    - secondary hazard summary
-- changed decisions:
-  - the first `2.0` engine will be heuristic and data-backed before it is fully research-tuned
-- new blockers:
-  - the homepage still does not call the new engine
-  - the current UI does not yet collect the new `2.0`-specific inputs
-- next recommended step:
-  - wire the homepage flow to the new engine and render a first-pass `2.0` result object
-
-## Session Update - 2026-03-06-E
-
-- completed:
-  - wired the homepage to `v2_engine.js`
-  - added occupation-candidate resolution and user selection through the new occupation match dropdown
-  - rendered the `2.0` headline cards, role transformation map, narrative blocks, and evidence summary on the homepage
-  - demoted the old chart and hazard cards into a secondary timing view while preserving the legacy calculations
-  - added graceful fallback behavior for `Other/Custom`, which still has no mapped launch occupation in `2.0`
-- changed decisions:
-  - `Other/Custom` will remain supported only by the secondary timing view until a proper `2.0` occupation-resolution path exists
-- new blockers:
-  - the homepage still relies on legacy `Q1-Q19` only and does not collect the new `2.0`-specific fields directly
-  - the public guide and methodology still describe the old `1.0` ontology
-- next recommended step:
-  - add the minimum new `2.0` intake fields and start replacing the current guide and methodology with transformation-first documentation
-
-## Session Update - 2026-03-06-F
-
-- completed:
-  - added minimum direct `2.0` intake fields on the homepage for:
-    - primary task family
-    - secondary task family
-    - current AI/tool support
-    - residual role strength after routine work is absorbed
-  - wired those direct inputs into the `v2` engine without changing the legacy timing model
-  - rewrote the top framing of `guide/index.html` so it explains the transformation model first and the timing view second
-  - rewrote the top framing of `method/index.html` so it documents the `2.0` pipeline first and treats the old hazard math as a secondary appendix
-- changed decisions:
-  - the first production `2.0` homepage will use a hybrid intake: legacy `Q1-Q19` plus a narrow set of direct transformation fields
-- new blockers:
-  - the guide and methodology still contain substantial legacy timing detail further down the page, even though the public framing is now corrected
-  - occupation-level exposure priors remain incomplete for uncovered launch roles
-- next recommended step:
-  - improve occupation-prior coverage and then tighten the downstream scoring logic around the new direct `2.0` inputs
-
-## Session Update - 2026-03-09
-
-- completed:
-  - restored the live `index.html`, `guide/index.html`, and `method/index.html` routes to the older `1.0` hazard-model experience
-  - created parallel `2.0` preview entry points at `main2/index.html`, `guide2/index.html`, and `method2/index.html`
-  - updated the preview-page navigation so the new files cross-link within the `2.0` preview set
-- changed decisions:
-  - `2.0` should no longer replace the live homepage incrementally on the same files
-  - `2.0` should be developed on parallel preview routes until the full cutover is ready
-- new blockers:
-  - the `2.0` preview content still needs to diverge further from the legacy hazard-model presentation
-  - there is not yet a cutover checklist for swapping the live routes from `1.0` to `2.0`
-- next recommended step:
-  - continue `2.0` UI and documentation work only on the new preview routes, leaving the live `1.0` pages unchanged
-
-## Session Update - 2026-03-09-G
-
-- completed:
-  - promoted the `2.0` model to the live root route while preserving the archived `1.0` homepage at `main-old/index.html`
-  - refactored the `2.0` entry flow from legacy role presets into `category -> occupation -> hierarchy -> questionnaire`
-  - added direct occupation search so users can jump straight to a mapped launch occupation even when the broad category is imperfect
-  - rewrote the visible questionnaire copy and grouping around the `2.0` model:
-    - `Exposure Conditions`
-    - `Bundle Integrity`
-    - `Retained Work`
-    - `Adoption Context`
-    - `Personalization Fit`
-  - added a new `value-defining task family` input and wired it into the engine as `roleCriticalClusters`
-- changed decisions:
-  - broad role categories are now helper filters, not the primary identity of the model
-  - the `2.0` intake is now explicitly occupation-anchored, even though legacy `Q1-Q19` compatibility remains in code
-- new blockers:
-  - the scoring layer still uses the current questionnaire-to-signal translation rather than a fully re-derived `2.0` weighting system
-  - benchmark-disagreement occupations still need targeted occupation-prior and task-bundle cleanup
-- next recommended step:
-  - tighten the downstream scoring logic and occupation-prior coverage around the new direct `2.0` inputs, starting with the largest benchmark-disagreement roles
-
-## Session Update - 2026-03-09-H
-
-- completed:
-  - tightened the live `2.0` scoring layer so direct questionnaire inputs now materially change the output:
-    - role-defining task families now receive extra weight in exposure, elevation, retained-bundle interpretation, and top-exposed selection
-    - current AI/tool support and adoption context now modify augmentation, automation, and absorbed-share calculations
-    - the residual-role and personalization-fit scores now use role-critical retained-share diagnostics instead of relying only on the occupation prior and broad structural signals
-  - expanded the live result payload with explicit `role_defining_work` and richer diagnostics for adoption pressure, tool support, and critical-cluster transformation
-  - aligned the `2.0` methodology and spec docs to the live formulas and result contract
-- changed decisions:
-  - direct `2.0` inputs are now first-class score drivers, not just UI hints layered on top of occupation priors
-  - occupation priors remain anchor inputs, but cluster-level task evidence and role-critical user inputs now dominate more of the public result
-- new blockers:
-  - benchmark-disagreement occupations still need targeted occupation-prior and task-bundle cleanup
-  - the questionnaire still runs through the legacy `Q1-Q19` compatibility layer rather than a fully re-derived `2.0` signal system
-  - prefill behavior still carries some legacy category and hierarchy assumptions
-- next recommended step:
-  - improve occupation-prior coverage and targeted mappings for disagreement-heavy roles such as Management Analysts, Market Research Analysts, Human Resources Specialists, Accountants and Auditors, and Lawyers
-
-## Session Update - 2026-03-10
-
-- completed:
-  - replaced the old task-bundle override normalization with a pseudo-count composition update so direct task-family inputs now act like a prior update rather than an unconstrained rescaling
-  - replaced simple cluster-to-occupation averaging with confidence-weighted shrinkage for exposure, augmentation, and automation priors
-  - replaced simple task-to-cluster averaging with task-count-weighted shrinkage so sparse Anthropic task rows no longer overpower cluster estimates
-  - extended the methodology page to document the new occupation-assignment, task projection, and shrinkage math
-- changed decisions:
-  - direct task evidence is now treated as a noisy estimate that should be partially pooled toward cluster structure, not as an equally reliable row-by-row truth source
-  - occupation priors remain active as shrinkage targets even when direct task evidence exists, especially for low-count or low-confidence task rows
-- new blockers:
-  - the current shrinkage constants and task-count schedule are still hand-tuned rather than estimated from a labeled validation set
-  - benchmark-disagreement occupations still need manual mapping review before coefficient tuning will be trustworthy
-  - task-cluster mapping confidence remains a major source of model error for some occupations
-- next recommended step:
-  - review and repair the disagreement-heavy occupations first, then build a small expert-labeled calibration set to estimate or stress-test the current coefficients
-
-## Session Update - 2026-03-09-I
-
-- completed:
-  - added a secondary recomposition layer to the live `2.0` result
-  - exposed workflow compression, substitution potential, and recomposition gap as soft public metrics rather than headline outputs
-  - documented the recomposition layer in the `v2_0` specs
-- changed decisions:
-  - recomposition is now part of the live explanatory model, but it remains secondary to the five-card role briefing
-  - demand rebound, labor-demand equations, and time-varying frontier logic remain research-roadmap items rather than launch behavior
-- new blockers:
-  - the recomposition coefficients are still hand-tuned and need validation against reviewed occupations
-  - current data is still insufficient for credible demand-elasticity or employment forecasting
-- next recommended step:
-  - review the disagreement-heavy occupations, then calibrate the recomposition layer before expanding into demand-rebound modeling
-
-## Session Update - 2026-03-10-B
-
-- completed:
-  - added targeted manual task-cluster overrides for the five highest-priority disagreement-heavy occupations:
-    - Management Analysts
-    - Market Research Analysts and Marketing Specialists
-    - Human Resources Specialists
-    - Accountants and Auditors
-    - Lawyers
-  - updated the cluster-inference pipeline so reviewed tasks bypass keyword inference and carry explicit manual-review confidence
-  - regenerated the normalized task-cluster tables, Anthropic task evidence aggregation, occupation priors, and benchmark diagnostics
-- changed decisions:
-  - reviewed occupation bundles should now be corrected through explicit task-cluster overrides rather than coefficient tuning around noisy keyword mappings
-- new blockers:
-  - several reviewed occupations still show large benchmark deltas even after bundle cleanup, which suggests the next problem is coefficient calibration or source-coverage limits rather than cluster assignment alone
-  - lawyers remain partially stub-dependent because some reviewed legal clusters still lack direct Anthropic task evidence
-- next recommended step:
-  - build a small reviewed calibration set and tune the recomposition coefficients against it, starting with workflow compression, organizational conversion, and substitution gap
-
-## Session Update - 2026-03-10-C
-
-- completed:
-  - added a reviewed calibration set in `data/metadata/v2_reviewed_calibration_set.csv`
-  - added `scripts/evaluate_v2_calibration.js` to score live engine outputs against that reviewed baseline
-  - generated `docs/data/v2_calibration_report.md`
-  - moved the main recomposition and role-state coefficients into explicit runtime config in `v2_engine.js`
-  - tuned the live recomposition and role-state thresholds against the reviewed baseline
-- changed decisions:
-  - future coefficient changes should be checked against the reviewed calibration harness rather than tuned by inspection alone
-  - the current reviewed calibration set is a launch baseline, not a substitute for external validation or causal benchmarking
-- new blockers:
-  - the reviewed calibration set can only validate occupations and cluster mixes already covered by the current launch bundle
-  - lawyers and other legal/document-heavy roles still need better direct Anthropic coverage before the calibration set can support stronger exposure priors there
-- next recommended step:
-  - expand direct Anthropic coverage for the remaining stub-dependent legal/document-heavy clusters, then widen the reviewed calibration set beyond the current launch baseline
-
-## Session Update - 2026-03-09-J
-
-- completed:
-  - split the 10K-line `index.html` monolith into separate files: `index.html` (HTML only), `styles.css` (all CSS), `app.js` (v2-only JS)
-  - removed all v1/legacy code from the main page: METR capability model, hazard calculations, Monte Carlo confidence bands, chart rendering, model tuning UI, test suites, benchmark loading, re-employment calculations, task bucket editor, industry friction and reliability sliders
-  - removed legacy nav links (Model old, Guide old, Methodology old) — main nav now shows only Model, Guide, Methodology
-  - archived the full original monolith at `main-old/index.html`
-  - reduced `index.html` from ~10K lines / 438KB to ~1,100 lines / 69KB
-  - removed ~2,200 lines of v1 model code, tests, and tuning UI
-  - updated v2 release plan, questionnaire spec, and results spec to reflect the new file structure
-- changed decisions:
-  - the METR capability curve will be rewired into the v2 model in a future session rather than carried as dead code on the main page
-  - `app.js` reads seniority directly from the hierarchy-select dropdown instead of hidden radio buttons
-  - `app.js` has zero dependency on v1 state (`currentParams`, `modelConfig`, `MODEL_DEFAULTS`, etc.)
-- new blockers:
-  - the METR time-varying capability dimension is not yet wired into v2 (deferred)
-  - guide2 and method2 docs still need a full rewrite
-  - CSS still contains some v1-specific selectors that could be pruned in a future cleanup
-- next recommended step:
-  - rewrite guide2 and method2 to match the current five-factor model and new file structure
-
-## Session Update - 2026-03-09-K
-
-- completed:
-  - replaced the vague evidence-rail labels on the live `2.0` page with user-facing definitions:
-    - `Evidence strength`
-    - `Personalization signal`
-    - `Occupation anchor strength`
-    - `Task coverage`
-  - removed the raw free-text evidence-note dump from the main evidence rail and replaced it with structured explanatory copy
-  - added `Organizational conversion` to the public recomposition panel and rewrote the recomposition note so all four metrics are explicitly defined
-  - changed the visible `Role Transformation Map` to derive from ranked task rows in the live task breakdown rather than directly rendering the raw shared cluster bundle
-  - updated `method2/index.html`, `docs/v2_0_results_spec.md`, and `docs/v2_0_questionnaire_spec.md` so the recorded `2.0` behavior matches the live output
-- changed decisions:
-  - the cluster bundle remains an internal analytical surface, but the public map now prioritizes occupation-specific mapped task rows because that view is materially clearer for users
-  - descriptive evidence and recomposition metrics should be shown as banded readouts plus short definitions, not as unexplained percentages
-- new blockers:
-  - the task-derived map is clearer, but some occupations still inherit noisy task-family assignments from keyword inference and fallback coverage
-  - `Top exposed work` remains cluster-based, so a future pass may still be needed if the headline label feels too generic relative to the task map
-- next recommended step:
-  - improve task-family mapping and direct Anthropic coverage for occupations where the task-derived map still looks noisy, starting with software and other authoring-heavy roles
-
-## Session Update - 2026-03-09-L
-
-- completed:
-  - simplified the default `2.0` page hierarchy so the main surface now prioritizes:
-    - one verdict block
-    - short narrative explanation
-    - task-derived map
-    - live task breakdown
-    - labor-market context
-  - hid the duplicate score-card grid from the default results surface
-  - moved the narrative section above the map so the explanation follows the verdict instead of the diagnostics
-  - moved evidence posture, occupation assignment, recomposition, and methodology copy behind a collapsed `Show model details` section
-  - reduced the visible task-panel stats to user-facing signals (`Tasks shown`, `Direct evidence coverage`) and hid fallback bookkeeping from the default view
-  - relabeled the optional advanced intake explicitly as optional (`Refine result (optional)`, `Optional task mix and role fit`, `Optional questionnaire`)
-- changed decisions:
-  - the live page is now intentionally diagnosis-first and audit-second
-  - default users should not encounter the model’s internal scaffolding at equal visual weight with the verdict
-- new blockers:
-  - the engine still computes more intermediate outputs than the default page now shows, so future UI work should keep resisting the urge to promote diagnostics back into the primary surface
-  - the advanced intake is still long once opened; a later pass should reduce the question count rather than only hiding it by default
-- next recommended step:
-  - shrink the optional questionnaire itself into a shorter default refinement set and keep the full research-style instrument only behind an advanced path
-
-## Session Update - 2026-03-09-M
-
-- completed:
-  - reduced the visible refinement flow to a shorter default set while keeping the full engine input contract intact
-  - the live main page now shows:
-    - task-mix / role-fit direct inputs
-    - six default core refinement questions (`Q1`, `Q5`, `Q7`, `Q11`, `Q13`, `Q16`)
-    - an `Advanced refinement` disclosure containing the remaining questionnaire items
-  - implemented the regrouping in `app.js` and mirrored it in `main2/index.html` so the preview route matches the live root page
-- changed decisions:
-  - the full 19-question instrument remains supported by the engine, but it is no longer the default visible path on the main page
-  - the default refinement path is now explicitly optimized for speed and legibility rather than exposing the full research instrument up front
-- new blockers:
-  - the core refinement set is still hand-selected rather than learned from calibration or feature-importance analysis
-  - future questionnaire revisions should validate that the shortened visible set preserves enough signal for the launch occupations
-- next recommended step:
-  - test whether the shortened core refinement set materially preserves output quality across the reviewed calibration occupations, then prune or rotate questions based on that evidence
-
-## Session Update - 2026-03-09-N
-
-- completed:
-  - added explicit task-family friction dimensions to the live `2.0` engine:
-    - exception burden
-    - accountability load
-    - judgment requirement
-    - document intensity
-    - tacit/context dependence
-  - blended those friction dimensions with reviewed task-family profiles so exposure, augmentation, automation, and recomposition no longer depend only on broad hidden protection signals
-  - added a lightweight reviewed dependency matrix between task families and now subtract a dependency penalty before final workflow-compression scaling
-  - added recomposition uncertainty bands and a structural confidence label derived from evidence strength, occupation anchor strength, personalization signal strength, direct task coverage, and dependency bottlenecks
-  - updated the live `2.0` UI so the recomposition panel now shows ranges instead of only point readouts
-  - updated methodology and `v2_0` specs to document the new recomposition math
-- changed decisions:
-  - recomposition remains a secondary explanatory layer, but it now uses more explicit and legible internal structure
-  - lightweight dependency penalties are now considered part of the live engine rather than only a deferred roadmap item
-  - confidence on recomposition should be shown as a range and label, not implied by a single precise percentage
-- new blockers:
-  - the dependency layer is still a reviewed task-family proxy, not a full task graph
-  - the new friction dimensions are still questionnaire- and profile-derived proxies rather than independently observed task annotations
-  - demand rebound, labor-demand equations, and time-varying capability logic are still deferred
-- next recommended step:
-  - validate the new friction and dependency terms against the reviewed calibration occupations, then decide whether any of the remaining broad blended signals can be retired or simplified
+  - extend the normalized layer with task role-graph fields, starting with the undercovered occupations

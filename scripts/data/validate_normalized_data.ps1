@@ -83,9 +83,11 @@ $headerMap = @{
     'occupation_aliases.csv' = @('occupation_id','alias','alias_type','source','weight')
     'occupation_selector_index.csv' = @('occupation_id','title','role_family','search_blob','employment_us','median_wage_usd','projection_growth_pct','exposure_prior_score','adaptive_capacity_prior_score','selector_weight','coverage_tier')
     'occupation_tasks.csv' = @('occupation_id','onet_task_id','task_statement','task_type','importance','frequency','source_mix','notes')
+    'occupation_task_inventory.csv' = @('occupation_id','task_id','onet_task_id','task_statement','task_family_id','task_type','time_share_prior','value_centrality','bargaining_power_weight','role_criticality','ai_support_observability','source_mix','source_confidence','notes')
     'task_clusters.csv' = @('task_cluster_id','label','label_short','description','default_coupling_class','default_reviewability_class','default_human_advantage_class')
     'occupation_task_clusters.csv' = @('occupation_id','task_cluster_id','share_prior','importance_prior','evidence_confidence','source_mix','notes')
     'task_cluster_membership.csv' = @('occupation_id','onet_task_id','task_cluster_id','membership_weight','mapping_method','mapping_confidence','notes')
+    'task_dependency_edges.csv' = @('occupation_id','from_task_id','to_task_id','dependency_type','dependency_strength','edge_source','edge_confidence','notes')
     'occupation_exposure_priors.csv' = @('occupation_id','source_id','exposure_score','augmentation_score','automation_score','adaptive_capacity_score','confidence','release_date','notes')
     'task_exposure_evidence.csv' = @('occupation_id','onet_task_id','task_cluster_id','source_id','exposure_score','augmentation_score','automation_score','observed_usage_share','evidence_type','confidence','notes')
     'task_augmentation_automation_priors.csv' = @('occupation_id','task_cluster_id','exposure_score','augmentation_likelihood','partial_automation_likelihood','high_automation_likelihood','evidence_confidence','primary_sources','notes')
@@ -94,6 +96,7 @@ $headerMap = @{
     'occupation_quality_indicators.csv' = @('occupation_id','earnings_quality_proxy','labor_market_security_proxy','working_environment_quality_proxy','autonomy_proxy','learning_opportunity_proxy','social_interaction_intensity','time_pressure_proxy','quality_confidence','source_mix','notes')
     'occupation_labor_market_context.csv' = @('occupation_id','employment_us','annual_openings','median_wage_usd','wage_p25_usd','wage_p75_usd','projection_growth_pct','unemployment_group_id','unemployment_group_label','unemployment_series_id','latest_unemployment_rate','latest_unemployment_period','labor_market_confidence','release_year')
     'occupation_unemployment_monthly.csv' = @('unemployment_group_id','unemployment_group_label','unemployment_series_id','year','month','period','month_label','unemployment_rate','is_missing','source_id','notes')
+    'occupation_task_role_profiles.csv' = @('occupation_id','core_task_share','support_task_share','mean_value_centrality','mean_bargaining_power_weight','dependency_density','coverage_gap_flag','review_status','notes')
     'occupation_transition_adjacency.csv' = @('from_occupation_id','to_occupation_id','adjacency_score','adjacency_type','source','confidence','notes')
     'crosswalk_onet_to_bls.csv' = @('onet_soc_code','bls_occ_code','title_onet','title_bls','match_type','confidence')
     'crosswalk_onet_to_isco.csv' = @('onet_soc_code','isco_code','title_onet','title_isco','match_type','confidence')
@@ -121,8 +124,10 @@ $occupations = Import-Csv (Join-Path $normalizedDir 'occupations.csv')
 $taskClusters = Import-Csv (Join-Path $normalizedDir 'task_clusters.csv')
 $selector = Import-Csv (Join-Path $normalizedDir 'occupation_selector_index.csv')
 $occupationTasks = Import-Csv (Join-Path $normalizedDir 'occupation_tasks.csv')
+$occupationTaskInventory = Import-Csv (Join-Path $normalizedDir 'occupation_task_inventory.csv')
 $occTaskClusters = Import-Csv (Join-Path $normalizedDir 'occupation_task_clusters.csv')
 $taskMembership = Import-Csv (Join-Path $normalizedDir 'task_cluster_membership.csv')
+$taskDependencyEdges = Import-Csv (Join-Path $normalizedDir 'task_dependency_edges.csv')
 $exposurePriors = Import-Csv (Join-Path $normalizedDir 'occupation_exposure_priors.csv')
 $taskEvidence = Import-Csv (Join-Path $normalizedDir 'task_exposure_evidence.csv')
 $taskPriors = Import-Csv (Join-Path $normalizedDir 'task_augmentation_automation_priors.csv')
@@ -130,6 +135,7 @@ $adaptation = Import-Csv (Join-Path $normalizedDir 'occupation_adaptation_priors
 $benchmarks = Import-Csv (Join-Path $normalizedDir 'occupation_benchmark_scores.csv')
 $quality = Import-Csv (Join-Path $normalizedDir 'occupation_quality_indicators.csv')
 $labor = Import-Csv (Join-Path $normalizedDir 'occupation_labor_market_context.csv')
+$taskRoleProfiles = Import-Csv (Join-Path $normalizedDir 'occupation_task_role_profiles.csv')
 $transitions = Import-Csv (Join-Path $normalizedDir 'occupation_transition_adjacency.csv')
 $launchSeed = Import-Csv (Join-Path $metadataDir 'launch_occupation_seed.csv')
 $sourceIds = Select-String -Path (Join-Path $metadataDir 'source_registry.yaml') -Pattern '^\s*- source_id:\s*(.+)$' |
@@ -141,15 +147,21 @@ $taskClusterIds = $taskClusters | Select-Object -ExpandProperty task_cluster_id
 Assert-NoDuplicates -Rows $occupations -Key 'occupation_id' -Label 'occupation_id'
 Assert-NoDuplicates -Rows $taskClusters -Key 'task_cluster_id' -Label 'task_cluster_id'
 Assert-NoDuplicates -Rows $selector -Key 'occupation_id' -Label 'selector occupation_id'
+Assert-NoDuplicates -Rows $occupationTaskInventory -Key 'task_id' -Label 'task inventory task_id'
 Assert-NoDuplicates -Rows $labor -Key 'occupation_id' -Label 'labor occupation_id'
+Assert-NoDuplicates -Rows $taskRoleProfiles -Key 'occupation_id' -Label 'task role profile occupation_id'
 Assert-NoDuplicates -Rows $launchSeed -Key 'launch_rank' -Label 'launch_rank'
 
 Assert-ForeignKey -Rows $selector -Column 'occupation_id' -Allowed $occupationIds -Label 'selector occupation_id'
 Assert-ForeignKey -Rows $occupationTasks -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation tasks occupation_id'
+Assert-ForeignKey -Rows $occupationTaskInventory -Column 'occupation_id' -Allowed $occupationIds -Label 'task inventory occupation_id'
+Assert-ForeignKey -Rows $occupationTaskInventory -Column 'task_family_id' -Allowed $taskClusterIds -Label 'task inventory task_family_id'
 Assert-ForeignKey -Rows $occTaskClusters -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation task cluster occupation_id'
 Assert-ForeignKey -Rows $occTaskClusters -Column 'task_cluster_id' -Allowed $taskClusterIds -Label 'occupation task cluster task_cluster_id'
 Assert-ForeignKey -Rows $taskMembership -Column 'occupation_id' -Allowed $occupationIds -Label 'task membership occupation_id'
 Assert-ForeignKey -Rows $taskMembership -Column 'task_cluster_id' -Allowed $taskClusterIds -Label 'task membership task_cluster_id'
+Assert-ForeignKey -Rows $taskDependencyEdges -Column 'occupation_id' -Allowed $occupationIds -Label 'task dependency occupation_id'
+Assert-ForeignKey -Rows $taskDependencyEdges -Column 'edge_source' -Allowed $sourceIds -Label 'task dependency edge_source'
 Assert-ForeignKey -Rows $exposurePriors -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation exposure occupation_id'
 Assert-ForeignKey -Rows $exposurePriors -Column 'source_id' -Allowed $sourceIds -Label 'occupation exposure source_id'
 Assert-ForeignKey -Rows $taskEvidence -Column 'occupation_id' -Allowed $occupationIds -Label 'task evidence occupation_id'
@@ -162,10 +174,18 @@ Assert-ForeignKey -Rows $benchmarks -Column 'occupation_id' -Allowed $occupation
 Assert-ForeignKey -Rows $benchmarks -Column 'source_id' -Allowed $sourceIds -Label 'benchmark source_id'
 Assert-ForeignKey -Rows $quality -Column 'occupation_id' -Allowed $occupationIds -Label 'quality occupation_id'
 Assert-ForeignKey -Rows $labor -Column 'occupation_id' -Allowed $occupationIds -Label 'labor occupation_id'
+Assert-ForeignKey -Rows $taskRoleProfiles -Column 'occupation_id' -Allowed $occupationIds -Label 'task role profile occupation_id'
 Assert-ForeignKey -Rows $transitions -Column 'from_occupation_id' -Allowed $occupationIds -Label 'transition from_occupation_id'
 Assert-ForeignKey -Rows $transitions -Column 'to_occupation_id' -Allowed $occupationIds -Label 'transition to_occupation_id'
 
 Assert-ShareSums -Rows $occTaskClusters -GroupColumn 'occupation_id' -ShareColumn 'share_prior'
+if ($occupationTaskInventory.Count -gt 0) {
+    Assert-ShareSums -Rows $occupationTaskInventory -GroupColumn 'occupation_id' -ShareColumn 'time_share_prior'
+}
+
+$taskInventoryIds = $occupationTaskInventory | Select-Object -ExpandProperty task_id
+Assert-ForeignKey -Rows $taskDependencyEdges -Column 'from_task_id' -Allowed $taskInventoryIds -Label 'task dependency from_task_id'
+Assert-ForeignKey -Rows $taskDependencyEdges -Column 'to_task_id' -Allowed $taskInventoryIds -Label 'task dependency to_task_id'
 
 $coreCount = ($launchSeed | Where-Object { $_.status -eq 'selected' }).Count
 $stretchCount = ($launchSeed | Where-Object { $_.status -eq 'candidate' }).Count

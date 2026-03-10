@@ -120,6 +120,17 @@ sources:
     granularity: occupation_and_task
     status: active_targeted_override
     notes: 'Targeted manual task-cluster overrides for disagreement-heavy occupations where keyword inference was too coarse for launch-quality bundles.'
+  - source_id: src_v2_role_graph_seed_2026_03
+    name: V2 task role-graph seed
+    category: occupation_structure
+    version_label: '2026-03-10 heuristic seed'
+    release_date: '2026-03-10'
+    download_url: ''
+    license: internal_derived
+    geography: us
+    granularity: occupation_task_graph
+    status: active_seed
+    notes: 'Derived task-inventory, bargaining-power, and dependency-edge seed built from O*NET tasks, task-cluster membership, and live cluster priors for the Role Fate Map redesign.'
   - source_id: src_aioe_2023
     name: AI Occupational Exposure
     category: occupation_prior

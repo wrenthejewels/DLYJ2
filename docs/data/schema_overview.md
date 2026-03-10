@@ -10,6 +10,7 @@
 ## Canonical keys
 
 - `occupation_id`: stable internal occupation key
+- `task_id`: stable internal task key
 - `onet_soc_code`: canonical external occupation code for US-first launch
 - `task_cluster_id`: stable reduced-task taxonomy key
 - `source_id`: provenance key from `source_registry.yaml`
@@ -28,11 +29,21 @@ Core join path:
 9. `occupation_quality_indicators.csv`
 10. `occupation_labor_market_context.csv`
 
+Next role-fate extension:
+11. `occupation_task_inventory.csv` (scaffolded richer task contract)
+12. `task_dependency_edges.csv` (scaffolded role-graph edges)
+13. `occupation_task_role_profiles.csv` (scaffolded role-graph summaries)
+
 ## Purpose of the normalized layer
 
 This layer is designed so the future v2.0 model can answer:
 - what tasks are exposed
+- which tasks define the role's value
+- which tasks carry bargaining power
+- which supporting tasks are indirectly at risk because they depend on exposed core work
 - whether exposed tasks are more likely augmented or automated
 - whether exposed tasks decouple cleanly from the residual role
 - how viable the residual role remains
 - how adaptable the worker is relative to transformed role states
+
+See `docs/data/task_role_graph_contract.md` for the first-step contract behind the role-fate redesign.

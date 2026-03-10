@@ -2,98 +2,62 @@
 
 ## Purpose
 
-This document defines the intended questionnaire structure for `2.0`.
+This document defines the intake for the `Role Fate Map` redesign.
 
-It should be read together with:
-- `docs/v2_0_release_plan.md`
-- `docs/v2_0_results_spec.md`
-
-The goal is not to preserve the current `1.0` questionnaire exactly.
-The goal is to preserve the useful signal from the current intake while remapping it into the `2.0` transformation model.
+The intake should no longer behave like a lightly repurposed hazard questionnaire. It should gather enough structure to:
+- identify what the role actually consists of
+- distinguish high-time tasks from high-value tasks
+- identify which tasks already benefit from AI
+- identify which support tasks depend on exposed core work
+- estimate whether the role compresses, elevates, splits, expands, or collapses
 
 ## Core Design Principle
 
-The `1.0` questionnaire was designed to estimate:
-- technical capability transfer
-- hazard timing
-- implementation delay
-- compression risk
-- re-employment
+The intake should follow `progressive depth`.
 
-The `2.0` questionnaire should instead estimate:
-- occupation anchoring
-- task composition
-- exposure-relevant task properties
-- coupling / decoupling
-- residual bundle viability
-- worker-specific fit with the retained role
-- adoption context
+Default users should answer a short, legible set of structured questions.
+Power users should be able to go deeper without needing freeform uploads.
 
-It should not ask broad questions only because they were useful for the old hazard model.
+The default path should feel light.
+The optional path should feel materially more specific.
 
 ## Recommended Intake Structure
 
-The recommended `2.0` intake has six sections.
+The redesigned intake has six sections:
 
 1. role anchoring
 2. task composition
-3. exposure conditions
-4. coupling and residual bundle
-5. adoption context
-6. personalization fit
+3. value and bargaining power
+4. AI pressure and support
+5. dependency and residual integrity
+6. adaptation and demand context
 
 Public-surface rule:
-- category, occupation, and hierarchy are the default visible intake
-- task-mix inputs and the full questionnaire should be treated as optional refinement layers on the main page
-- the engine should still support the richer intake, but the default user path should not require all advanced fields before showing a result
-
-Current live default refinement set:
-- `Q1` Observed AI capability
-- `Q5` Task decomposability
-- `Q7` Context dependency
-- `Q11` Human judgment and relationship load
-- `Q13` Organization AI adoption readiness
-- `Q16` Workflow integration readiness
-
-Current live advanced refinement set:
-- remaining questionnaire items (`Q2-Q4`, `Q6`, `Q8-Q10`, `Q12`, `Q14-Q15`, `Q17-Q19`)
-- these remain active in the engine, but are now hidden behind `Advanced refinement` on the main page
+- category, occupation, and hierarchy remain the front-door defaults
+- structured task composition follows immediately after anchoring
+- deeper task-detail inputs stay optional
+- freeform pasted documents are not part of the first redesign
 
 ## Section 1: Role Anchoring
 
 Purpose:
-- determine the best occupation prior before personalization
+- choose the best occupation prior before personalization
 
-Recommended fields:
+Fields:
 
 ### R1. Broad role category
 
-Use the current broad category set from `index.html`:
-- software
-- admin
-- data-analysis
-- finance
-- sales
-- creative
-- legal
-- product-management
-- consulting
-- hr
-- content-writing
-- journalism
-- engineering
-- operations
-- custom
+Use the current role-category set from `index.html`.
 
 Maps to:
 - `selected_role_category`
-- occupation candidates via `data/metadata/ui_role_category_map.csv`
+- occupation suggestions
 
 ### R2. Occupation candidate selection
 
-After broad role selection, present:
+After category selection, show:
 - `2-3` suggested occupation matches
-- optional `closest match` selection
+- search across all mapped occupations
 
 Maps to:
 - `selected_occupation_id`
@@ -101,532 +65,310 @@ Maps to:
 
 ### R3. Seniority / scope
 
-Retain the current hierarchy-level concept, but reinterpret it for:
-- residual bundle strength
-- role elevation potential
-- adaptation leverage
-
-This should no longer primarily act as a hazard shield.
+Retain the current hierarchy concept, but interpret it as:
+- span of control
+- decision authority
+- retained-role leverage
 
 Maps to:
-- residual viability modifiers
-- personalization-fit modifiers
-- likely role-state modifiers
-
-### R4. Industry / operating environment
-
-Optional for MVP if you want to minimize intake changes.
-
-If included, use it for:
-- adoption context
-- quality thresholds
-- regulated-environment modifiers
+- `elevation_potential`
+- `demand_expansion_modifier`
+- `personalization_fit`
 
 ## Section 2: Task Composition
 
 Purpose:
-- estimate what the user's actual bundle looks like inside the selected occupation
+- estimate the user's actual role makeup inside the selected occupation
 
-This is the most important new section for `2.0`.
+This is the most important section in the redesign.
 
-### Recommended fields
+### Default fields
 
-### T1. Top task families by time share
+#### T1. Top task families by time share
 
 Ask the user to choose the `3-5` task families that dominate their time.
 
-These should map onto your task clusters:
-- drafting
-- analysis
-- research synthesis
-- coordination
-- client interaction
-- QA/review
-- decision support
-- execution routine
-- oversight strategy
-- relationship management
-- documentation
-- workflow administration
+Maps to:
+- `role_fate_map.current_role`
+- `direct_exposure_pressure`
+
+#### T2. Concrete tasks you spend the most time on
+
+Show a structured picker of occupation-specific tasks.
+
+Allow the user to:
+- choose up to `5` high-time tasks
+- optionally mark one as `most of my week`
 
 Maps to:
-- `transformation_map.current_bundle`
-- `top_exposed_work`
-- `recomposition_summary.workflow_compression`
+- `current_share`
+- task-level weights inside the selected occupation
 
-### T2. Which tasks define the role's value
+### Optional deepening
 
-Ask:
-- which tasks are most central to why the role exists
+#### T3. Task weighting refinement
+
+Allow the user to rebalance the selected tasks into rough buckets:
+- `small share`
+- `meaningful share`
+- `dominant share`
+
+This is intentionally bucketed, not a percent-entry UI.
+
+## Section 3: Value And Bargaining Power
 
 Purpose:
-- distinguish high-time tasks from high-value tasks
+- separate time share from value share
+
+### Required fields
+
+#### V1. Which tasks most explain why the role exists?
+
+Ask the user to pick up to `3` tasks that define the role's value.
 
 Maps to:
-- residual bundle viability
-- role outlook
-- `recomposition_summary.substitution_gap`
+- `bargaining_power_tasks`
+- `value_centrality`
+- `collapse_risk`
 
-### T3. Which tasks are already partially supported by AI/tools
+#### V2. Which tasks would still matter if AI handled the admin work?
 
-Ask:
-- where AI or software already speeds up work
+Ask the user to select the tasks that still justify a distinct role after routine work is removed.
+
+Maps to:
+- `retained_leverage`
+- `residual_role_integrity`
+- `elevation_potential`
+
+## Section 4: AI Pressure And Support
 
 Purpose:
-- calibrate exposure mode toward augmentation vs substitution
+- separate tasks AI directly pressures from tasks AI currently helps with
+
+### Required fields
+
+#### A1. Which tasks already get faster with AI or software?
+
+Ask the user to select tasks already accelerated by tools.
 
 Maps to:
-- mode of change
-- exposed task share
-- `recomposition_summary.organizational_conversion`
+- `pressure_mode`
+- `demand_expansion_modifier`
+- augmentation vs substitution interpretation
 
-## Section 3: Exposure Conditions
+#### A2. Which tasks would be dangerous if AI became very good at them?
+
+Ask the user to select tasks whose automation would weaken bargaining power or role necessity.
+
+Maps to:
+- `exposed_core_share`
+- `collapse_risk`
+- `split_risk`
+
+### Reused legacy questions
+
+Keep and reinterpret:
+- `Q1` observed AI capability
+- `Q2` example-work availability
+- `Q3` benchmark clarity
+- `Q4` task digitization
+- `Q5` decomposability
+- `Q6` standardization
+- `Q8` feedback speed
+
+These remain supporting calibration questions rather than the visible center of the intake.
+
+## Section 5: Dependency And Residual Integrity
 
 Purpose:
-- estimate how easy it is for exposed tasks to be absorbed by AI systems or AI-enabled coworkers
+- capture indirect task risk and whether the remaining work still forms a role
 
-This section should reuse several current `1.0` questions, but with new semantics.
+### New structured fields
 
-### Reuse / adapt current questions
+#### D1. Which tasks mainly exist to support other tasks?
 
-#### Current Q1: Current AI Performance
-
-Keep, but reinterpret as:
-- observed domain-level AI capability for role-relevant tasks
-
-Maps to:
-- exposure intensity
-- transformation pressure
-- workflow compression
-
-#### Current Q2: Data Availability
-
-Keep, but narrow the interpretation to:
-- how much role-relevant example work exists for training, imitation, or benchmarking
+Allow the user to mark selected tasks as:
+- `core`
+- `supporting`
+- `mixed`
 
 Maps to:
-- exposure intensity
-- workflow compression
+- `role_criticality`
+- dependency-edge weighting
 
-#### Current Q3: Benchmark Clarity
+#### D2. If AI handled the exposed tasks, what happens to the supporting work?
 
-Keep.
-
-Maps to:
-- automation likelihood
-- QA cost / reviewability
-- workflow compression
-
-#### Current Q4: Task Digitization
-
-Keep.
+Ask the user to choose for each marked support task:
+- `mostly stays`
+- `shrinks a lot`
+- `mostly disappears`
 
 Maps to:
-- exposure intensity
-- automation likelihood
-- workflow compression
+- `indirect_dependency_pressure`
+- `residual_role_integrity`
 
-#### Current Q5: Task Decomposability
+#### D3. Would the remaining work still justify a distinct role?
 
-Keep.
-
-Maps to:
-- exposure intensity
-- decouplability
-- workflow compression
-
-#### Current Q6: Task Standardization
-
-Keep.
+This becomes a first-class question and should be visible.
 
 Maps to:
-- exposure intensity
-- automation likelihood
-- workflow compression
+- `residual_role_integrity`
+- `role_fate_state`
 
-#### Current Q8: Feedback Loop Speed
+### Reused legacy questions
 
-Keep.
+Keep and reinterpret:
+- `Q7` context dependency
+- `Q9` tacit knowledge
+- `Q10` residual bundle fragility
+- `Q11` human judgment / relationship load
+- `Q12` physical presence
 
-Maps to:
-- reviewability
-- automation likelihood
-- workflow compression
-
-## Section 4: Coupling And Residual Bundle
+## Section 6: Adaptation And Demand Context
 
 Purpose:
-- estimate whether exposed tasks can be removed cleanly and whether the remaining bundle still forms a job
+- estimate retained-role fit and whether AI expands output or span of control
 
-This is the other major new section for `2.0`.
+### Required fields
 
-### Reuse / adapt current questions
-
-#### Current Q7: Context Dependency
-
-Keep.
+#### F1. If routine work shrank, would your role move up toward review, coordination, or decision-making?
 
 Maps to:
-- decouplability
-- residual bundle viability
-- `recomposition_summary.substitution_gap`
+- `elevation_potential`
+- `role_fate_state`
 
-#### Current Q9: Tacit Knowledge
-
-Keep.
+#### F2. Would AI let you serve more clients, projects, or scope with the same team?
 
 Maps to:
-- decouplability
-- residual viability
-- `recomposition_summary.substitution_gap`
+- `demand_expansion_modifier`
+- `role_fate_state = expanded`
 
-#### Current Q10: Task Reallocation Risk
+### Reused legacy questions
 
-Keep, but rename.
+Keep:
+- `Q13` organization AI adoption readiness
+- `Q14` labor cost pressure
+- `Q16` workflow integration readiness
+- `Q17` skill transferability
+- `Q18` adaptability / learning
+- `Q19` job performance
 
-Recommended new label:
-- `Residual Bundle Fragility`
+De-emphasize:
+- `Q15` labor market tightness as a primary role-fate driver
 
-Current wording is still useful, but the model meaning should become:
-- how easily the role breaks apart or gets absorbed if some tasks are removed
+## Question Versioning
 
-Maps to:
-- residual viability
-- role fragmentation risk
-- organizational conversion
-- `recomposition_summary.substitution_gap`
+Do not present the intake publicly as `Q1-Q19`.
 
-#### Current Q11: Human Judgment & Relationships
-
-Keep.
-
-Maps to:
-- retained task strength
-- augmentation vs automation balance
-- residual viability
-- lower organizational conversion
-
-#### Current Q12: Physical Presence
-
-Keep as a protective / non-digitizable factor.
-
-Maps to:
-- retained task strength
-- exposure discounting
-- lower organizational conversion
-
-### Recommended new question
-
-#### C1. If routine parts of your work were absorbed, would the remaining work still be enough to justify a distinct role?
-
-This is a new direct `2.0` question and should not be inferred only indirectly.
-
-Maps to:
-- residual role viability
-- likely role state
-- `recomposition_summary.substitution_gap`
-
-This is one of the clearest places where `2.0` should improve on `1.0`.
-
-## Section 5: Adoption Context
-
-Purpose:
-- estimate whether technically exposed tasks are likely to be operationally absorbed soon
-
-These questions should stay, but they are no longer the center of the model.
-
-### Reuse current questions
-
-#### Current Q13: Company AI Adoption Readiness
-
-Keep.
-
-Maps to:
-- labor-market interpretation
-- mode-of-change context
-- organizational conversion
-
-#### Current Q14: Labor Cost Pressure
-
-Keep.
-
-Maps to:
-- automation pressure
-- mode-of-change context
-- organizational conversion
-
-#### Current Q15: Labor Market Tightness
-
-Keep.
-
-Maps to:
-- substitution pressure
-- retained-role fit pressure
-- organizational conversion
-
-#### Current Q16: IT Infrastructure
-
-Keep.
-
-Maps to:
-- adoption speed
-- automation feasibility
-- organizational conversion
-
-## Section 6: Personalization Fit
-
-Purpose:
-- estimate whether the worker's stated scope, skills, and work mix fit the retained version of the role
-
-### Reuse current questions
-
-#### Current Q17: Skill Transferability
-
-Keep.
-
-Maps to:
-- `personalization_fit`
-
-#### Current Q18: Adaptability / Learning
-
-Keep.
-
-Maps to:
-- `personalization_fit`
-
-#### Current Q19: Job Performance
-
-Keep, but demote its role.
-
-It should not behave like a large hazard reducer.
-
-Maps to:
-- adaptation edge
-- role-retention advantage
-
-## Recommended Questionnaire Versioning
-
-Do not preserve the old `Q1-Q19` numbering as the public conceptual model.
-
-Internally you can keep backward-compatible IDs during migration if useful.
-
-Recommended `2.0` public grouping:
+Public grouping should be:
 - `Role`
-- `Task Mix`
-- `Exposure`
-- `Bundle Integrity`
-- `Adoption Context`
-- `Fit`
+- `Task makeup`
+- `What creates value`
+- `AI pressure`
+- `Role integrity`
+- `Fit and expansion`
 
-Recommended internal migration approach:
-- keep old IDs temporarily in code
-- introduce a new mapping layer from old IDs to `2.0` dimensions
-- later rename the actual UI questions once the transformation engine is in place
+Internally:
+- keep compatibility mapping while the live engine still expects legacy fields
+- add a translation layer from the new task-structured inputs into the existing runtime contract
 
-## Field-Level Mapping To V2Result
+## Field-Level Mapping To Result
 
-### selected_role_category
-
-Comes from:
-- R1 broad role category
-
-### selected_occupation_id / selected_occupation_title
-
-Comes from:
-- R2 occupation candidate selection
-- supported by `ui_role_category_map.csv`
-
-### likely_role_state
+### `role_fate_state`
 
 Depends on:
-- T1 task families
-- T2 role-defining tasks
-- Q7 context dependency
-- Q9 tacit knowledge
-- Q10 residual bundle fragility
-- Q11 human judgment and relationships
-- C1 residual distinct-role question
-- personalization-fit section
+- top task families
+- concrete high-time tasks
+- value-defining tasks
+- support-task dependencies
+- residual-role distinctiveness
+- AI-danger tasks
+- retained-role elevation path
+- demand expansion inputs
 
-### top_exposed_work
-
-Depends on:
-- occupation task-cluster priors
-- T1 task-family weighting
-- exposure conditions section
-- task evidence priors
-
-### exposed_task_share
+### `bargaining_power_tasks`
 
 Depends on:
-- T1 task-family weighting
-- Q1-Q6 and Q8 exposure conditions
-- task evidence priors
+- value-defining tasks
+- retained-role tasks
+- judgment / relationship inputs
 
-### mode_of_change
-
-Depends on:
-- Q3 benchmark clarity
-- Q5 decomposability
-- Q6 standardization
-- Q8 feedback speed
-- Q11 human relationships
-- Q12 physical presence
-- current AI/tool support question in T3
-
-### residual_role_strength
+### `directly_pressured_tasks`
 
 Depends on:
-- T2 role-defining tasks
-- Q7 context dependency
-- Q9 tacit knowledge
-- Q10 residual bundle fragility
-- Q11 human relationships
-- Q12 physical presence
-- C1 residual distinct-role question
+- occupation task priors
+- AI-support and AI-danger selections
+- exposure-condition questions
 
-### personalization_fit
+### `indirectly_at_risk_tasks`
 
 Depends on:
-- Q17 transferability
-- Q18 adaptability / learning
-- Q19 performance
-- occupation adaptation priors
+- support-task marking
+- dependency responses
+- residual integrity questions
+
+### `residual_role_integrity`
+
+Depends on:
+- retained-role tasks
+- context dependency
+- tacit knowledge
+- support-task dependency outcomes
+- distinct-role question
+
+### `demand_expansion_modifier`
+
+Depends on:
+- AI-support selections
+- scope / span-of-control question
+- seniority
+- adoption context
+
+## MVP Implementation Strategy
+
+Phase 1:
+- keep category, occupation, and hierarchy
+- replace the current direct task-family inputs with a structured task-composition block
+- add value-defining-task selection
+- add support-task and residual-distinctiveness questions
+
+Phase 2:
+- let users mark dependency relationships between a small set of chosen tasks
+- introduce task-bucket weighting for deeper users
+
+Phase 3:
+- consider optional document-assisted intake only after the structured path is stable
 
 ## Keep / Change / Drop Summary
 
-### Keep with minor reinterpretation
+### Keep, but demote
 
-- Q1 Current AI Performance
-- Q2 Data Availability
-- Q3 Benchmark Clarity
-- Q4 Task Digitization
-- Q5 Task Decomposability
-- Q6 Task Standardization
-- Q7 Context Dependency
-- Q8 Feedback Loop Speed
-- Q9 Tacit Knowledge
-- Q11 Human Judgment & Relationships
-- Q12 Physical Presence
-- Q13 Company AI Adoption Readiness
-- Q14 Labor Cost Pressure
-- Q15 Labor Market Tightness
-- Q16 IT Infrastructure
-- Q17 Skill Transferability
-- Q18 Adaptability / Learning
-- Q19 Job Performance
+- most legacy exposure and context questions
 
-### Keep but rename / repurpose
+### Keep, but reinterpret heavily
 
-- Q10 Task Reallocation Risk
-  - new interpretation: residual bundle fragility
+- `Q7`, `Q9`, `Q10`, `Q11`, `Q12`
 
-### Add for `2.0`
+### Add as first-class structured inputs
 
-- direct task-family/time-share input
-- role-defining task input
-- current AI/tool support input
-- direct residual-role viability question
-- occupation candidate confirmation step
+- concrete high-time task selection
+- value-defining task selection
+- AI-support task selection
+- AI-danger task selection
+- support-task marking
+- residual-role distinctiveness
+- span-of-control / demand expansion
 
-### Drop from center stage
+### Exclude from the first redesign
 
-- the old linkage from questionnaire responses directly into METR bucket hazard timing
-- the current assumption that the questionnaire mainly exists to infer task-duration weights
-
-## Recommended MVP Implementation Strategy
-
-### Current implementation status
-
-The current `2.0` UI now implements the visible intake refactor:
-- category plus occupation anchoring is live on the main `2.0` page
-- the visible questionnaire uses the new grouped section names
-- direct task-family inputs now include:
-  - top task family
-  - secondary task family
-  - value-defining task family
-  - current AI/tool support
-  - residual role distinctiveness
-- those direct task-family inputs now feed the live engine through a pseudo-count bundle update rather than a flat post-hoc renormalization
-- the live engine now also derives a secondary recomposition layer from the current intake:
-  - workflow compression
-  - organizational conversion
-  - substitution potential
-  - recomposition gap
-- the live engine now converts the questionnaire into explicit structural frictions:
-  - exception burden
-  - accountability load
-  - judgment requirement
-  - document intensity
-  - tacit/context dependence
-- those structural frictions now feed task-family exposure, augmentation, automation, and recomposition directly instead of remaining hidden inside only the broad protection modifiers
-- the recomposition layer now emits uncertainty bands based on evidence strength, occupation anchor strength, personalization signal strength, direct task coverage, and dependency bottlenecks
-- the live evidence rail now uses user-facing descriptive labels:
-  - evidence strength
-  - occupation anchor strength
-  - personalization signal strength
-  - task coverage
-- the public transformation map is now derived from the live task breakdown rows, so questionnaire changes visibly reorder occupation-specific tasks instead of only shifting a generic family list
-- internal compatibility is still preserved through `Q1-Q19` IDs
-
-What remains incomplete:
-- the visible questionnaire still uses the old radio-grid shell rather than a bespoke `2.0` intake layout
-- prefill logic still depends on legacy role presets and hierarchy assumptions
-- the scoring layer now uses the direct `2.0` inputs materially, but it still relies on the existing question-to-signal translation rather than a fully re-derived `2.0` weighting system
-- occupation cleanup is still needed for the largest benchmark-disagreement roles, where better questionnaire inputs cannot fully offset weak priors or weak bundle mapping
-- the current questionnaire still does not collect the direct demand-elasticity inputs that would be needed for credible demand rebound or labor-demand forecasting
-- a reviewed calibration set now exists for the current intake shape, so future questionnaire changes should be checked against that baseline instead of tuned ad hoc
-
-## Minimum New Fields Needed For First Real V2
-
-If only a few new inputs can be added at first, prioritize:
-
-1. occupation candidate confirmation
-2. top task families / time share
-3. direct residual-role viability question
-4. current AI/tool support question
-5. one explicit fit / scope question that helps distinguish retained-role fit from occupation-average fit
-
-These add more `2.0` signal than renaming legacy questions alone.
-
-## Source Alignment
-
-The questionnaire should be designed around the active public evidence stack:
-
-- `O*NET`
-  - defines occupation anchoring and baseline task structure
-- `Anthropic Economic Index 2026-01-15`
-  - defines exposure and augmentation/automation interpretation at the task level
-- `BLS`
-  - informs labor-market context only and should not dictate questionnaire scoring
-
-The questionnaire should not be designed around:
-- `Manning / Aguirre`
-- `METR` timing logic
-- `OECD / PIAAC` launch-time scoring requirements
-- `AIOE` or `ILO` benchmark inputs as direct public scoring drivers
-
-The questionnaire also should not be stretched into:
-- direct labor-demand forecasting
-- price or quantity elasticity estimation
-- time-varying frontier estimation
-
-Those require new data, not just different question wording.
+- freeform uploads
+- pasted job descriptions as a required input
+- any path that forces the user to enter exact percentages
 
 ## Next Dependency
 
-With occupation cleanup and the reviewed calibration set now in place, the next recommended step is:
-- reduce the remaining dependence on legacy prefill assumptions while keeping the reviewed calibration cases stable
-- improve direct source coverage for still stub-dependent clusters before widening the questionnaire-to-signal model further
-
-## Implementation Status
-
-As of 2026-03-09, the questionnaire is fully implemented in the live `2.0` page:
-
-- the questionnaire HTML lives in `index.html` within the setup-wizard section
-- the questionnaire JS logic lives in `app.js` (reading answers, presets, and prefill)
-- the questionnaire-to-signal mapping lives in `v2_engine.js` (`deriveQuestionnaireSignals`)
-- all v1-specific questionnaire-to-hazard code has been removed from the main page
-- the main page codebase is now split: `index.html` (HTML), `styles.css` (CSS), `app.js` (v2 JS)
-- seniority is read directly from the hierarchy-select dropdown rather than hidden radio buttons
-- `app.js` has zero dependency on v1 state or model configuration
+The next required step is to connect this intake to a richer task data layer with:
+- fuller task inventories
+- task dependency edges
+- value-centrality annotations
+- support-vs-core annotations

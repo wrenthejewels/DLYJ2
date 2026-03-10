@@ -15,6 +15,7 @@ Planned script categories:
 - diagnose large benchmark disagreements before any source-promotion decision
 - rebuild launch occupation priors from O*NET, Anthropic, and BLS
 - infer task clusters from O*NET task text
+- build seeded task role-graph contracts from normalized task rows
 - normalize O*NET files
 - normalize Anthropic Economic Index files
 - normalize AIOE benchmark files
