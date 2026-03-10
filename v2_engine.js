@@ -1098,58 +1098,59 @@
         var topCluster = result.top_exposed_work && result.top_exposed_work.label
             ? result.top_exposed_work.label
             : 'your routine task bundle';
+        var fateReadout = result.role_fate_readout || { organizational_fate: '', drivers: [], counterweights: [] };
+        var headline = fateReadout.organizational_fate || (
+            result.primary_displacement_wave === 'current'
+                ? 'Displacement pressure is already active in the current wave.'
+                : result.primary_displacement_wave === 'next'
+                    ? 'Primary displacement pressure arrives in the next wave.'
+                    : 'Major displacement pressure is in the distant wave.'
+        );
 
-        var headline = result.primary_displacement_wave === 'current'
-            ? 'Displacement pressure is already active in the current wave.'
-            : result.primary_displacement_wave === 'next'
-                ? 'Primary displacement pressure arrives in the next wave.'
-                : 'Major displacement pressure is in the distant wave.';
-
-        var whyThisRoleChanges = headline + ' The easiest-to-automate work\u2014primarily ' + topCluster.toLowerCase() + '\u2014faces pressure first, while coordination, judgment, and relationship tasks hold longer.';
+        var whyThisRoleChanges = headline + ' Direct pressure lands first on ' + topCluster.toLowerCase() + '.';
 
         var criticalCluster = result.role_defining_work && result.role_defining_work.label
             ? result.role_defining_work.label.toLowerCase()
             : null;
         if (criticalCluster && criticalCluster !== topCluster.toLowerCase()) {
-            whyThisRoleChanges += ' The role-defining work in ' + criticalCluster + ' is weighted separately.';
+            whyThisRoleChanges += ' The role-defining work in ' + criticalCluster + ' is weighted separately because it matters more for bargaining power.';
+        }
+        if (fateReadout.drivers && fateReadout.drivers.length) {
+            whyThisRoleChanges += ' Main driver: ' + fateReadout.drivers[0];
         }
 
         var whatIsUnderPressure;
-        if (wt && wt.current && wt.current.automated_clusters && wt.current.automated_clusters.length) {
-            var automatedCount = wt.current.automated_clusters.length;
-            var currentRetained = Math.round((wt.current.retained_share || 0) * 100);
-            whatIsUnderPressure = automatedCount + ' task cluster' + (automatedCount === 1 ? '' : 's') + ' face' + (automatedCount === 1 ? 's' : '') + ' current-wave automation pressure. After this wave, roughly ' + currentRetained + '% of the role is retained.';
+        if (fateReadout.drivers && fateReadout.drivers.length) {
+            whatIsUnderPressure = fateReadout.drivers.join(' ');
         } else {
-            whatIsUnderPressure = 'No clusters face immediate current-wave automation. The role retains its full scope for now.';
+            whatIsUnderPressure = 'No single pressure dominates yet. The role still needs a mix of exposed and context-heavy work.';
         }
         if (wt && wt.next) {
             var nextRetained = Math.round((wt.next.retained_share || 0) * 100);
-            whatIsUnderPressure += ' After the next wave, about ' + nextRetained + '% remains.';
+            whatIsUnderPressure += ' After the next wave, about ' + nextRetained + '% of the role remains.';
         }
 
         var whatStaysCore;
-        if (wt && wt.next) {
-            if (wt.next.coherence_tier === 'coherent') {
-                whatStaysCore = 'The remaining bundle after the next wave still has strong retained integrity, with enough context-heavy, judgment-heavy, or coordinating work to hold the role together.';
-            } else if (wt.next.coherence_tier === 'narrowed') {
-                whatStaysCore = 'The role narrows after the next wave. The stable core becomes smaller and more dependent on the highest-value work.';
-            } else {
-                whatStaysCore = 'The remaining bundle after the next wave looks fragmented. The role could split unless the non-routine parts become a clearer standalone function.';
-            }
+        if (fateReadout.counterweights && fateReadout.counterweights.length) {
+            whatStaysCore = fateReadout.counterweights.join(' ');
+        } else if (wt && wt.next) {
+            whatStaysCore = wt.next.coherence_tier === 'coherent'
+                ? 'The remaining bundle after the next wave still has strong retained integrity.'
+                : 'The retained role depends on whether enough context-heavy work stays bundled together.';
         } else {
             whatStaysCore = 'The role structure will depend on which task clusters face automation pressure and how the remaining work holds together.';
         }
         if (result.role_defining_work && result.role_defining_work.retained_share !== null && result.role_defining_work.retained_share >= 0.18) {
-            whatStaysCore += ' The role-defining cluster still retains enough weight to matter in the transformed bundle.';
+            whatStaysCore += ' The role-defining task family still retains enough weight to matter in the transformed bundle.';
         }
 
         var personalizationFitSummary;
         if (result.personalization_fit === 'strong') {
-            personalizationFitSummary = 'Your answers suggest strong coupling protection and low adoption pressure, positioning you well in the retained version of the role.';
+            personalizationFitSummary = 'Your answers suggest strong coupling protection and lower adoption pressure, so you line up well with the retained version of the role.';
         } else if (result.personalization_fit === 'moderate') {
-            personalizationFitSummary = 'Your answers point to a mixed fit with the retained role: some coupling protection, but adoption pressure is also present.';
+            personalizationFitSummary = 'Your answers point to a mixed fit with the retained role: some protection remains, but adoption pressure is also present.';
         } else {
-            personalizationFitSummary = 'Your answers suggest weaker coupling protection or higher adoption pressure, meaning more of your work sits in the part of the bundle under pressure.';
+            personalizationFitSummary = 'Your answers suggest weaker coupling protection or higher adoption pressure, so more of your work sits in the part of the role under pressure.';
         }
 
         return {
@@ -1168,21 +1169,47 @@
         var exposedCoreShare = toNumber(metrics.exposed_core_share, 0);
         var retainedCoreShare = toNumber(metrics.retained_core_share, 0);
         var nextWaveRetained = toNumber(metrics.next_wave_retained, 0);
+        var nextWaveIntegrity = toNumber(metrics.next_wave_integrity, 0);
         var elevatedShare = toNumber(metrics.elevated_share, 0);
         var demandExpansionModifier = toNumber(metrics.demand_expansion_modifier, 0);
+        var currentWaveState = metrics.current_wave_state || '';
+        var nextWaveState = metrics.next_wave_state || '';
+        var exposedTaskShare = toNumber(metrics.exposed_task_share, 0);
 
         var state = 'mixed_transition';
-        if (exposedCoreShare >= 0.26 && residualRoleIntegrity < 0.40 && nextWaveRetained < 0.35) {
-            state = 'collapsed';
-        } else if (demandExpansionModifier >= 0.62 && retainedLeverage >= 0.58 && directExposure < 0.48) {
+        if (demandExpansionModifier >= 0.82 && retainedLeverage >= 0.56 && residualRoleIntegrity >= 0.60 && nextWaveRetained >= 0.62 && directExposure < 0.48) {
             state = 'expanded';
-        } else if (elevatedShare >= 0.08 && retainedLeverage >= 0.58 && retainedCoreShare >= 0.18 && exposedCoreShare < 0.24) {
+        } else if (nextWaveState === 'stable' && directExposure < 0.42 && residualRoleIntegrity >= 0.60 && nextWaveRetained >= 0.62) {
+            state = 'augmented';
+        } else if (
+            retainedCoreShare >= 0.38 &&
+            residualRoleIntegrity >= 0.56 &&
+            nextWaveRetained >= 0.55 &&
+            directExposure < 0.48 &&
+            demandExpansionModifier >= 0.30 &&
+            (elevatedShare >= 0.03 || nextWaveState === 'transformed' || currentWaveState === 'narrowed')
+        ) {
             state = 'elevated';
-        } else if (indirectDependency >= 0.36 && residualRoleIntegrity < 0.58 && retainedCoreShare >= 0.18) {
+        } else if (
+            ((nextWaveState === 'transformed' || nextWaveState === 'narrowed') &&
+            retainedCoreShare >= 0.24 &&
+            directExposure >= 0.38 &&
+            directExposure < 0.68 &&
+            residualRoleIntegrity >= 0.42) ||
+            (directExposure >= 0.55 && retainedCoreShare >= 0.22 && nextWaveRetained >= 0.28)
+        ) {
             state = 'split';
-        } else if (directExposure >= 0.46 || exposedCoreShare >= 0.18) {
+        } else if (
+            directExposure >= 0.70 &&
+            exposedCoreShare >= 0.22 &&
+            residualRoleIntegrity < 0.35 &&
+            nextWaveRetained < 0.18 &&
+            retainedCoreShare < 0.12
+        ) {
+            state = 'collapsed';
+        } else if (directExposure >= 0.46 || nextWaveRetained < 0.55 || exposedTaskShare >= 0.45 || indirectDependency >= 0.10) {
             state = 'compressed';
-        } else if (retainedLeverage >= 0.58 && residualRoleIntegrity >= 0.54) {
+        } else if (retainedLeverage >= 0.56 && residualRoleIntegrity >= 0.56) {
             state = 'augmented';
         }
 
@@ -1197,7 +1224,74 @@
         return {
             state: state,
             label: ROLE_FATE_LABELS[state],
-            confidence: Number(clamp(confidence, 0.35, 0.92).toFixed(3))
+            confidence: Number(clamp(confidence, 0.18, 0.92).toFixed(3))
+        };
+    }
+
+    function buildRoleFateReadout(result) {
+        var diagnostics = result.diagnostics || {};
+        var fateState = result.role_fate_state || 'mixed_transition';
+        var directPressure = toNumber(diagnostics.direct_exposure_pressure, 0);
+        var spilloverPressure = toNumber(diagnostics.indirect_dependency_pressure, 0);
+        var retainedIntegrity = toNumber(diagnostics.residual_role_integrity, 0);
+        var retainedStrength = toNumber(diagnostics.residual_role_strength_score, 0);
+        var demandExpansion = toNumber(diagnostics.demand_expansion_modifier, 0);
+        var nextWaveRetained = toNumber(result.wave_trajectory && result.wave_trajectory.next && result.wave_trajectory.next.retained_share, 0);
+
+        var drivers = [];
+        var counterweights = [];
+
+        if (directPressure >= 0.52) {
+            drivers.push('A large share of current work faces direct AI pressure.');
+        } else if (directPressure >= 0.38) {
+            drivers.push('Meaningful parts of the role are under direct AI pressure.');
+        } else {
+            counterweights.push('Direct AI pressure stays limited on the main work bundle.');
+        }
+
+        if (spilloverPressure >= 0.10) {
+            drivers.push('Support tasks lose value because they depend on more exposed work upstream.');
+        } else {
+            counterweights.push('Only a small part of the role loses value through task-to-task spillover.');
+        }
+
+        if (retainedIntegrity >= 0.58) {
+            counterweights.push('The remaining work still holds together as a coherent higher-value bundle.');
+        } else if (retainedIntegrity < 0.42) {
+            drivers.push('The remaining work does not hold together cleanly once exposed tasks are removed.');
+        }
+
+        if (retainedStrength >= 0.58 || nextWaveRetained >= 0.62) {
+            counterweights.push('Enough judgment, coordination, or relationship work remains to preserve bargaining power.');
+        } else if (retainedStrength < 0.38) {
+            drivers.push('Too little bargaining-power work remains in the retained role.');
+        }
+
+        if (demandExpansion >= 0.75) {
+            counterweights.push('AI likely increases demand or span of control for the retained work.');
+        } else if (demandExpansion <= 0.15) {
+            drivers.push('Weak demand expansion makes labor compression more likely to convert into fewer seats.');
+        }
+
+        var organizationalFate;
+        if (fateState === 'expanded') {
+            organizationalFate = 'The role likely expands because AI raises output and span of control faster than it removes core work.';
+        } else if (fateState === 'augmented') {
+            organizationalFate = 'The role mainly stays intact, with AI acting more like leverage than replacement.';
+        } else if (fateState === 'elevated') {
+            organizationalFate = 'The role likely compresses toward a smaller, more judgment-heavy oversight version.';
+        } else if (fateState === 'split') {
+            organizationalFate = 'The role is likely to split between lower-cost execution and a smaller higher-judgment core.';
+        } else if (fateState === 'collapsed') {
+            organizationalFate = 'The role risks collapsing because AI reaches too much of the work that currently justifies the role.';
+        } else {
+            organizationalFate = 'The role likely compresses: firms still need the function, but fewer workers can cover it.';
+        }
+
+        return {
+            organizational_fate: organizationalFate,
+            drivers: drivers.slice(0, 3),
+            counterweights: counterweights.slice(0, 3)
         };
     }
 
@@ -1705,8 +1799,12 @@
                 exposed_core_share: taskGraphSummary ? taskGraphSummary.exposed_core_share : exposedTaskShare * 0.5,
                 retained_core_share: taskGraphSummary ? taskGraphSummary.retained_core_share : waveResults.next.retained_share,
                 next_wave_retained: waveResults.next.retained_share,
+                next_wave_integrity: waveResults.next.coherence,
                 elevated_share: elevatedShare,
-                demand_expansion_modifier: demandExpansionModifier
+                demand_expansion_modifier: demandExpansionModifier,
+                current_wave_state: waveResults.current.state,
+                next_wave_state: waveResults.next.state,
+                exposed_task_share: exposedTaskShare
             });
 
             var roleSummary = occupation.title + ': the most likely role fate is ' + roleFate.label.toLowerCase() + '. Primary displacement pressure arrives in the ' + primaryDisplacementWave + ' wave. After the next wave, ' + Math.round(waveResults.next.retained_share * 100) + '% is retained (' + waveResults.next.coherence_tier + ' retained integrity). Retained leverage looks ' + viabilityTier + '.';
@@ -1716,6 +1814,7 @@
             if (taskGraphSummary) {
                 roleSummary += ' Task-level spillover pressure is ' + toTier(taskGraphSummary.indirect_dependency_pressure, [0.25, 0.5], ['low', 'moderate', 'high']) + '.';
             }
+            var roleFateReadout;
 
             var taskBreakdownRows = taskGraphSummary ? taskGraphSummary.tasks : [];
             var directTaskEvidenceCount = taskGraphSummary ? taskGraphSummary.direct_evidence_tasks : 0;
@@ -1861,6 +1960,9 @@
                 role_fate_state: roleFate.state,
                 role_fate_label: roleFate.label,
                 role_fate_confidence: roleFate.confidence,
+                role_fate_readout: null,
+                fate_drivers: [],
+                fate_counterweights: [],
                 role_summary: roleSummary,
                 occupation_assignment: occupationAssignment,
                 primary_displacement_wave: primaryDisplacementWave,
@@ -1966,7 +2068,10 @@
                 top_exposed_task_cluster: topExposed ? topExposed.label : 'Unknown',
                 residual_role_viability: viabilityTier
             };
-
+            roleFateReadout = buildRoleFateReadout(result);
+            result.role_fate_readout = roleFateReadout;
+            result.fate_drivers = roleFateReadout.drivers;
+            result.fate_counterweights = roleFateReadout.counterweights;
             result.narrative_summary = buildNarrative(result);
             return result;
         }

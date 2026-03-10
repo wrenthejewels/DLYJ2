@@ -411,7 +411,34 @@ async function populateV2TaskInputs(occupationId, preserveSelection = true) {
             : '';
     });
 
+    syncV2TaskSelectionState();
+
     return tasks;
+}
+
+function syncV2TaskSelectionState() {
+    const selects = V2_TASK_INPUT_CONFIG
+        .map((config) => document.getElementById(config.id))
+        .filter(Boolean);
+
+    const selectedValues = new Map();
+    selects.forEach((select) => {
+        if (select.value) {
+            selectedValues.set(select.id, select.value);
+        }
+    });
+
+    selects.forEach((select) => {
+        const takenElsewhere = new Set(
+            Array.from(selectedValues.entries())
+                .filter(([id]) => id !== select.id)
+                .map(([, value]) => value)
+        );
+
+        Array.from(select.options).forEach((option) => {
+            option.disabled = !!(option.value && takenElsewhere.has(option.value));
+        });
+    });
 }
 
 // initializeOccupationSearch is defined inside the DOMContentLoaded handler
@@ -1068,8 +1095,11 @@ async function updateV2Results(options = {}) {
     const waveHeadline = `Primary displacement: ${result.primary_displacement_wave} wave`;
 
     safeSetText('v2-role-state-label', `${result.selected_occupation_title} · ${result.role_fate_label || result.role_outlook_label}`);
-    safeSetText('v2-role-summary', result.role_summary || 'The wave-based model ranks task clusters by automation difficulty into current, next, and distant waves.');
-    safeSetText('v2-outlook-summary-copy', result.role_summary || 'The wave-based model ranks task clusters by automation difficulty.');
+    const roleSummaryCopy = result.role_summary
+        ? `${result.role_summary} Confidence: ${Math.round((Number(result.role_fate_confidence) || 0) * 100)}%.`
+        : 'The role-fate model ranks current work, pressure, spillover, and retained leverage across current, next, and distant waves.';
+    safeSetText('v2-role-summary', roleSummaryCopy);
+    safeSetText('v2-outlook-summary-copy', roleSummaryCopy);
     safeSetText('v2-role-state-card', result.role_fate_label || result.role_outlook_label || '-');
     safeSetText('v2-score-role-outlook', result.role_fate_label || result.role_outlook_label || '-');
     safeSetText('v2-top-cluster', topExposedLabel);
@@ -1348,6 +1378,7 @@ document.addEventListener('DOMContentLoaded', function() {
     v2DirectInputs.forEach((input) => {
         input.addEventListener('change', () => {
             if (!selectedRole) return;
+            syncV2TaskSelectionState();
             updateV2Results({ preserveSelection: true }).catch(error => {
                 console.error('[V2] Failed to rerender after direct 2.0 input change:', error);
             });
