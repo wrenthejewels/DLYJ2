@@ -196,6 +196,24 @@ async function main() {
     throw new Error('Expected task share override count to register in the selected composition summary.');
   }
 
+  const functionLinkedResult = engine.computeResult({
+    occupationId: result.selected_occupation_id,
+    roleCategory: 'software',
+    questionnaireProfile: result.questionnaire_profile,
+    seniorityLevel: 3,
+    compositionEdits: {
+      task_function_links: [
+        {
+          task_id: roleComposition.defaults.task_ids[0],
+          function_id: roleComposition.defaults.function_ids[0]
+        }
+      ]
+    }
+  });
+  if ((functionLinkedResult.occupation_assignment?.selected_composition?.custom_function_link_count || 0) !== 1) {
+    throw new Error('Expected task-to-function link count to register in the selected composition summary.');
+  }
+
   const dependencyDrivenResult = engine.computeResult({
     occupationId: result.selected_occupation_id,
     roleCategory: 'software',

@@ -888,6 +888,23 @@ img, svg { display: block; max-width: 100%; }
 .v2-flow-node--function {
     border-left: 4px solid rgba(58, 88, 64, 0.8);
 }
+.v2-flow-node--link-target {
+    border-left: 4px solid rgba(125, 132, 143, 0.55);
+    background:
+        linear-gradient(180deg, rgba(250, 248, 243, 0.96), rgba(245, 242, 235, 0.96));
+}
+.v2-flow-node--link-target::after,
+.v2-flow-node--function::after {
+    content: 'Drop task here';
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+}
 .v2-flow-badge {
     display: inline-flex;
     align-items: center;
@@ -1113,7 +1130,143 @@ img, svg { display: block; max-width: 100%; }
 .v2-inline-collapsible[open] .v2-inline-collapsible-summary {
     padding-bottom: var(--space-md);
 }
+.v2-structure-guide,
+.v2-flow-map-shell,
+.v2-role-studio {
+    width: min(1460px, calc(100vw - 36px));
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+.v2-structure-guide {
+    margin-bottom: clamp(16px, 2vw, 22px);
+}
+.v2-flow-map-shell {
+    margin-bottom: clamp(20px, 2.4vw, 28px);
+    padding: clamp(18px, 2vw, 28px);
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(248, 246, 240, 0.96), rgba(241, 238, 230, 0.84)),
+        linear-gradient(90deg, rgba(92, 122, 167, 0.06), transparent 40%, rgba(92, 122, 167, 0.04));
+    border: 1px solid color-mix(in oklch, var(--signal) 16%, var(--rule));
+    box-shadow: 0 24px 60px rgba(31, 42, 54, 0.08);
+}
+.v2-flow-map-board {
+    grid-template-columns: minmax(320px, 1.25fr) minmax(260px, 0.95fr) minmax(320px, 1.1fr);
+    gap: clamp(14px, 1.5vw, 22px);
+}
+.v2-flow-map-board::before,
+.v2-flow-map-board::after {
+    content: '→';
+    top: 18px;
+    font-size: 24px;
+}
+.v2-flow-lane {
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(255, 252, 246, 0.82);
+    border: 1px solid rgba(83, 102, 126, 0.08);
+}
+.v2-flow-node {
+    border-radius: 10px;
+    background: rgba(255, 254, 250, 0.98);
+    box-shadow: none;
+}
+.v2-flow-node--task {
+    cursor: grab;
+}
+.v2-flow-node--task.is-dragging {
+    opacity: 0.55;
+    transform: scale(0.985);
+}
+.v2-role-studio {
+    display: grid;
+    grid-template-columns: minmax(420px, 1.45fr) minmax(280px, 0.95fr) minmax(340px, 1.1fr);
+    gap: clamp(16px, 1.7vw, 24px);
+    align-items: start;
+    padding: clamp(18px, 2vw, 26px);
+    border-radius: 16px;
+    background:
+        linear-gradient(180deg, rgba(246, 243, 235, 0.88), rgba(242, 238, 229, 0.8)),
+        repeating-linear-gradient(
+            90deg,
+            rgba(92, 122, 167, 0.04) 0,
+            rgba(92, 122, 167, 0.04) 1px,
+            transparent 1px,
+            transparent 148px
+        );
+    border: 1px solid rgba(83, 102, 126, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 24px 60px rgba(31, 42, 54, 0.06);
+}
+.v2-role-studio-lane {
+    min-width: 0;
+    display: grid;
+    gap: 12px;
+}
+.v2-role-studio-header {
+    padding: 4px 2px 6px;
+    border-bottom: 1px solid rgba(83, 102, 126, 0.12);
+}
+.v2-role-studio-header h4 {
+    font-family: var(--font-display);
+    font-size: clamp(1.05rem, 1.2vw, 1.25rem);
+    line-height: 1.2;
+    margin-top: 4px;
+}
+.v2-role-studio-header p {
+    margin-top: 8px;
+    font-size: var(--text-sm);
+    color: var(--ink-secondary);
+    line-height: 1.55;
+    max-width: 34ch;
+}
+.v2-role-studio-lane--tasks::after,
+.v2-role-studio-lane--links::after {
+    content: '→';
+    justify-self: end;
+    align-self: start;
+    margin-top: -34px;
+    margin-right: -6px;
+    color: color-mix(in oklch, var(--signal) 72%, var(--ink-secondary));
+    font-size: 24px;
+    font-weight: 700;
+}
+.v2-role-studio .v2-composition-card,
+.v2-role-studio .v2-dependency-editor {
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(255, 254, 250, 0.9);
+    border: 1px solid rgba(83, 102, 126, 0.1);
+}
+.v2-role-studio .v2-dependency-editor {
+    margin-top: 0;
+}
+.v2-role-studio .v2-inline-collapsible-summary {
+    padding: 0 0 14px;
+    border-bottom: 1px solid rgba(83, 102, 126, 0.08);
+}
+.v2-role-studio .v2-inline-collapsible-body {
+    padding: 14px 0 0;
+}
+.v2-role-studio .v2-composition-chip {
+    border-radius: 8px;
+    background: rgba(249, 246, 239, 0.98);
+}
+.v2-role-studio .v2-composition-add-row {
+    margin-top: 10px;
+}
+.v2-role-studio .v2-dependency-item {
+    border-radius: 8px;
+    background: rgba(249, 246, 239, 0.96);
+}
 @media (max-width: 900px) {
+    .v2-structure-guide,
+    .v2-flow-map-shell,
+    .v2-role-studio {
+        width: auto;
+        margin-left: 0;
+        transform: none;
+    }
     .v2-flow-map-header {
         flex-direction: column;
         align-items: flex-start;
@@ -1127,6 +1280,13 @@ img, svg { display: block; max-width: 100%; }
     }
     .v2-dependency-controls {
         grid-template-columns: 1fr;
+    }
+    .v2-role-studio {
+        grid-template-columns: 1fr;
+    }
+    .v2-role-studio-lane--tasks::after,
+    .v2-role-studio-lane--links::after {
+        display: none;
     }
     .v2-inline-collapsible-summary {
         flex-direction: column;

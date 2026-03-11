@@ -885,6 +885,71 @@
         });
     }
 
+    function applyTaskFunctionLinks(taskRows, taskFunctionLinks, activeFunctionRows, accountabilityByFunctionId) {
+        var rows = Array.isArray(taskRows) ? taskRows : [];
+        var links = Array.isArray(taskFunctionLinks) ? taskFunctionLinks : [];
+        if (!rows.length || !links.length) {
+            return rows;
+        }
+
+        var functionRowsById = indexBy(activeFunctionRows || [], 'function_id');
+        var linksByTaskId = {};
+        links.forEach(function (link) {
+            if (!link || !link.task_id || !link.function_id || !functionRowsById[link.function_id]) {
+                return;
+            }
+            if (!linksByTaskId[link.task_id]) {
+                linksByTaskId[link.task_id] = [];
+            }
+            linksByTaskId[link.task_id].push(link);
+        });
+
+        return rows.map(function (row) {
+            var taskLinks = linksByTaskId[row.task_id] || [];
+            if (!taskLinks.length) {
+                return row;
+            }
+
+            var totalWeight = sum(taskLinks.map(function (link) {
+                return Math.max(toNumber(functionRowsById[link.function_id].function_weight, 0.2), 0.05);
+            })) || taskLinks.length;
+
+            var authority = 0;
+            var bargaining = 0;
+            var judgment = 0;
+            taskLinks.forEach(function (link) {
+                var functionRow = functionRowsById[link.function_id];
+                var accountability = accountabilityByFunctionId[link.function_id] || {};
+                var weight = Math.max(toNumber(functionRow.function_weight, 0.2), 0.05) / totalWeight;
+                authority += toNumber(accountability.human_authority_requirement, 0.6) * weight;
+                bargaining += toNumber(accountability.bargaining_power_retention, 0.6) * weight;
+                judgment += toNumber(accountability.judgment_requirement, 0.6) * weight;
+            });
+
+            var clone = {};
+            Object.keys(row).forEach(function (key) {
+                clone[key] = row[key];
+            });
+            clone.value_centrality = Number(clamp(
+                (toNumber(row.value_centrality, 0.5) * 0.68) +
+                (judgment * 0.18) +
+                (authority * 0.14),
+                0, 1
+            ).toFixed(4));
+            clone.bargaining_power_weight = Number(clamp(
+                (toNumber(row.bargaining_power_weight, 0.5) * 0.64) +
+                (bargaining * 0.20) +
+                (authority * 0.16),
+                0, 1
+            ).toFixed(4));
+            if (authority >= 0.62 || bargaining >= 0.66) {
+                clone.role_criticality = 'core';
+            }
+            clone.custom_function_link_count = taskLinks.length;
+            return clone;
+        });
+    }
+
     function buildTaskClustersFromInventory(taskRows) {
         var clusterMap = summarizeTaskInventoryByCluster(taskRows);
         var clusterIds = Object.keys(clusterMap);
@@ -1730,6 +1795,10 @@
             var activeFunctionRows = (store.occupationFunctionMapByOcc[occupationId] || []).filter(function (row) {
                 return !!activeFunctionLookup[row.function_id];
             });
+            var taskFunctionLinks = Array.isArray(compositionEdits.task_function_links) ? compositionEdits.task_function_links.filter(function (link) {
+                return !!link && !!activeTaskLookup[link.task_id] && !!activeFunctionLookup[link.function_id];
+            }) : [];
+            taskInventoryRows = applyTaskFunctionLinks(taskInventoryRows, taskFunctionLinks, activeFunctionRows, store.functionAccountabilityByFunctionId);
             var functionSummary = summarizeActiveFunctions(activeFunctionRows, store.functionAccountabilityByFunctionId);
             var dependencyEdits = input.dependencyEdits || {};
             var addedDependencyEdges = Array.isArray(dependencyEdits.added_edges) ? dependencyEdits.added_edges : [];
@@ -2384,6 +2453,7 @@
                     active_task_count: taskInventoryRows.length,
                     active_function_count: activeFunctionRows.length,
                     added_dependency_count: addedDependencyEdges.length,
+                    custom_function_link_count: taskFunctionLinks.length,
                     share_override_count: Object.keys(taskShareOverrides).filter(function (taskId) {
                         return !!activeTaskLookup[taskId];
                     }).length,

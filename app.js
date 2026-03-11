@@ -10,6 +10,8 @@ let v2EnginePromise = null;
 let v2TaskBreakdownExpanded = false;
 let v2RoleCompositionState = null;
 let v2CustomDependencyEdges = [];
+let v2CustomTaskFunctionLinks = [];
+let v2DraggedFlowTaskId = null;
 
 const V2_COMPOSITION_CARD_CONFIG = [
     {
@@ -722,7 +724,8 @@ function createCompositionSelectionState(composition) {
         occupationId: composition?.occupation_id || null,
         selectedTaskIds: new Set(composition?.defaults?.task_ids || []),
         selectedFunctionIds: new Set(composition?.defaults?.function_ids || []),
-        taskShareOverrides: {}
+        taskShareOverrides: {},
+        taskDisplayOrder: Array.from(composition?.defaults?.task_ids || [])
     };
 }
 
@@ -733,7 +736,8 @@ function getCompositionEditsForEngine() {
             added_task_ids: [],
             removed_function_ids: [],
             added_function_ids: [],
-            task_share_overrides: {}
+            task_share_overrides: {},
+            task_function_links: []
         };
     }
 
@@ -751,7 +755,13 @@ function getCompositionEditsForEngine() {
             Object.entries(v2RoleCompositionState.taskShareOverrides || {}).filter(([taskId, value]) => {
                 return v2RoleCompositionState.selectedTaskIds.has(taskId) && Number.isFinite(Number(value));
             }).map(([taskId, value]) => [taskId, Number(value)])
-        )
+        ),
+        task_function_links: (v2CustomTaskFunctionLinks || []).filter((link) => {
+            return v2RoleCompositionState.selectedTaskIds.has(link.task_id) && v2RoleCompositionState.selectedFunctionIds.has(link.function_id);
+        }).map((link) => ({
+            task_id: link.task_id,
+            function_id: link.function_id
+        }))
     };
 }
 
@@ -768,6 +778,39 @@ function getCompositionSelectedIds(cardKey) {
     return v2RoleCompositionState?.selectedTaskIds || new Set();
 }
 
+function getTaskFunctionLinks(task) {
+    const selectedFunctions = v2RoleCompositionState?.selectedFunctionIds || new Set();
+    const functionRows = v2RoleCompositionState?.raw?.functions || [];
+    const functionLookup = new Map(functionRows.map((row) => [row.function_id, row]));
+    const baseLinks = Array.isArray(task?.linked_functions)
+        ? task.linked_functions.filter((entry) => selectedFunctions.has(entry.function_id))
+        : [];
+    const customLinks = (v2CustomTaskFunctionLinks || [])
+        .filter((entry) => entry.task_id === task?.task_id && selectedFunctions.has(entry.function_id))
+        .map((entry) => {
+            const functionRow = functionLookup.get(entry.function_id) || {};
+            return {
+                function_id: entry.function_id,
+                function_category: functionRow.function_category || null,
+                role_summary: functionRow.role_summary || null,
+                function_statement: functionRow.function_statement || null,
+                task_to_function_weight: Number(functionRow.function_weight) || 0.6,
+                is_custom: true
+            };
+        });
+    const merged = new Map();
+    baseLinks.concat(customLinks).forEach((entry) => {
+        if (!entry?.function_id) {
+            return;
+        }
+        const existing = merged.get(entry.function_id);
+        if (!existing || Number(entry.task_to_function_weight) > Number(existing.task_to_function_weight)) {
+            merged.set(entry.function_id, entry);
+        }
+    });
+    return Array.from(merged.values()).sort((left, right) => (Number(right.task_to_function_weight) || 0) - (Number(left.task_to_function_weight) || 0));
+}
+
 function getSelectedFunctionSupportMap() {
     if (!v2RoleCompositionState?.raw) {
         return new Map();
@@ -780,11 +823,11 @@ function getSelectedFunctionSupportMap() {
         .concat(v2RoleCompositionState.raw.reviewed_role_graph_tasks || []);
 
     allTasks.forEach((task) => {
-        if (!v2RoleCompositionState.selectedTaskIds.has(task.task_id) || !Array.isArray(task.linked_functions)) {
+        if (!v2RoleCompositionState.selectedTaskIds.has(task.task_id)) {
             return;
         }
 
-        task.linked_functions.forEach((entry) => {
+        getTaskFunctionLinks(task).forEach((entry) => {
             if (!entry?.function_id || !v2RoleCompositionState.selectedFunctionIds.has(entry.function_id)) {
                 return;
             }
@@ -816,6 +859,19 @@ function getSelectedCompositionFunctions() {
 function getEffectiveTaskShare(task) {
     const overrideValue = Number(v2RoleCompositionState?.taskShareOverrides?.[task?.task_id]);
     return Number.isFinite(overrideValue) ? overrideValue : (Number(task?.time_share_prior) || 0);
+}
+
+function sortTasksByDisplayOrder(tasks) {
+    const order = Array.isArray(v2RoleCompositionState?.taskDisplayOrder) ? v2RoleCompositionState.taskDisplayOrder : [];
+    const orderIndex = new Map(order.map((taskId, index) => [taskId, index]));
+    return tasks.slice().sort((left, right) => {
+        const leftIndex = orderIndex.has(left.task_id) ? orderIndex.get(left.task_id) : Number.MAX_SAFE_INTEGER;
+        const rightIndex = orderIndex.has(right.task_id) ? orderIndex.get(right.task_id) : Number.MAX_SAFE_INTEGER;
+        if (leftIndex !== rightIndex) {
+            return leftIndex - rightIndex;
+        }
+        return getEffectiveTaskShare(right) - getEffectiveTaskShare(left);
+    });
 }
 
 function getCombinedFlowEdges() {
@@ -893,22 +949,10 @@ function renderV2RoleFlowMap() {
         return;
     }
 
-    const visibleTasks = selectedTasks
-        .slice()
-        .sort((left, right) => getEffectiveTaskShare(right) - getEffectiveTaskShare(left))
-        .slice(0, 8);
+    const visibleTasks = sortTasksByDisplayOrder(selectedTasks).slice(0, 12);
     const visibleFunctions = selectedFunctions.slice(0, 5);
-    const visibleEdges = flowEdges
-        .slice()
-        .sort((left, right) => {
-            if (left.edge_type !== right.edge_type) {
-                return left.edge_type === 'custom' ? -1 : 1;
-            }
-            return (Number(right.dependency_strength) || 0) - (Number(left.dependency_strength) || 0);
-        })
-        .slice(0, 8);
 
-    summary.textContent = 'Tasks feed the role through two paths: they can support higher-level functions directly, and they can also support each other through workflow links that create spillover.';
+    summary.textContent = 'Drag task tiles on the left to reorder the visible flow. Tasks feed the role through two paths: they can support higher-level functions directly, and they can also support each other through workflow links that create spillover.';
     taskCountNode.textContent = String(selectedTasks.length);
     linkCountNode.textContent = String(flowEdges.length);
     functionCountNode.textContent = String(selectedFunctions.length);
@@ -916,6 +960,8 @@ function renderV2RoleFlowMap() {
     visibleTasks.forEach((task) => {
         const node = document.createElement('div');
         node.className = 'v2-flow-node v2-flow-node--task';
+        node.draggable = true;
+        node.dataset.taskId = task.task_id;
 
         const sourceBadge = document.createElement('div');
         sourceBadge.className = 'v2-flow-badge';
@@ -931,9 +977,9 @@ function renderV2RoleFlowMap() {
 
         const supportLine = document.createElement('div');
         supportLine.className = 'v2-flow-node-support';
-        if (Array.isArray(task.linked_functions) && task.linked_functions.length) {
-            supportLine.textContent = `Feeds: ${task.linked_functions
-                .filter((entry) => v2RoleCompositionState.selectedFunctionIds.has(entry.function_id))
+        const functionLinks = getTaskFunctionLinks(task);
+        if (functionLinks.length) {
+            supportLine.textContent = `Feeds: ${functionLinks
                 .slice(0, 2)
                 .map((entry) => truncateV2TaskLabel(entry.role_summary || entry.function_statement || formatV2Label(entry.function_category || 'function'), 36))
                 .join(' · ') || 'No selected functions'}`;
@@ -954,34 +1000,42 @@ function renderV2RoleFlowMap() {
         taskLane.appendChild(more);
     }
 
-    if (!visibleEdges.length) {
+    const workflowTargets = sortTasksByDisplayOrder(selectedTasks).slice(0, 8);
+    if (!workflowTargets.length) {
         const empty = document.createElement('div');
         empty.className = 'v2-flow-empty';
-        empty.textContent = 'No explicit task-to-task links are visible here yet. The model still uses the default workflow graph in the background.';
+        empty.textContent = 'No workflow targets are visible here yet.';
         linkLane.appendChild(empty);
     } else {
-        visibleEdges.forEach((edge) => {
+        workflowTargets.forEach((task) => {
+            const incoming = flowEdges.filter((edge) => edge.to_task_id === task.task_id);
             const node = document.createElement('div');
-            node.className = `v2-flow-node v2-flow-node--link${edge.edge_type === 'custom' ? ' v2-flow-node--custom' : ''}`;
+            node.className = 'v2-flow-node v2-flow-node--link-target';
+            node.dataset.taskId = task.task_id;
 
             const title = document.createElement('div');
             title.className = 'v2-flow-node-title';
-            title.textContent = `${truncateV2TaskLabel(taskLookup.get(edge.from_task_id)?.task_statement || 'Unknown task', 34)} -> ${truncateV2TaskLabel(taskLookup.get(edge.to_task_id)?.task_statement || 'Unknown task', 34)}`;
+            title.textContent = truncateV2TaskLabel(task.task_statement, 44);
 
             const meta = document.createElement('div');
             meta.className = 'v2-flow-node-meta';
-            meta.textContent = edge.edge_type === 'custom'
-                ? 'Custom support link you added'
-                : `Default workflow link · ${Math.round((Number(edge.dependency_strength) || 0) * 100)}% strength`;
+            meta.textContent = 'Drop another task here to say it mainly feeds this step.';
+
+            const support = document.createElement('div');
+            support.className = 'v2-flow-node-support';
+            support.textContent = incoming.length
+                ? `Fed by: ${incoming.slice(0, 3).map((edge) => truncateV2TaskLabel(taskLookup.get(edge.from_task_id)?.task_statement || 'Unknown task', 28)).join(' · ')}`
+                : 'Fed by: no explicit support tasks yet';
 
             node.appendChild(title);
             node.appendChild(meta);
+            node.appendChild(support);
             linkLane.appendChild(node);
         });
-        if (flowEdges.length > visibleEdges.length) {
+        if (flowEdges.length > 0) {
             const more = document.createElement('div');
             more.className = 'v2-flow-empty';
-            more.textContent = `Plus ${flowEdges.length - visibleEdges.length} more workflow link${flowEdges.length - visibleEdges.length === 1 ? '' : 's'}.`;
+            more.textContent = `${flowEdges.length} workflow link${flowEdges.length === 1 ? '' : 's'} currently shape spillover in this run.`;
             linkLane.appendChild(more);
         }
     }
@@ -989,6 +1043,7 @@ function renderV2RoleFlowMap() {
     visibleFunctions.forEach((fn) => {
         const node = document.createElement('div');
         node.className = 'v2-flow-node v2-flow-node--function';
+        node.dataset.functionId = fn.function_id;
 
         const title = document.createElement('div');
         title.className = 'v2-flow-node-title';
@@ -1043,11 +1098,12 @@ function createCompositionChip(item, cardKey) {
         : `${item.task_family_label || formatTaskFamilyLabel(item.task_family_id || 'task')} · ${Math.round((Number(item.time_share_prior) || 0) * 100)}% baseline share`;
     meta.textContent = metaText;
 
-    if (cardKey !== 'functions' && Array.isArray(item.linked_functions) && item.linked_functions.length) {
-        const functionRead = item.linked_functions
+    const taskFunctionLinks = cardKey !== 'functions' ? getTaskFunctionLinks(item) : [];
+    if (cardKey !== 'functions' && taskFunctionLinks.length) {
+        const functionRead = taskFunctionLinks
             .map((entry) => {
                 const label = entry.role_summary || entry.function_statement || formatV2Label(entry.function_category || 'function');
-                return `${truncateV2TaskLabel(label, 54)} (${Math.round((Number(entry.task_to_function_weight) || 0) * 100)}%)`;
+                return `${truncateV2TaskLabel(label, 54)}${entry.is_custom ? ' [custom]' : ''}`;
             })
             .join(' · ');
         const supportLine = document.createElement('div');
@@ -1191,7 +1247,7 @@ function renderV2RoleComposition(composition) {
             card.hidden = true;
         });
         headline.textContent = 'Select a mapped occupation to load the editable role composition.';
-        summary.textContent = 'The model starts from the occupation baseline, links tasks to the functions they serve, and then lets you add optional task-to-task support links when your version of the role needs them.';
+        summary.textContent = 'The model starts from the occupation baseline, links tasks to the functions they serve, and then lets you add optional task-to-task support links when your version of the role needs them. Dragging task tiles changes the visible flow order.';
         renderV2RoleFlowMap();
         renderV2DependencyEditor();
         return;
@@ -1203,7 +1259,7 @@ function renderV2RoleComposition(composition) {
     const functionCount = (composition.functions || []).filter((row) => v2RoleCompositionState.selectedFunctionIds.has(row.function_id)).length;
 
     headline.textContent = 'This is the role composition the model will score next.';
-    summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. Tasks already show the functions they mainly support. Optional support links only add task-to-task dependencies when your real workflow is more connected than the default graph.`;
+    summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. Tasks already show the functions they mainly support. Optional support links only add task-to-task dependencies when your real workflow is more connected than the default graph. You can also drag task tiles in the flow map to change the visible left-to-right order.`;
 
     V2_COMPOSITION_CARD_CONFIG.forEach(renderCompositionCard);
     renderV2RoleFlowMap();
@@ -1240,12 +1296,16 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
     const previousDependencies = preserveSelection && v2RoleCompositionState?.occupationId === occupationId
         ? v2CustomDependencyEdges.slice()
         : [];
+    const previousTaskFunctionLinks = preserveSelection && v2RoleCompositionState?.occupationId === occupationId
+        ? v2CustomTaskFunctionLinks.slice()
+        : [];
 
     v2RoleCompositionState = {
         raw: composition,
         ...createCompositionSelectionState(composition)
     };
     v2CustomDependencyEdges = [];
+    v2CustomTaskFunctionLinks = [];
 
     if (previousState) {
         v2RoleCompositionState.selectedTaskIds = new Set(
@@ -1272,8 +1332,20 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
                 return exists && Number.isFinite(Number(value));
             }).map(([taskId, value]) => [taskId, Number(value)])
         );
+        v2RoleCompositionState.taskDisplayOrder = Array.from(previousState.taskDisplayOrder || []).filter((taskId) => {
+            return composition.onet_tasks.concat(composition.reviewed_job_posting_tasks, composition.reviewed_role_graph_tasks)
+                .some((row) => row.task_id === taskId);
+        });
+        Array.from(v2RoleCompositionState.selectedTaskIds).forEach((taskId) => {
+            if (!v2RoleCompositionState.taskDisplayOrder.includes(taskId)) {
+                v2RoleCompositionState.taskDisplayOrder.push(taskId);
+            }
+        });
         v2CustomDependencyEdges = previousDependencies.filter((edge) => {
             return v2RoleCompositionState.selectedTaskIds.has(edge.from_task_id) && v2RoleCompositionState.selectedTaskIds.has(edge.to_task_id);
+        });
+        v2CustomTaskFunctionLinks = previousTaskFunctionLinks.filter((link) => {
+            return v2RoleCompositionState.selectedTaskIds.has(link.task_id) && v2RoleCompositionState.selectedFunctionIds.has(link.function_id);
         });
     }
 
@@ -1290,7 +1362,7 @@ function getSelectedCompositionTasks() {
 
     return allTasks
         .filter((task) => v2RoleCompositionState.selectedTaskIds.has(task.task_id))
-        .sort((left, right) => (Number(right.time_share_prior) || 0) - (Number(left.time_share_prior) || 0));
+        .sort((left, right) => getEffectiveTaskShare(right) - getEffectiveTaskShare(left));
 }
 
 function getDependencyEditsForEngine() {
@@ -1738,6 +1810,9 @@ function renderV2OccupationAssignment(assignment) {
         parts.push(`This run currently scores ${assignment.selected_composition.active_task_count} active tasks and ${assignment.selected_composition.active_function_count} active functions after your composition edits.`);
         if (Number(assignment.selected_composition.added_dependency_count) > 0) {
             parts.push(`You also added ${assignment.selected_composition.added_dependency_count} custom support link${assignment.selected_composition.added_dependency_count === 1 ? '' : 's'} on top of the default dependency graph.`);
+        }
+        if (Number(assignment.selected_composition.custom_function_link_count) > 0) {
+            parts.push(`You also added ${assignment.selected_composition.custom_function_link_count} custom task-to-function link${assignment.selected_composition.custom_function_link_count === 1 ? '' : 's'} that now raise the importance of those tasks inside the role.`);
         }
         if (Number(assignment.selected_composition.share_override_count) > 0) {
             parts.push(`You adjusted the role-share weight for ${assignment.selected_composition.share_override_count} task${assignment.selected_composition.share_override_count === 1 ? '' : 's'}, so the task mix was renormalized before scoring.`);
@@ -2334,6 +2409,11 @@ document.addEventListener('DOMContentLoaded', function() {
             selectionSet.delete(itemId);
             if (cardKey !== 'functions' && v2RoleCompositionState.taskShareOverrides) {
                 delete v2RoleCompositionState.taskShareOverrides[itemId];
+                v2RoleCompositionState.taskDisplayOrder = (v2RoleCompositionState.taskDisplayOrder || []).filter((taskId) => taskId !== itemId);
+                v2CustomTaskFunctionLinks = v2CustomTaskFunctionLinks.filter((link) => link.task_id !== itemId);
+                v2CustomDependencyEdges = v2CustomDependencyEdges.filter((edge) => edge.from_task_id !== itemId && edge.to_task_id !== itemId);
+            } else if (cardKey === 'functions') {
+                v2CustomTaskFunctionLinks = v2CustomTaskFunctionLinks.filter((link) => link.function_id !== itemId);
             }
             renderV2RoleComposition(v2RoleCompositionState.raw);
             updateV2Results({ preserveSelection: true }).catch((error) => {
@@ -2349,6 +2429,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!cardKey || !itemId || !v2RoleCompositionState) return;
             const selectionSet = cardKey === 'functions' ? v2RoleCompositionState.selectedFunctionIds : v2RoleCompositionState.selectedTaskIds;
             selectionSet.add(itemId);
+            if (cardKey !== 'functions' && !v2RoleCompositionState.taskDisplayOrder.includes(itemId)) {
+                v2RoleCompositionState.taskDisplayOrder.push(itemId);
+            }
             renderV2RoleComposition(v2RoleCompositionState.raw);
             updateV2Results({ preserveSelection: true }).catch((error) => {
                 console.error('[V2] Failed to rerender after composition add:', error);
@@ -2381,6 +2464,140 @@ document.addEventListener('DOMContentLoaded', function() {
         updateV2Results({ preserveSelection: true }).catch((error) => {
             console.error('[V2] Failed to rerender after task share change:', error);
         });
+    });
+
+    document.getElementById('v2-flow-task-lane')?.addEventListener('dragstart', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const taskNode = target.closest('.v2-flow-node--task');
+        if (!(taskNode instanceof HTMLElement)) {
+            return;
+        }
+        v2DraggedFlowTaskId = taskNode.dataset.taskId || null;
+        taskNode.classList.add('is-dragging');
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', v2DraggedFlowTaskId || '');
+        }
+    });
+
+    document.getElementById('v2-flow-task-lane')?.addEventListener('dragover', (event) => {
+        if (!v2DraggedFlowTaskId || !v2RoleCompositionState) {
+            return;
+        }
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const overNode = target.closest('.v2-flow-node--task');
+        if (!(overNode instanceof HTMLElement)) {
+            return;
+        }
+        const overTaskId = overNode.dataset.taskId || '';
+        if (!overTaskId || overTaskId === v2DraggedFlowTaskId) {
+            return;
+        }
+        event.preventDefault();
+        const nextOrder = (v2RoleCompositionState.taskDisplayOrder || []).filter((taskId) => taskId !== v2DraggedFlowTaskId);
+        const insertIndex = nextOrder.indexOf(overTaskId);
+        if (insertIndex >= 0) {
+            nextOrder.splice(insertIndex, 0, v2DraggedFlowTaskId);
+            v2RoleCompositionState.taskDisplayOrder = nextOrder;
+            renderV2RoleFlowMap();
+        }
+    });
+
+    document.getElementById('v2-flow-task-lane')?.addEventListener('dragend', () => {
+        v2DraggedFlowTaskId = null;
+        document.querySelectorAll('.v2-flow-node--task.is-dragging').forEach((node) => node.classList.remove('is-dragging'));
+    });
+
+    document.getElementById('v2-flow-link-lane')?.addEventListener('dragover', (event) => {
+        if (!v2DraggedFlowTaskId) {
+            return;
+        }
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const linkTarget = target.closest('.v2-flow-node--link-target');
+        if (!(linkTarget instanceof HTMLElement)) {
+            return;
+        }
+        event.preventDefault();
+    });
+
+    document.getElementById('v2-flow-link-lane')?.addEventListener('drop', (event) => {
+        if (!v2DraggedFlowTaskId || !v2RoleCompositionState) {
+            return;
+        }
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const linkTarget = target.closest('.v2-flow-node--link-target');
+        if (!(linkTarget instanceof HTMLElement)) {
+            return;
+        }
+        const toTaskId = linkTarget.dataset.taskId || '';
+        if (!toTaskId || toTaskId === v2DraggedFlowTaskId) {
+            return;
+        }
+        event.preventDefault();
+        const alreadyExists = v2CustomDependencyEdges.some((edge) => edge.from_task_id === v2DraggedFlowTaskId && edge.to_task_id === toTaskId);
+        if (!alreadyExists) {
+            v2CustomDependencyEdges.push({ from_task_id: v2DraggedFlowTaskId, to_task_id: toTaskId });
+            renderV2RoleFlowMap();
+            renderV2DependencyEditor();
+            updateV2Results({ preserveSelection: true }).catch((error) => {
+                console.error('[V2] Failed to rerender after drag-created dependency:', error);
+            });
+        }
+    });
+
+    document.getElementById('v2-flow-function-lane')?.addEventListener('dragover', (event) => {
+        if (!v2DraggedFlowTaskId) {
+            return;
+        }
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const functionTarget = target.closest('.v2-flow-node--function');
+        if (!(functionTarget instanceof HTMLElement)) {
+            return;
+        }
+        event.preventDefault();
+    });
+
+    document.getElementById('v2-flow-function-lane')?.addEventListener('drop', (event) => {
+        if (!v2DraggedFlowTaskId || !v2RoleCompositionState) {
+            return;
+        }
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+        const functionTarget = target.closest('.v2-flow-node--function');
+        if (!(functionTarget instanceof HTMLElement)) {
+            return;
+        }
+        const functionId = functionTarget.dataset.functionId || '';
+        if (!functionId) {
+            return;
+        }
+        event.preventDefault();
+        const alreadyExists = v2CustomTaskFunctionLinks.some((link) => link.task_id === v2DraggedFlowTaskId && link.function_id === functionId);
+        if (!alreadyExists) {
+            v2CustomTaskFunctionLinks.push({ task_id: v2DraggedFlowTaskId, function_id: functionId });
+            renderV2RoleFlowMap();
+            renderV2RoleComposition(v2RoleCompositionState.raw);
+            updateV2Results({ preserveSelection: true }).catch((error) => {
+                console.error('[V2] Failed to rerender after drag-created task/function link:', error);
+            });
+        }
     });
 
     document.getElementById('v2-dependency-add')?.addEventListener('click', () => {
