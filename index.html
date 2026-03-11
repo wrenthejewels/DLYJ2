@@ -114,53 +114,50 @@
                         </div>
                     </div>
                     <div class="v2-role-studio" id="v2-composition-cards">
-                        <div class="v2-role-studio-lane v2-role-studio-lane--tasks">
-                            <div class="v2-role-studio-header">
-                                <div class="r-section-label">Tasks</div>
-                                <h4>Edit the tasks that make up your role</h4>
-                                <p id="v2-flow-map-summary">Select an occupation to load the role studio.</p>
-                            </div>
+                        <div class="v2-role-studio-header v2-role-studio-header--full">
+                            <div class="r-section-label">Role graph editor</div>
+                            <h4>Edit the role as a live graph</h4>
+                            <p id="v2-flow-map-summary">Select an occupation to load the role graph.</p>
+                        </div>
+                        <div class="v2-graph-toolbar">
                             <div class="v2-studio-add-row">
                                 <select class="plane-dropdown" id="v2-task-add-select" data-card="tasks">
                                     <option value="">Add task from this occupation</option>
                                 </select>
-                                <button type="button" class="r-refine-link" id="v2-task-add" data-action="add" data-card="tasks">Add</button>
-                            </div>
-                            <div class="v2-flow-lane-body" id="v2-flow-task-lane"></div>
-                        </div>
-
-                        <div class="v2-role-studio-lane v2-role-studio-lane--links">
-                            <div class="v2-role-studio-header">
-                                <div class="r-section-label">Workflow</div>
-                                <h4>Shape the task tree</h4>
-                                <p>Tasks can feed other tasks before they feed the role's functions. Drag a task onto a task here to add a missing support link.</p>
-                            </div>
-                            <div class="v2-flow-lane-body" id="v2-flow-link-lane"></div>
-                            <div class="v2-dependency-editor-fallback" hidden>
-                                <select id="v2-dependency-source" class="plane-dropdown">
-                                    <option value="">Choose support task</option>
-                                </select>
-                                <select id="v2-dependency-target" class="plane-dropdown">
-                                    <option value="">Choose task it mainly supports</option>
-                                </select>
-                                <button type="button" class="r-refine-link" id="v2-dependency-add">Add link</button>
-                                <div class="v2-dependency-list" id="v2-dependency-list"></div>
-                            </div>
-                        </div>
-
-                        <div class="v2-role-studio-lane v2-role-studio-lane--functions">
-                            <div class="v2-role-studio-header">
-                                <div class="r-section-label">Functions</div>
-                                <h4>Edit the role's defining functions</h4>
-                                <p>Drag a task onto a function to say that work directly supports that higher-level purpose.</p>
+                                <button type="button" class="r-refine-link" id="v2-task-add" data-action="add" data-card="tasks">Add task</button>
                             </div>
                             <div class="v2-studio-add-row">
                                 <select class="plane-dropdown" id="v2-function-add-select" data-card="functions">
                                     <option value="">Add function from this occupation</option>
                                 </select>
-                                <button type="button" class="r-refine-link" id="v2-function-add" data-action="add" data-card="functions">Add</button>
+                                <button type="button" class="r-refine-link" id="v2-function-add" data-action="add" data-card="functions">Add function</button>
                             </div>
-                            <div class="v2-flow-lane-body" id="v2-flow-function-lane"></div>
+                            <div class="v2-graph-mode-group" id="v2-graph-mode-group">
+                                <button type="button" class="v2-graph-mode-button is-active" data-graph-mode="move">Move nodes</button>
+                                <button type="button" class="v2-graph-mode-button" data-graph-mode="task-link">Link tasks</button>
+                                <button type="button" class="v2-graph-mode-button" data-graph-mode="function-link">Link to function</button>
+                                <button type="button" class="v2-graph-mode-button" data-graph-mode="remove-link">Remove custom link</button>
+                            </div>
+                        </div>
+                        <div class="v2-role-graph-editor" id="v2-role-graph-editor">
+                            <svg class="v2-role-graph-svg" id="v2-role-graph-svg" aria-hidden="true"></svg>
+                            <div class="v2-role-graph-layer" id="v2-role-graph-layer"></div>
+                        </div>
+                        <div class="v2-role-graph-helper" id="v2-role-graph-helper">
+                            Move nodes to reorganize the view. In link modes, click a task first and then click the task or function you want it to feed.
+                        </div>
+                        <div class="v2-dependency-editor-fallback" hidden>
+                            <div id="v2-flow-task-lane"></div>
+                            <div id="v2-flow-link-lane"></div>
+                            <div id="v2-flow-function-lane"></div>
+                            <select id="v2-dependency-source" class="plane-dropdown">
+                                <option value="">Choose support task</option>
+                            </select>
+                            <select id="v2-dependency-target" class="plane-dropdown">
+                                <option value="">Choose task it mainly supports</option>
+                            </select>
+                            <button type="button" class="r-refine-link" id="v2-dependency-add">Add link</button>
+                            <div class="v2-dependency-list" id="v2-dependency-list"></div>
                         </div>
                     </div>
                 </section>

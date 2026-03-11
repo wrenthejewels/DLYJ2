@@ -1181,7 +1181,7 @@ img, svg { display: block; max-width: 100%; }
 }
 .v2-role-studio {
     display: grid;
-    grid-template-columns: minmax(360px, 1.15fr) minmax(500px, 1.55fr) minmax(320px, 1fr);
+    grid-template-columns: 1fr;
     gap: clamp(16px, 1.7vw, 24px);
     align-items: start;
     padding: clamp(18px, 2vw, 26px);
@@ -1203,6 +1203,10 @@ img, svg { display: block; max-width: 100%; }
     display: grid;
     gap: 12px;
 }
+.v2-role-studio-header--full {
+    border-bottom: 1px solid rgba(83, 102, 126, 0.12);
+    padding-bottom: 12px;
+}
 .v2-role-studio-header {
     padding: 4px 2px 6px;
     border-bottom: 1px solid rgba(83, 102, 126, 0.12);
@@ -1220,62 +1224,142 @@ img, svg { display: block; max-width: 100%; }
     line-height: 1.55;
     max-width: 34ch;
 }
-.v2-role-studio-lane--tasks::after,
-.v2-role-studio-lane--links::after {
-    content: '→';
-    justify-self: end;
-    align-self: start;
-    margin-top: -34px;
-    margin-right: -6px;
-    color: color-mix(in oklch, var(--signal) 72%, var(--ink-secondary));
-    font-size: 24px;
-    font-weight: 700;
-}
-.v2-role-studio .v2-composition-card,
-.v2-role-studio .v2-dependency-editor {
-    padding: 14px;
-    border-radius: 10px;
-    background: rgba(255, 254, 250, 0.9);
-    border: 1px solid rgba(83, 102, 126, 0.1);
-}
-.v2-role-studio .v2-dependency-editor {
-    margin-top: 0;
-}
-.v2-role-studio .v2-inline-collapsible-summary {
-    padding: 0 0 14px;
-    border-bottom: 1px solid rgba(83, 102, 126, 0.08);
-}
-.v2-role-studio .v2-inline-collapsible-body {
-    padding: 14px 0 0;
-}
-.v2-role-studio .v2-composition-chip {
-    border-radius: 8px;
-    background: rgba(249, 246, 239, 0.98);
-}
-.v2-role-studio .v2-composition-add-row {
-    margin-top: 10px;
-}
-.v2-role-studio .v2-dependency-item {
-    border-radius: 8px;
-    background: rgba(249, 246, 239, 0.96);
-}
 .v2-studio-add-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
 }
-.v2-studio-card {
+.v2-graph-toolbar {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+}
+.v2-graph-mode-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.v2-graph-mode-button {
+    border: 1px solid rgba(83, 102, 126, 0.14);
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--ink-secondary);
+    border-radius: 999px;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+}
+.v2-graph-mode-button.is-active {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: white;
+}
+.v2-role-graph-editor {
+    position: relative;
+    min-height: 620px;
+    border-radius: 18px;
+    overflow: auto;
+    background:
+        linear-gradient(180deg, rgba(252, 250, 244, 0.98), rgba(247, 244, 236, 0.94)),
+        radial-gradient(circle at 20% 20%, rgba(92, 122, 167, 0.07), transparent 26%);
+    border: 1px solid rgba(83, 102, 126, 0.12);
+}
+.v2-role-graph-editor::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(83, 102, 126, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(83, 102, 126, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+}
+.v2-role-graph-svg,
+.v2-role-graph-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+.v2-role-graph-layer {
+    pointer-events: auto;
+}
+.v2-graph-node {
+    position: absolute;
+    width: 280px;
     display: grid;
     gap: 10px;
     padding: 14px;
-    border-radius: 12px;
+    border-radius: 14px;
     background: rgba(255, 254, 250, 0.98);
+    border: 1px solid rgba(83, 102, 126, 0.12);
+    box-shadow: 0 18px 34px rgba(31, 42, 54, 0.08);
+    cursor: grab;
 }
-.v2-studio-card-header {
+.v2-graph-node--task {
+    border-left: 4px solid rgba(106, 137, 179, 0.9);
+}
+.v2-graph-node--function {
+    width: 260px;
+    border-left: 4px solid rgba(79, 108, 84, 0.88);
+}
+.v2-graph-node.is-link-source {
+    box-shadow: 0 0 0 2px rgba(92, 122, 167, 0.45), 0 18px 34px rgba(31, 42, 54, 0.08);
+}
+.v2-graph-node-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+}
+.v2-graph-node-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(79, 108, 84, 0.12);
+    color: rgba(53, 79, 58, 1);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.v2-graph-node-stats,
+.v2-graph-node-hint {
+    font-size: var(--text-xs);
+    line-height: 1.45;
+}
+.v2-graph-node-stats {
+    color: var(--ink-secondary);
+}
+.v2-graph-node-hint {
+    color: var(--ink);
+}
+.v2-graph-edge {
+    fill: none;
+    stroke-linecap: round;
+    pointer-events: stroke;
+    stroke-width: 3;
+}
+.v2-graph-edge--task.is-default {
+    stroke: rgba(105, 118, 138, 0.46);
+    stroke-dasharray: 8 8;
+}
+.v2-graph-edge--task.is-custom {
+    stroke: rgba(92, 122, 167, 0.92);
+}
+.v2-graph-edge--function.is-default {
+    stroke: rgba(79, 108, 84, 0.48);
+}
+.v2-graph-edge--function.is-custom {
+    stroke: rgba(65, 98, 75, 0.92);
+}
+.v2-role-graph-helper {
+    font-size: var(--text-sm);
+    color: var(--ink-secondary);
+    line-height: 1.5;
 }
 .v2-studio-remove,
 .v2-studio-pill-remove {
@@ -1375,16 +1459,14 @@ img, svg { display: block; max-width: 100%; }
     .v2-dependency-controls {
         grid-template-columns: 1fr;
     }
-    .v2-role-studio {
+    .v2-graph-toolbar {
         grid-template-columns: 1fr;
     }
-    .v2-workflow-tree {
-        grid-auto-flow: row;
-        grid-auto-columns: auto;
+    .v2-graph-mode-group {
+        justify-content: flex-start;
     }
-    .v2-role-studio-lane--tasks::after,
-    .v2-role-studio-lane--links::after {
-        display: none;
+    .v2-role-graph-editor {
+        min-height: 860px;
     }
     .v2-inline-collapsible-summary {
         flex-direction: column;
