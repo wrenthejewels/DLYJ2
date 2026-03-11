@@ -9,10 +9,10 @@
     --ink: #1C1B18;
     --ink-secondary: #5C5850;
     --ink-tertiary: #8A8578;
-    --signal: oklch(0.62 0.09 125);
-    --signal-light: oklch(0.62 0.09 125 / 0.10);
-    --signal-medium: oklch(0.62 0.09 125 / 0.18);
-    --signal-text: oklch(0.43 0.07 125);
+    --signal: oklch(0.60 0.08 252);
+    --signal-light: oklch(0.60 0.08 252 / 0.10);
+    --signal-medium: oklch(0.60 0.08 252 / 0.18);
+    --signal-text: oklch(0.42 0.06 252);
     --rule: #DDD8CF;
     --rule-light: #E8E4DD;
     --surface: #F0ECE5;
@@ -796,10 +796,10 @@ img, svg { display: block; max-width: 100%; }
 }
 .v2-dependency-editor {
     margin-top: var(--space-lg);
-    padding: var(--space-md);
-    background: var(--surface);
-    border-radius: 6px;
-    border: 1px solid var(--rule);
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
 }
 .v2-dependency-controls {
     display: grid;
@@ -831,17 +831,38 @@ img, svg { display: block; max-width: 100%; }
     border-radius: 6px;
     background: var(--surface);
 }
+.v2-inline-collapsible--nested {
+    background: rgba(255, 255, 255, 0.55);
+    border-style: solid;
+}
 .v2-inline-collapsible-summary {
     list-style: none;
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--space-md);
-    padding: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
     cursor: pointer;
+    position: relative;
+    padding-right: calc(var(--space-lg) + 22px);
 }
 .v2-inline-collapsible-summary::-webkit-details-marker {
     display: none;
+}
+.v2-inline-collapsible-summary::after {
+    content: '';
+    position: absolute;
+    right: var(--space-lg);
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid var(--ink-secondary);
+    border-bottom: 2px solid var(--ink-secondary);
+    transform: translateY(-65%) rotate(45deg);
+    transition: transform 0.16s ease;
+}
+.v2-inline-collapsible[open] .v2-inline-collapsible-summary::after {
+    transform: translateY(-35%) rotate(225deg);
 }
 .v2-inline-collapsible-summary span:first-child {
     font-family: var(--font-display);
