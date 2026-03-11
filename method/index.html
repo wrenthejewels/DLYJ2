@@ -69,6 +69,7 @@
                         <div class="r-equation-label">Input tuple</div>
                         <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{compositionEdits},\ \text{dependencyEdits})$$</div>
                     </div>
+                    <p>The simplest mental model is this: tasks describe <em>how the job gets done</em>, while functions describe <em>what the human role is ultimately there to own</em>. AI often pressures the how before it eliminates the why. The model exists to track that transition rather than assuming that exposed tasks automatically mean the whole role disappears.</p>
                     <p>The editable task ids now come from the role breakdown on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The editor also shows which functions the selected tasks mainly support, and it accepts optional user-declared support links when one selected task mainly exists to enable another or when a selected task should feed an additional selected function. The role-refinement panel writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
                 </section>
 
@@ -86,6 +87,7 @@
                     <ul>
                         <li><strong><a href="https://www.onetcenter.org/database.html" target="_blank" rel="noopener noreferrer">O*NET Database</a></strong> (v30.1) &mdash; occupation taxonomy, task statements, work context, skills, abilities, and job zones. Provides the task inventory that the role is built from.</li>
                         <li><strong>Reviewed task and role-graph expansions</strong> &mdash; internal task-gap expansions curated from job-description review for occupations underdescribed by O*NET alone, plus task dependency edges and role-function anchors.</li>
+                        <li><strong>Reviewed function-accountability priors</strong> &mdash; manually authored role-family defaults and occupation-specific overrides describing judgment, trust, liability, authority, and bargaining retention at the function level. These are used to build the function graph and the guardrail signals that sit above the task graph.</li>
                     </ul>
 
                     <h3>Labor-market context</h3>
@@ -185,6 +187,7 @@
                 <section id="builds-your-role" class="r-method-section">
                     <h2>How it builds your role</h2>
                     <p>The model starts from the selected occupation's task inventory and a task-family blend. It then links those tasks into one or more reviewed role functions, so the baseline is not just a flat task list. That gives it a default picture of what the role is usually made of and what the role is trying to accomplish before personalization.</p>
+                    <p>That distinction matters. Tasks are the operating layer: drafting, reviewing, coordinating, documenting, analyzing, following up. Functions are the purpose layer: client ownership, decision support, compliance judgment, cross-functional orchestration, accountable delivery. A user could try to reason only at the function level, but functions are too broad to show where pressure starts. The model uses tasks to locate the pressure, then functions to decide whether the human-owned core still survives after those tasks change.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Baseline blend</div>
                         <div class="equation-display">$$\tilde s_i = 0.65\, s_i^{\text{cluster}} + 0.35\, s_i^{\text{inventory}}, \qquad s_i^{(0)} = \frac{\tilde s_i}{\sum_j \tilde s_j}$$</div>
@@ -195,7 +198,8 @@
                         <div class="equation-display">$$\mathcal{T}^{*} = (\mathcal{T}^{(0)} \setminus \mathcal{T}^{-}) \cup \mathcal{T}^{+}, \qquad \mathcal{F}^{*} = (\mathcal{F}^{(0)} \setminus \mathcal{F}^{-}) \cup \mathcal{F}^{+}$$</div>
                         <div class="equation-display">$$s_i = \frac{\mathbf{1}[i\in \mathcal{T}^{*}]\, \tilde s_i}{\sum_{j \in \mathcal{T}^{*}} \tilde s_j}, \qquad w_f = \frac{\mathbf{1}[f\in \mathcal{F}^{*}]\, \tilde w_f}{\sum_{g \in \mathcal{F}^{*}} \tilde w_g}$$</div>
                     </div>
-                    <p>In plain English, this is the model's answer to "what is your version of this occupation actually made of?" The extra function layer matters because two roles can have exposed tasks but still differ sharply in whether the human role survives as the accountable core.</p>
+                    <p>In plain English, this is the model's answer to "what is your version of this occupation actually made of?" The extra function layer matters because two roles can have similarly exposed tasks but still differ sharply in whether the human role survives as the accountable core.</p>
+                    <p>Users can change this structure directly. Adding or removing tasks changes what work the role contains. Editing task share changes what matters most. Adding support links changes how pressure can spread through the role. Adding a task-to-function link tells the model that a task contributes to a more central function, which can increase that task's effective centrality, bargaining weight, and sometimes its treatment as core work.</p>
                 </section>
 
                 <!-- 5. How your answers matter -->
@@ -225,6 +229,7 @@
                     </div>
                     <p>In plain English, the questionnaire tells the model whether AI mainly helps the role, compresses the role, or still leaves a human-retained core because of function, accountability, trust, and messy exceptions.</p>
                     <p>When the selected occupation has a reviewed function graph, the model blends function-level accountability signals into the questionnaire-derived values before scoring. This anchors the signals to the occupation's actual authority and delegation structure rather than relying on user responses alone.</p>
+                    <p>Those function-level signals are not inferred directly from Anthropic telemetry. They are reviewed function priors first, then summarized mathematically. Each occupation gets one or more function anchors with weighted values for judgment, trust, regulatory burden, human authority, and bargaining retention. The live engine collapses those anchors into weighted averages, then blends them into the runtime signals below.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Function-layer blending</div>
                         <div class="equation-display">$$\text{functionRetention} \leftarrow 0.72\,\text{functionRetention} + 0.14\,\text{humanAuthorityReq} + 0.14\,\text{bargainingPowerRetention}$$</div>
@@ -299,6 +304,7 @@
                         <div class="equation-display">$$p_t^{\text{direct}} = \operatorname{clamp}\!\left(0.68(1-D_{c(t)}) + 0.20\alpha_{c(t)} + 0.12A_t,\,0,\,1\right)$$</div>
                         <div class="equation-display">$$p_t^{\text{spill}} = \sum_{(t,u)\in \mathcal{D}^{*}} d_{tu}\, p_u^{\text{direct}} \max(V_u,B_u)$$</div>
                     </div>
+                    <p>The flow is: current task mix &rarr; direct pressure on exposed tasks &rarr; spillover into support tasks &rarr; surviving leverage among the tasks still tied to core functions. That is why the model is more useful than a simple "can AI do this function?" thought exercise. Looking only at functions is too coarse; looking only at tasks overstates replacement. The model uses both layers to ask whether a coherent human-owned role remains after pressure moves through the task map.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Retained leverage</div>
                         <div class="equation-display">$$L_t = \operatorname{clamp}\!\left(B_t(1-p_t^{\text{direct}})(1-p_t^{\text{spill}}) + 0.10\mathbf{1}[t\in \text{core}] + 0.60\,\text{elevationBoost}_t,\,0,\,1\right)$$</div>
