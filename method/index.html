@@ -27,7 +27,7 @@
         <header class="r-article-hero">
             <div class="r-eyebrow">V2.1 Methodology</div>
             <h1>How the model works</h1>
-            <p class="r-lede">As AI gets better, which parts of your role come under pressure first, which parts still carry bargaining power, and what does that imply for the role as a whole? This page explains the live model in both plain language and formal terms.</p>
+            <p class="r-lede">As AI gets better, which parts of your role come under pressure first, which parts still protect the role, and what does that imply for the job as a whole? This page explains the live model in user-facing terms first, then more formally.</p>
         </header>
 
         <nav class="r-pill-nav" aria-label="Sections">
@@ -63,7 +63,7 @@
                         <div class="r-equation-label">Input tuple</div>
                         <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{compositionEdits},\ \text{dependencyEdits})$$</div>
                     </div>
-                    <p>The editable task ids now come from the role composition editor on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The editor also shows which functions the selected tasks mainly support, and it accepts optional user-declared support links when one selected task mainly exists to enable another. The role-refinement panel writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
+                    <p>The editable task ids now come from the role breakdown on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The editor also shows which functions the selected tasks mainly support, and it accepts optional user-declared support links when one selected task mainly exists to enable another. The role-refinement panel writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
                 </section>
 
                 <!-- 2. What it looks at -->
@@ -102,7 +102,7 @@
                 <!-- 4. How your answers matter -->
                 <section id="answers-matter" class="r-method-section">
                     <h2>How your answers matter</h2>
-                    <p>The role-refinement layer does not directly output the final verdict. It changes the conditions around the work: how observable the work is, how much of the function must still stay human, how much sign-off or liability remains, how bottlenecked the workflow is, and how quickly an organization could embed AI into it.</p>
+                    <p>The role-refinement layer does not directly output the final verdict. It changes the conditions around the work: how observable the work is, how much of the function must still stay human, how much sign-off or liability remains, how bottlenecked the workflow is, and how quickly an organization could actually embed AI into it.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Normalization</div>
                         <div class="equation-display">$$r_k = \operatorname{clamp}\!\left(\frac{R_k-1}{4},0,1\right), \qquad s = \operatorname{clamp}\!\left(\frac{\text{seniorityLevel}-1}{4},0,1\right)$$</div>

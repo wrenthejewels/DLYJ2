@@ -28,7 +28,7 @@
 
         <section class="r-hero">
             <h1>Don't Lose Your Job</h1>
-            <p class="r-subtitle">Answer a few questions about your role. We'll show you where the pressure lands, what still carries bargaining power, and what that means for the job.</p>
+            <p class="r-subtitle">Choose the occupation closest to your work, adjust the role if needed, and we will show where AI pressure lands, what still protects the role, and how the job is likely to change.</p>
         </section>
 
         <!-- ── Intake Flow ─────────────────────────────────────────────── -->
@@ -60,7 +60,7 @@
 
             <div class="r-intake-step">
                 <label class="r-intake-label" for="top-occupation-select">More specifically?</label>
-                <p class="r-intake-help">Pick the occupation closest to your actual role, or search all mapped occupations.</p>
+                <p class="r-intake-help">Pick the occupation that best matches your day-to-day work, or search all mapped occupations.</p>
                 <div class="r-select-wrap">
                     <select id="top-occupation-select" class="plane-dropdown" disabled>
                         <option value="">Select category first</option>
@@ -71,8 +71,8 @@
             </div>
 
             <div class="r-intake-step">
-                <label class="r-intake-label" for="hierarchy-select">How replaceable are you in the organization?</label>
-                <p class="r-intake-help">Based on how many people above you could realistically do your job.</p>
+                <label class="r-intake-label" for="hierarchy-select">Where do you sit in the organization?</label>
+                <p class="r-intake-help">This helps the model estimate how much of your role is execution work versus sign-off, coordination, and decision-making.</p>
                 <div class="r-select-wrap">
                     <select id="hierarchy-select" class="plane-dropdown">
                         <option value="">Select hierarchy level</option>
@@ -86,7 +86,7 @@
             </div>
 
             <div class="r-intake-step">
-                <button id="questionnaire-button" class="r-refine-link" type="button">Review and edit the role composition</button>
+                <button id="questionnaire-button" class="r-refine-link" type="button">Review the role breakdown</button>
             </div>
         </section>
 
@@ -96,9 +96,9 @@
             <div class="setup-wizard" id="setup-wizard">
 
                 <section class="r-task-detail">
-                    <h3>Role composition editor</h3>
-                    <p id="v2-composition-headline">Select a mapped occupation to load the editable role composition.</p>
-                    <p id="v2-composition-summary">The model starts from the occupation baseline, then you can edit which baseline tasks, reviewed additions, and value-defining functions should count in this run.</p>
+                    <h3>Role breakdown</h3>
+                    <p id="v2-composition-headline">Select an occupation to load the role breakdown the model will score.</p>
+                    <p id="v2-composition-summary">We start with baseline tasks from O*NET, add reviewed tasks from public postings and role review, then keep the main functions that define why the role exists. You can edit that mix before scoring.</p>
 
                     <div class="v2-composition-cards" id="v2-composition-cards">
                         <div class="v2-composition-card" id="v2-composition-onet_tasks" hidden>
@@ -161,11 +161,11 @@
                     <details class="v2-inline-collapsible v2-dependency-editor" id="v2-dependency-editor-panel">
                         <summary class="v2-inline-collapsible-summary">
                             <span>Optional support links</span>
-                            <span class="v2-inline-collapsible-helper">Add task-to-task support links only if the default graph misses an obvious dependency.</span>
+                            <span class="v2-inline-collapsible-helper">Only use this if one selected task mainly exists to support another and the default graph misses that link.</span>
                         </summary>
                         <div class="v2-inline-collapsible-body">
                             <div class="v2-composition-card-header">
-                                <p>If one selected task mainly exists to support another selected task, add that link here so the model can reflect spillover more accurately.</p>
+                                <p>Add a support link when one selected task mostly exists to enable another. This helps the model capture spillover more accurately.</p>
                             </div>
                             <div class="v2-dependency-controls">
                                 <select id="v2-dependency-source" class="plane-dropdown">
@@ -185,21 +185,21 @@
                 <details class="v2-inline-collapsible r-questions-section" id="v2-role-refinement-panel">
                     <summary class="v2-inline-collapsible-summary">
                         <span>Role refinement</span>
-                        <span class="v2-inline-collapsible-helper">Optional questions about what must stay human, what is easier to delegate, and where accountability still sits.</span>
+                        <span class="v2-inline-collapsible-helper">Optional questions that help the model tell apart work AI can assist from work a person still has to own.</span>
                     </summary>
                     <div class="v2-inline-collapsible-body">
                         <div class="r-questions-header">
-                            <p>How your version of the occupation actually works: what must stay human, what is easier to delegate, and where accountability still sits.</p>
+                            <p>Use this if your version of the role is more senior, more regulated, more relationship-heavy, or simply not well described by the default occupation profile.</p>
                         </div>
 
                         <label class="r-prefill-toggle">
                             <input type="checkbox" id="prefill-questions">
-                            <span>Prefill from selected occupation + hierarchy</span>
+                            <span>Start from the default settings for this occupation and hierarchy</span>
                         </label>
 
                         <div class="r-readout">
                             <div class="r-section-label">Current role-refinement readout</div>
-                            <p class="card-description" id="v2-refinement-summary">Answer the core questions to see how this version of the role is likely to retain function, sign-off, and substitution resistance.</p>
+                            <p class="card-description" id="v2-refinement-summary">Answer the core questions to see whether this version of the role keeps more human-owned function, more sign-off, or more substitution pressure.</p>
                             <div class="r-readout-metrics">
                                 <div class="v2-outlook-note">
                                     <span>Function retention</span>
@@ -226,7 +226,7 @@
 
                         <div class="r-questions-header">
                             <div class="r-section-label">Core questions</div>
-                            <p class="card-description">These six questions do the most to determine whether AI mainly assists your role, compresses it, or leaves a human-retained core.</p>
+                            <p class="card-description">These six questions do the most to determine whether AI mainly assists the role, compresses it, or still leaves a strong human core.</p>
                         </div>
                         <div class="question-grid" id="v2-core-refinement-grid"></div>
 
@@ -246,8 +246,8 @@
 
         <div class="r-explanation hidden-block" id="model-explanation-section">
             <h3>Understanding your output</h3>
-            <p>Your v2.1 result is an empirical role briefing, not a certainty. It ranks your task clusters by automation difficulty into three waves (current, next, distant) and estimates whether the remaining bundle holds together as a coherent role.</p>
-            <p>The main result is driven by the occupation task inventory, dependency links between tasks, retained-function signals, empirical automation priors, and your role-refinement answers. Visit the <a href="/method">Methodology</a> for the pipeline and the <a href="/guide">Guide</a> for how to interpret the briefing.</p>
+            <p>Your v2.1 result is a structured role briefing, not a prediction with certainty. It estimates where AI pressure lands first, what that pressure spreads into, and how much of the role still holds together afterward.</p>
+            <p>The result combines the occupation task inventory, reviewed task additions, dependency links, retained-function signals, empirical automation priors, and your optional role-refinement answers. Visit the <a href="/method">Methodology</a> for the pipeline and the <a href="/guide">Guide</a> for how to read the briefing.</p>
         </div>
 
         <!-- ── Results ─────────────────────────────────────────────────── -->
