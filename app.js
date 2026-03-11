@@ -1159,6 +1159,16 @@ async function getRoleGraphController() {
                     };
                 }
             });
+        }).catch((error) => {
+            const helper = document.getElementById('v2-role-graph-helper');
+            const containerNode = document.getElementById('v2-role-graph-editor');
+            if (helper) {
+                helper.textContent = 'The role graph failed to load on this page.';
+            }
+            if (containerNode) {
+                containerNode.innerHTML = '<div class="v2-flow-empty">The role graph failed to load.</div>';
+            }
+            throw error;
         });
     }
 

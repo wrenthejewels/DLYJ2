@@ -1,12 +1,16 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useEffect, useMemo } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   Handle,
   MarkerType,
   Position,
+  useEdgesState,
+  useNodesState,
+  useReactFlow,
   type Connection,
   type Edge,
   type Node,
@@ -163,7 +167,7 @@ function RoleGraphCanvas({
   state: RoleGraphRenderState;
   callbacks: RoleGraphCallbacks;
 }) {
-  const nodes = useMemo<Array<Node>>(
+  const incomingNodes = useMemo<Array<Node>>(
     () =>
       state.nodes.map((node) => {
         if (node.kind === 'task') {
@@ -192,7 +196,7 @@ function RoleGraphCanvas({
     [callbacks.onFunctionRemove, callbacks.onTaskFunctionLinkRemove, callbacks.onTaskRemove, callbacks.onTaskShareChange, state.nodes]
   );
 
-  const edges = useMemo<Array<Edge>>(
+  const incomingEdges = useMemo<Array<Edge>>(
     () =>
       state.edges.map((edge) => ({
         id: edge.id,
@@ -209,6 +213,26 @@ function RoleGraphCanvas({
     [state.edges]
   );
 
+  const [nodes, setNodes, onNodesChange] = useNodesState(incomingNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(incomingEdges);
+  const reactFlow = useReactFlow();
+
+  useEffect(() => {
+    setNodes(incomingNodes);
+  }, [incomingNodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(incomingEdges);
+  }, [incomingEdges, setEdges]);
+
+  useEffect(() => {
+    if (!incomingNodes.length) return;
+    const raf = window.requestAnimationFrame(() => {
+      reactFlow.fitView({ padding: 0.2, duration: 0 });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [incomingEdges.length, incomingNodes.length, reactFlow]);
+
   const onNodeDragStop: NodeDragHandler = (_event, node) => {
     callbacks.onNodePositionChange(node.id, node.position);
   };
@@ -224,6 +248,8 @@ function RoleGraphCanvas({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onConnect={callbacks.onConnect}
         onEdgeClick={(_event, edge) => {
           if (state.mode === 'remove-link' && edge.data?.custom) {
@@ -231,7 +257,7 @@ function RoleGraphCanvas({
           }
         }}
         onNodeDragStop={onNodeDragStop}
-        fitView
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
         minZoom={0.4}
         maxZoom={1.6}
         nodesConnectable={state.mode !== 'remove-link'}
@@ -257,7 +283,11 @@ export function mountRoleGraphEditor(container: HTMLElement, callbacks: RoleGrap
 
   return {
     render(state: RoleGraphRenderState) {
-      root?.render(<RoleGraphCanvas state={state} callbacks={callbacks} />);
+      root?.render(
+        <ReactFlowProvider>
+          <RoleGraphCanvas state={state} callbacks={callbacks} />
+        </ReactFlowProvider>
+      );
     },
     destroy() {
       root?.unmount();
