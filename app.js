@@ -9,6 +9,7 @@ let lastV2Result = null;
 let v2EnginePromise = null;
 let v2TaskBreakdownExpanded = false;
 let v2RoleCompositionState = null;
+let v2CustomDependencyEdges = [];
 
 const V2_COMPOSITION_CARD_CONFIG = [
     {
@@ -767,9 +768,19 @@ function createCompositionChip(item, cardKey) {
 
     const meta = document.createElement('div');
     meta.className = 'v2-composition-chip-meta';
-    meta.textContent = cardKey === 'functions'
+    let metaText = cardKey === 'functions'
         ? `${Math.round((Number(item.function_weight) || 0) * 100)}% function weight · ${Math.round((Number(item.source_confidence) || 0) * 100)}% confidence`
         : `${formatV2Label(item.task_family_id || 'task')} · ${Math.round((Number(item.time_share_prior) || 0) * 100)}% baseline share · ${Math.round((Number(item.source_confidence) || 0) * 100)}% confidence`;
+    if (cardKey !== 'functions' && Array.isArray(item.linked_functions) && item.linked_functions.length) {
+        const functionRead = item.linked_functions
+            .map((entry) => {
+                const label = entry.role_summary || entry.function_statement || formatV2Label(entry.function_category || 'function');
+                return `${truncateV2TaskLabel(label, 54)} (${Math.round((Number(entry.task_to_function_weight) || 0) * 100)}%)`;
+            })
+            .join(' · ');
+        metaText += ` · mainly supports ${functionRead}`;
+    }
+    meta.textContent = metaText;
 
     const remove = document.createElement('button');
     remove.type = 'button';
@@ -854,11 +865,13 @@ function renderV2RoleComposition(composition) {
     if (!cards || !headline || !summary) return;
 
     if (!composition) {
+        v2CustomDependencyEdges = [];
         cards.querySelectorAll('.v2-composition-card').forEach((card) => {
             card.hidden = true;
         });
         headline.textContent = 'Select a mapped occupation to load the editable role composition.';
         summary.textContent = 'The model starts from the occupation baseline, then you can edit which baseline tasks, reviewed additions, and value-defining functions should count in this run.';
+        renderV2DependencyEditor();
         return;
     }
 
@@ -871,6 +884,7 @@ function renderV2RoleComposition(composition) {
     summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. Remove anything that does not fit your role and add back occupation-scoped items that do.`;
 
     V2_COMPOSITION_CARD_CONFIG.forEach(renderCompositionCard);
+    renderV2DependencyEditor();
 }
 
 async function populateV2RoleComposition(occupationId, preserveSelection = true) {
@@ -900,11 +914,15 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
     const previousState = preserveSelection && v2RoleCompositionState?.occupationId === occupationId
         ? v2RoleCompositionState
         : null;
+    const previousDependencies = preserveSelection && v2RoleCompositionState?.occupationId === occupationId
+        ? v2CustomDependencyEdges.slice()
+        : [];
 
     v2RoleCompositionState = {
         raw: composition,
         ...createCompositionSelectionState(composition)
     };
+    v2CustomDependencyEdges = [];
 
     if (previousState) {
         v2RoleCompositionState.selectedTaskIds = new Set(
@@ -924,10 +942,98 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
         if (!v2RoleCompositionState.selectedFunctionIds.size) {
             v2RoleCompositionState.selectedFunctionIds = new Set(composition.defaults.function_ids || []);
         }
+        v2CustomDependencyEdges = previousDependencies.filter((edge) => {
+            return v2RoleCompositionState.selectedTaskIds.has(edge.from_task_id) && v2RoleCompositionState.selectedTaskIds.has(edge.to_task_id);
+        });
     }
 
     renderV2RoleComposition(composition);
     return composition;
+}
+
+function getSelectedCompositionTasks() {
+    if (!v2RoleCompositionState?.raw) return [];
+    const allTasks = []
+        .concat(v2RoleCompositionState.raw.onet_tasks || [])
+        .concat(v2RoleCompositionState.raw.reviewed_job_posting_tasks || [])
+        .concat(v2RoleCompositionState.raw.reviewed_role_graph_tasks || []);
+
+    return allTasks
+        .filter((task) => v2RoleCompositionState.selectedTaskIds.has(task.task_id))
+        .sort((left, right) => (Number(right.time_share_prior) || 0) - (Number(left.time_share_prior) || 0));
+}
+
+function getDependencyEditsForEngine() {
+    return {
+        added_edges: (v2CustomDependencyEdges || []).map((edge) => ({
+            from_task_id: edge.from_task_id,
+            to_task_id: edge.to_task_id
+        }))
+    };
+}
+
+function renderV2DependencyEditor() {
+    const sourceSelect = document.getElementById('v2-dependency-source');
+    const targetSelect = document.getElementById('v2-dependency-target');
+    const list = document.getElementById('v2-dependency-list');
+    const addButton = document.getElementById('v2-dependency-add');
+
+    if (!sourceSelect || !targetSelect || !list || !addButton) return;
+
+    const selectedTasks = getSelectedCompositionTasks();
+    const selectedTaskLookup = new Map(selectedTasks.map((task) => [task.task_id, task]));
+    v2CustomDependencyEdges = v2CustomDependencyEdges.filter((edge) => selectedTaskLookup.has(edge.from_task_id) && selectedTaskLookup.has(edge.to_task_id));
+
+    [sourceSelect, targetSelect].forEach((select, index) => {
+        const priorValue = select.value || '';
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = index === 0 ? 'Choose support task' : 'Choose task it mainly supports';
+        select.appendChild(placeholder);
+
+        selectedTasks.forEach((task) => {
+            const option = document.createElement('option');
+            option.value = task.task_id;
+            option.textContent = truncateV2TaskLabel(task.task_statement, 90);
+            select.appendChild(option);
+        });
+
+        select.value = selectedTasks.some((task) => task.task_id === priorValue) ? priorValue : '';
+        select.disabled = selectedTasks.length < 2;
+    });
+
+    list.innerHTML = '';
+    if (!v2CustomDependencyEdges.length) {
+        const empty = document.createElement('div');
+        empty.className = 'v2-composition-empty';
+        empty.textContent = 'No custom support links added yet. Use this if one selected task mainly exists to support another selected task.';
+        list.appendChild(empty);
+    } else {
+        v2CustomDependencyEdges.forEach((edge, index) => {
+            const row = document.createElement('div');
+            row.className = 'v2-dependency-item';
+
+            const label = document.createElement('div');
+            label.className = 'v2-dependency-label';
+            const sourceTask = selectedTaskLookup.get(edge.from_task_id);
+            const targetTask = selectedTaskLookup.get(edge.to_task_id);
+            label.textContent = `${truncateV2TaskLabel(sourceTask?.task_statement || 'Unknown task', 72)} supports ${truncateV2TaskLabel(targetTask?.task_statement || 'Unknown task', 72)}`;
+
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'v2-composition-remove';
+            remove.textContent = 'Remove';
+            remove.dataset.action = 'remove-dependency';
+            remove.dataset.edgeIndex = String(index);
+
+            row.appendChild(label);
+            row.appendChild(remove);
+            list.appendChild(row);
+        });
+    }
+
+    addButton.disabled = selectedTasks.length < 2;
 }
 
 // initializeOccupationSearch is defined inside the DOMContentLoaded handler
@@ -1299,6 +1405,9 @@ function renderV2OccupationAssignment(assignment) {
     }
     if (assignment?.selected_composition) {
         parts.push(`This run currently scores ${assignment.selected_composition.active_task_count} active tasks and ${assignment.selected_composition.active_function_count} active functions after your composition edits.`);
+        if (Number(assignment.selected_composition.added_dependency_count) > 0) {
+            parts.push(`You also added ${assignment.selected_composition.added_dependency_count} custom support link${assignment.selected_composition.added_dependency_count === 1 ? '' : 's'} on top of the default dependency graph.`);
+        }
     }
     if (assignment?.questionnaire_effect) {
         parts.push(assignment.questionnaire_effect);
@@ -1555,6 +1664,7 @@ async function updateV2Results(options = {}) {
     const seniorityLevel = parseFloat(document.getElementById('hierarchy-select')?.value || '1');
     const questionnaireProfile = buildStructuredQuestionnaireProfile(responses, seniorityLevel);
     const compositionEdits = getCompositionEditsForEngine();
+    const dependencyEdits = getDependencyEditsForEngine();
 
     let result;
     try {
@@ -1562,7 +1672,8 @@ async function updateV2Results(options = {}) {
             roleCategory: roleCategory,
             occupationId: selectedOccupationId,
             seniorityLevel: seniorityLevel,
-            compositionEdits: compositionEdits
+            compositionEdits: compositionEdits,
+            dependencyEdits: dependencyEdits
         };
         if (questionnaireProfile) {
             computeOptions.questionnaireProfile = questionnaireProfile;
@@ -1907,6 +2018,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('[V2] Failed to rerender after composition add:', error);
             });
         }
+    });
+
+    document.getElementById('v2-dependency-add')?.addEventListener('click', () => {
+        const sourceSelect = document.getElementById('v2-dependency-source');
+        const targetSelect = document.getElementById('v2-dependency-target');
+        const fromTaskId = sourceSelect?.value || '';
+        const toTaskId = targetSelect?.value || '';
+        if (!fromTaskId || !toTaskId || fromTaskId === toTaskId) {
+            return;
+        }
+
+        const alreadyExists = v2CustomDependencyEdges.some((edge) => edge.from_task_id === fromTaskId && edge.to_task_id === toTaskId);
+        if (alreadyExists) {
+            return;
+        }
+
+        v2CustomDependencyEdges.push({ from_task_id: fromTaskId, to_task_id: toTaskId });
+        renderV2DependencyEditor();
+        updateV2Results({ preserveSelection: true }).catch((error) => {
+            console.error('[V2] Failed to rerender after dependency add:', error);
+        });
+    });
+
+    document.getElementById('v2-dependency-list')?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement) || target.dataset.action !== 'remove-dependency') {
+            return;
+        }
+        const edgeIndex = Number(target.dataset.edgeIndex);
+        if (!Number.isInteger(edgeIndex) || edgeIndex < 0) {
+            return;
+        }
+        v2CustomDependencyEdges.splice(edgeIndex, 1);
+        renderV2DependencyEditor();
+        updateV2Results({ preserveSelection: true }).catch((error) => {
+            console.error('[V2] Failed to rerender after dependency removal:', error);
+        });
     });
 
     // Role select change handler

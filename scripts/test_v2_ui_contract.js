@@ -25,6 +25,10 @@ function main() {
     'v2-composition-reviewed_job_posting_tasks',
     'v2-composition-reviewed_role_graph_tasks',
     'v2-composition-functions',
+    'v2-dependency-source',
+    'v2-dependency-target',
+    'v2-dependency-add',
+    'v2-dependency-list',
     'v2-current-bundle',
     'v2-bargaining-bundle',
     'v2-direct-bundle',
@@ -42,6 +46,8 @@ function main() {
   [
     'populateV2RoleComposition',
     'renderV2RoleComposition',
+    'renderV2DependencyEditor',
+    'getDependencyEditsForEngine',
     'getCompositionEditsForEngine',
     'buildRoleFateMap',
     'renderV2OccupationExplanation',
@@ -69,6 +75,7 @@ function main() {
     status: 'ok',
     checked: {
       compositionCards: 4,
+      dependencyEditor: true,
       roleFateColumns: 5,
       questionnaireRenderedFromSchema: true
     }

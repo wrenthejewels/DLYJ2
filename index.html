@@ -157,6 +157,23 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="v2-dependency-editor">
+                        <div class="v2-composition-card-header">
+                            <h4>Optional support links</h4>
+                            <p>If one selected task mainly exists to support another selected task, add that link here so the model can reflect spillover more accurately.</p>
+                        </div>
+                        <div class="v2-dependency-controls">
+                            <select id="v2-dependency-source" class="plane-dropdown">
+                                <option value="">Choose support task</option>
+                            </select>
+                            <select id="v2-dependency-target" class="plane-dropdown">
+                                <option value="">Choose task it mainly supports</option>
+                            </select>
+                            <button type="button" class="r-refine-link" id="v2-dependency-add">Add link</button>
+                        </div>
+                        <div class="v2-dependency-list" id="v2-dependency-list"></div>
+                    </div>
                 </section>
 
                 <!-- Role refinement -->

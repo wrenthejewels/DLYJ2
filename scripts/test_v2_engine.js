@@ -54,6 +54,10 @@ async function main() {
   if (!roleComposition.defaults?.function_ids?.length) {
     throw new Error('Expected default selected function ids in role composition.');
   }
+  const sampleLinkedTask = roleComposition.onet_tasks.find((task) => Array.isArray(task.linked_functions) && task.linked_functions.length);
+  if (!sampleLinkedTask) {
+    throw new Error('Expected at least one editable task to expose linked function explanations.');
+  }
 
   if (!result.recomposition_summary) {
     throw new Error('Expected recomposition_summary in result payload.');
@@ -164,6 +168,22 @@ async function main() {
     throw new Error('Expected at least one active function after composition edits.');
   }
   assertBounded('taskDrivenResult.role_fate_confidence', taskDrivenResult.role_fate_confidence);
+
+  const dependencyDrivenResult = engine.computeResult({
+    occupationId: result.selected_occupation_id,
+    roleCategory: 'software',
+    questionnaireProfile: result.questionnaire_profile,
+    seniorityLevel: 3,
+    dependencyEdits: {
+      added_edges: roleComposition.defaults.task_ids.length >= 2
+        ? [{ from_task_id: roleComposition.defaults.task_ids[0], to_task_id: roleComposition.defaults.task_ids[1] }]
+        : []
+    }
+  });
+  if ((dependencyDrivenResult.occupation_assignment?.selected_composition?.added_dependency_count || 0) !== 1) {
+    throw new Error('Expected dependency edits to register in the selected composition summary.');
+  }
+  assertBounded('dependencyDrivenResult.diagnostics.indirect_dependency_pressure', dependencyDrivenResult.diagnostics.indirect_dependency_pressure);
 
   const businessOps = engine.computeResult({
     occupationId: 'occ_13_1199_00',

@@ -19,6 +19,7 @@
         roleFunctions: 'data/normalized/role_functions.csv',
         occupationFunctionMap: 'data/normalized/occupation_function_map.csv',
         functionAccountabilityProfiles: 'data/normalized/function_accountability_profiles.csv',
+        taskFunctionEdges: 'data/normalized/task_function_edges.csv',
         taskMembership: 'data/normalized/task_cluster_membership.csv',
         taskEvidence: 'data/normalized/task_exposure_evidence.csv',
         taskPriors: 'data/normalized/task_augmentation_automation_priors.csv',
@@ -510,6 +511,10 @@
         return String(occupationId || '') + '|' + String(onetTaskId || '');
     }
 
+    function dependencyEdgeKey(fromTaskId, toTaskId) {
+        return String(fromTaskId || '') + '->' + String(toTaskId || '');
+    }
+
     function taskSourceBucket(task) {
         var notes = String(task && task.notes || '').toLowerCase();
         if (notes.indexOf('seeded_from_job_description_expansion') !== -1) {
@@ -587,7 +592,7 @@
         return Object.keys(selectedMap);
     }
 
-    function buildEditableTaskRow(task, selectedTaskLookup) {
+    function buildEditableTaskRow(task, selectedTaskLookup, linkedFunctions) {
         return {
             task_id: task.task_id,
             onet_task_id: task.onet_task_id,
@@ -599,6 +604,7 @@
             bargaining_power_weight: Number(toNumber(task.bargaining_power_weight, 0).toFixed(4)),
             source_label: taskSourceLabel(task),
             source_confidence: Number(toNumber(task.source_confidence, 0.45).toFixed(3)),
+            linked_functions: linkedFunctions || [],
             selected_by_default: !!selectedTaskLookup[task.task_id]
         };
     }
@@ -1604,7 +1610,23 @@
 
             taskRows.forEach(function (task) {
                 var bucket = taskSourceBucket(task);
-                groupedTasks[bucket].push(buildEditableTaskRow(task, selectedTaskLookup));
+                var linkedFunctions = (store.taskFunctionEdgesByTaskId[task.task_id] || [])
+                    .slice()
+                    .sort(function (left, right) {
+                        return toNumber(right.task_to_function_weight, 0) - toNumber(left.task_to_function_weight, 0);
+                    })
+                    .slice(0, 2)
+                    .map(function (edge) {
+                        var roleFunction = store.roleFunctionsById[edge.function_id] || {};
+                        return {
+                            function_id: edge.function_id,
+                            function_category: roleFunction.function_category || null,
+                            role_summary: roleFunction.role_summary || null,
+                            function_statement: roleFunction.function_statement || null,
+                            task_to_function_weight: Number(toNumber(edge.task_to_function_weight, 0).toFixed(3))
+                        };
+                    });
+                groupedTasks[bucket].push(buildEditableTaskRow(task, selectedTaskLookup, linkedFunctions));
             });
 
             Object.keys(groupedTasks).forEach(function (bucket) {
@@ -1680,6 +1702,32 @@
                 return !!activeFunctionLookup[row.function_id];
             });
             var functionSummary = summarizeActiveFunctions(activeFunctionRows, store.functionAccountabilityByFunctionId);
+            var dependencyEdits = input.dependencyEdits || {};
+            var addedDependencyEdges = Array.isArray(dependencyEdits.added_edges) ? dependencyEdits.added_edges : [];
+            if (addedDependencyEdges.length) {
+                var dependencyEdgeMap = {};
+                dependencyEdges.forEach(function (edge) {
+                    dependencyEdgeMap[dependencyEdgeKey(edge.from_task_id, edge.to_task_id)] = edge;
+                });
+                addedDependencyEdges.forEach(function (edge) {
+                    if (!edge || !activeTaskLookup[edge.from_task_id] || !activeTaskLookup[edge.to_task_id] || edge.from_task_id === edge.to_task_id) {
+                        return;
+                    }
+                    var key = dependencyEdgeKey(edge.from_task_id, edge.to_task_id);
+                    if (!dependencyEdgeMap[key]) {
+                        dependencyEdgeMap[key] = {
+                            occupation_id: occupationId,
+                            from_task_id: edge.from_task_id,
+                            to_task_id: edge.to_task_id,
+                            dependency_strength: '0.65',
+                            notes: 'user_declared_dependency'
+                        };
+                    }
+                });
+                dependencyEdges = Object.keys(dependencyEdgeMap).map(function (key) {
+                    return dependencyEdgeMap[key];
+                });
+            }
             var dominantTaskIds = uniqueStrings(input.dominantTaskIds || []);
             var criticalTaskIds = uniqueStrings(input.criticalTaskIds || []);
             var aiSupportTaskIds = uniqueStrings(input.aiSupportTaskIds || []);
@@ -2306,6 +2354,7 @@
                 selected_composition: {
                     active_task_count: taskInventoryRows.length,
                     active_function_count: activeFunctionRows.length,
+                    added_dependency_count: addedDependencyEdges.length,
                     removed_task_count: uniqueStrings(compositionEdits.removed_task_ids || []).length,
                     added_task_count: uniqueStrings(compositionEdits.added_task_ids || []).length,
                     removed_function_count: uniqueStrings(compositionEdits.removed_function_ids || []).length,
@@ -2657,6 +2706,7 @@
             roleFunctionsById: indexBy(loaded.roleFunctions, 'function_id'),
             occupationFunctionMapByOcc: groupBy(loaded.occupationFunctionMap, 'occupation_id'),
             functionAccountabilityByFunctionId: indexBy(loaded.functionAccountabilityProfiles, 'function_id'),
+            taskFunctionEdgesByTaskId: groupBy(loaded.taskFunctionEdges, 'task_id'),
             taskMembershipByKey: loaded.taskMembership.reduce(function (map, row) {
                 var key = taskKey(row.occupation_id, row.onet_task_id);
                 var current = map[key];

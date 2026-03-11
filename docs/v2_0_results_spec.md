@@ -159,6 +159,15 @@ type V2Result = {
       ai_support_task_ids: string[]
       support_task_ids: string[]
     }
+    selected_composition: {
+      active_task_count: number
+      active_function_count: number
+      added_dependency_count: number
+      removed_task_count: number
+      added_task_count: number
+      removed_function_count: number
+      added_function_count: number
+    }
     role_defining_cluster: {
       task_cluster_id: string
       label: string
@@ -269,6 +278,26 @@ type RoleTaskRow = {
 }
 ```
 
+The editable composition payload that drives this result is now:
+
+```ts
+type CompositionEdits = {
+  removed_task_ids: string[]
+  added_task_ids: string[]
+  removed_function_ids: string[]
+  added_function_ids: string[]
+}
+
+type DependencyEdits = {
+  added_edges: Array<{
+    from_task_id: string
+    to_task_id: string
+  }>
+}
+```
+
+The engine also exposes an occupation-scoped composition baseline through `getRoleComposition(occupationId)`, with source-bucketed tasks plus function anchors for the editor.
+
 ## Structural Scores Now Used Publicly
 
 The live page relies on these engine-level structural scores:
@@ -306,6 +335,7 @@ Still implemented as transitional compatibility surfaces:
 Current explanation surface:
 - the engine now returns an occupation-level explanation summary drawn from the normalized explanation layer
 - the client surfaces that summary in the model-details panel instead of leaving the audit logic only in diagnostics
+- the client also surfaces task-to-function links and user-declared support links in the composition flow before scoring
 
 ## Current Acceptance Criteria
 
@@ -324,4 +354,5 @@ Recommended next changes:
 - return `role_fate_map` directly from the engine rather than rebuilding it in the client
 - add source drill-down and task-level citations
 - add weighted task-share controls so users can do more than tag a handful of tasks
+- add explicit before/after deltas for composition edits
 - reduce or remove the legacy-answer compatibility fallback as external callers migrate

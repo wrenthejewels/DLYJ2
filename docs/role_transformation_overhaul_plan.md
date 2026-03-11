@@ -58,6 +58,7 @@ The live model currently outputs:
 - a task-level breakdown
 - a recomposition summary
 - evidence and occupation-assignment summaries
+- an editable role composition layer built from source-bucketed tasks and function anchors
 
 Current live role-fate labels:
 - `Augmented`
@@ -92,6 +93,9 @@ Implemented scripts:
 Current implementation scope:
 - reviewed multi-anchor function graphs for the highest-complexity occupations, with single-anchor coverage retained elsewhere
 - task-to-function weighting for every normalized task
+- live role composition editing across O*NET tasks, reviewed job-posting tasks, reviewed role-review tasks, and value-defining functions
+- task-to-function explanation links surfaced in the composition editor so users can see which selected tasks mainly support which functions
+- lightweight user-declared dependency links between selected tasks, used as optional spillover adjustments during a run
 - unified task-source comparison rows across Anthropic, GPT task labels, cluster proxies, and stubs, with proxies down-weighted when task-level evidence exists
 - unified occupation prior rows across live aggregates and benchmark sources
 - occupation-level explanation summaries for all `34` modeled occupations
@@ -134,6 +138,18 @@ Known current limits:
   - runtime scoring tied more directly to retained function, sign-off, substitution pressure, dependency drag, and augmentation fit
   - updated runtime copy so the questionnaire is framed as role refinement rather than generic friction
   - moved the visible UI to a schema-rendered core-questions plus optional-modules surface
+- Replaced the old post-selection task picker with an editable role composition layer:
+  - source-bucketed O*NET tasks
+  - reviewed public job-posting tasks
+  - reviewed role-review tasks
+  - value-defining function anchors
+  - per-task function-link explanations
+  - optional user-declared support links between selected tasks
+- Extended reviewed supplemental function coverage for:
+  - Human Resources Specialists
+  - Management Analysts
+  - Accountants and Auditors
+  - Computer Systems Analysts
 - Replaced seed-only job-description placeholders with reviewed public posting evidence for:
   - Lawyers
   - Data Scientists
@@ -227,10 +243,12 @@ What is not finished yet:
 
 ### What Still Needs To Be Done
 
-- Extend multi-anchor function graphs beyond the first reviewed subset wherever one anchor still collapses distinct human-retained functions
+- Extend multi-anchor function graphs further wherever one anchor still collapses distinct human-retained functions
 - Improve task-to-function weighting where O*NET still overstates generic admin or workflow tasks
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
 - Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
+- Add simple task-weight controls so users can mark selected work as major, medium, or minor rather than only in/out
+- Add clearer result deltas that tell users exactly what their composition edits changed in the current run
 - Decide whether to keep or remove the remaining legacy-answer compatibility fallback in the engine
 - Expand beyond the current `34` modeled occupations once the reviewed workflow is stable
 - Evaluate whether the current output taxonomy needs refinement beyond:
@@ -726,11 +744,11 @@ Success condition:
 
 ## Immediate Next Steps
 
-1. Extend the reviewed multi-anchor function layer beyond the first high-complexity subset, especially where one anchor still hides distinct advisory, supervisory, or relationship-retention functions.
-2. Replace more cluster-prior proxy dependence with direct task evidence, GPT task-label promotion, or reviewed manual mapping for the highest-proxy occupations.
-3. Use the new occupation explanation layer to run another occupation-by-occupation audit and tighten task-to-function weighting where explanations still look generic.
-4. Decide whether to keep or remove the remaining legacy-answer compatibility fallback after external callers are checked.
-5. Expand the reviewed workflow to occupations beyond the current `34` once the explanation layer is stable.
+1. Add weighted task-share controls to the composition editor so selected tasks can be marked as major, medium, or minor instead of only present or absent.
+2. Add explicit result deltas that explain what changed after composition edits, for example which retained functions strengthened or which spillover links increased pressure.
+3. Replace more cluster-prior proxy dependence with direct task evidence, GPT task-label promotion, or reviewed manual mapping for the highest-proxy occupations that still lean on fallback.
+4. Use the new occupation explanation layer to run another occupation-by-occupation audit and tighten task-to-function weighting where explanations still look generic.
+5. Decide whether to keep or remove the remaining legacy-answer compatibility fallback after external callers are checked.
 
 ## One-Sentence Summary
 

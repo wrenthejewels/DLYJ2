@@ -52,8 +52,8 @@
                     <p>The live model works in six steps.</p>
                     <ol class="r-numbered-list">
                         <li>It anchors you to a mapped occupation so the model starts from a real role rather than a vague title.</li>
-                        <li>It builds that role from the occupation task inventory, reviewed task expansions, and task-family structure.</li>
-                        <li>It reweights the role using your selected tasks so the model reflects your version of the occupation rather than the occupation average.</li>
+                        <li>It builds that role from the occupation task inventory, reviewed task expansions, and reviewed function anchors.</li>
+                        <li>It lets you edit that role composition by removing or adding source-bucketed tasks, adjusting which functions count, and optionally declaring a few support links between selected tasks.</li>
                         <li>It converts your role-refinement answers into a structured profile about function retention, sign-off, context load, adoption readiness, augmentation fit, and substitution pressure.</li>
                         <li>It scores direct AI pressure, dependency spillover, retained leverage, and wave timing across the task graph.</li>
                         <li>It turns those structural signals into a role-fate label, a wave trajectory, and a separate recomposition read.</li>
@@ -61,9 +61,9 @@
                     <p>Under the hood, the page still runs on a formal scoring model. The live input tuple is roughly:</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Input tuple</div>
-                        <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{dominantTaskIds},\ \text{criticalTaskIds},\ \text{aiSupportTaskIds},\ \text{supportTaskIds})$$</div>
+                        <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{compositionEdits},\ \text{dependencyEdits})$$</div>
                     </div>
-                    <p>The editable task ids now come from the role composition editor on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The role-refinement panel also writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
+                    <p>The editable task ids now come from the role composition editor on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The editor also shows which functions the selected tasks mainly support, and it accepts optional user-declared support links when one selected task mainly exists to enable another. The role-refinement panel writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
                 </section>
 
                 <!-- 2. What it looks at -->
@@ -90,11 +90,11 @@
                         <div class="r-equation-label">Baseline blend</div>
                         <div class="equation-display">$$\tilde s_i = 0.65\, s_i^{\text{cluster}} + 0.35\, s_i^{\text{inventory}}, \qquad s_i^{(0)} = \frac{\tilde s_i}{\sum_j \tilde s_j}$$</div>
                     </div>
-                    <p>That baseline is then tilted by your selected task mix. Primary and value-defining work receive the strongest uplift, because they matter most for what the role actually is.</p>
+                    <p>That baseline is then filtered through your composition edits. Removing tasks takes them out of the active run, adding reviewed tasks puts them into the active run, and function edits renormalize the role's retained-function mix. Optional support links can also add spillover paths that do not exist in the default graph.</p>
                     <div class="r-equation">
-                        <div class="r-equation-label">Override mass</div>
-                        <div class="equation-display">$$o_i = w_i^{\text{explicit}} + 0.16\mathbf{1}[i\in \text{dominant}] + 0.10\mathbf{1}[i\in \text{critical}]$$</div>
-                        <div class="equation-display">$$s_i = \frac{s_i^{(0)} + o_i}{\sum_j (s_j^{(0)} + o_j)}$$</div>
+                        <div class="r-equation-label">Edited composition</div>
+                        <div class="equation-display">$$\mathcal{T}^{*} = (\mathcal{T}^{(0)} \setminus \mathcal{T}^{-}) \cup \mathcal{T}^{+}, \qquad \mathcal{F}^{*} = (\mathcal{F}^{(0)} \setminus \mathcal{F}^{-}) \cup \mathcal{F}^{+}$$</div>
+                        <div class="equation-display">$$s_i = \frac{\mathbf{1}[i\in \mathcal{T}^{*}]\, \tilde s_i}{\sum_{j \in \mathcal{T}^{*}} \tilde s_j}, \qquad w_f = \frac{\mathbf{1}[f\in \mathcal{F}^{*}]\, \tilde w_f}{\sum_{g \in \mathcal{F}^{*}} \tilde w_g}$$</div>
                     </div>
                     <p>In plain English, this is the model's answer to "what is your version of this occupation actually made of?" The extra function layer matters because two roles can have exposed tasks but still differ sharply in whether the human role survives as the accountable core.</p>
                 </section>
@@ -165,13 +165,13 @@
                     <div class="r-equation">
                         <div class="r-equation-label">Task share</div>
                         <div class="equation-display">$$s_t^{\text{raw}} = s_{c(t)} \cdot \frac{\text{timeSharePrior}_t}{\sum_{j \in c(t)} \text{timeSharePrior}_j}$$</div>
-                        <div class="equation-display">$$m_t = 1 + 0.40\mathbf{1}[t\in \text{dominant}] + 0.12\mathbf{1}[t\in \text{critical}] + 0.18\mathbf{1}[t\in \text{support}]$$</div>
-                        <div class="equation-display">$$s_t = \frac{s_t^{\text{raw}}m_t}{\sum_j s_j^{\text{raw}}m_j}$$</div>
+                        <div class="equation-display">$$m_t = 1 + 0.18\mathbf{1}[t\in \mathcal{T}^{+}] - 0.15\mathbf{1}[t\in \mathcal{T}^{-}]$$</div>
+                        <div class="equation-display">$$s_t = \frac{\mathbf{1}[t\in \mathcal{T}^{*}]\, s_t^{\text{raw}}m_t}{\sum_{j \in \mathcal{T}^{*}} s_j^{\text{raw}}m_j}$$</div>
                     </div>
                     <div class="r-equation">
                         <div class="r-equation-label">Task pressure</div>
-                        <div class="equation-display">$$p_t^{\text{direct}} = \operatorname{clamp}\!\left(0.68(1-D_{c(t)}) + 0.20\alpha_{c(t)} + 0.12A_t - 0.14\mathbf{1}[t\in \text{aiSupport}] + 0.03\mathbf{1}[t\in \text{support}],\,0,\,1\right)$$</div>
-                        <div class="equation-display">$$p_t^{\text{spill}} = \sum_{(t,u)\in \mathcal{D}} d_{tu}\, p_u^{\text{direct}} \max(V_u,B_u) + 0.12\mathbf{1}[t\in \text{support}]$$</div>
+                        <div class="equation-display">$$p_t^{\text{direct}} = \operatorname{clamp}\!\left(0.68(1-D_{c(t)}) + 0.20\alpha_{c(t)} + 0.12A_t,\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$p_t^{\text{spill}} = \sum_{(t,u)\in \mathcal{D}^{*}} d_{tu}\, p_u^{\text{direct}} \max(V_u,B_u)$$</div>
                     </div>
                     <div class="r-equation">
                         <div class="r-equation-label">Retained leverage</div>
@@ -186,7 +186,7 @@
                         <li><code>exposed_core_share</code> and <code>retained_core_share</code></li>
                         <li><code>direct_coverage_ratio</code>, which shows how much of the task graph has direct task evidence rather than fallback estimates</li>
                     </ul>
-                    <p>Those task-graph signals do most of the real explanatory work on the page. The occupation explanation panel is built from this same layer, so the app can now say not just what the label is, but what the main pressure and counterweight actually are.</p>
+                    <p>Those task-graph signals do most of the real explanatory work on the page. The occupation explanation panel is built from this same layer, so the app can now say not just what the label is, but what the main pressure and counterweight actually are. The composition editor exposes part of that logic earlier by showing the top function links for each selected task and by letting you add a few support links when the default graph misses an obvious dependency.</p>
                 </section>
 
                 <!-- 7. Fate label -->
@@ -253,7 +253,7 @@
                     <ul>
                         <li><strong>Role-fate confidence</strong> is a margin-style score from the current rule set, not a calibrated probability.</li>
                         <li><strong>Task evidence coverage</strong> still varies by occupation and task family, even after the reviewed evidence expansion.</li>
-                        <li><strong>User task input</strong> is now more expressive than before, but it is still list-based rather than weighted by rough percentage buckets.</li>
+                        <li><strong>User task input</strong> is now source-bucketed and function-aware, but it is still list-based rather than weighted by rough percentage buckets.</li>
                         <li><strong>Multi-function roles</strong> are modeled better than before, but not every occupation yet has a fully reviewed multi-anchor function graph.</li>
                         <li><strong>The classifier</strong> is calibrated heuristically against anchor occupations, not trained on a labeled dataset.</li>
                         <li><strong>The wave system</strong> still exists internally, so role fate currently sits on top of the wave engine rather than fully replacing it.</li>
