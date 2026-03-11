@@ -1674,7 +1674,15 @@
                 onet_tasks: groupedTasks.onet_tasks,
                 reviewed_job_posting_tasks: groupedTasks.reviewed_job_posting_tasks,
                 reviewed_role_graph_tasks: groupedTasks.reviewed_role_graph_tasks,
-                functions: functionRows
+                functions: functionRows,
+                dependency_edges: (store.taskDependencyEdgesByOcc[occupationId] || []).map(function (edge) {
+                    return {
+                        from_task_id: edge.from_task_id,
+                        to_task_id: edge.to_task_id,
+                        dependency_strength: Number(toNumber(edge.dependency_strength, 0).toFixed(3)),
+                        notes: edge.notes || ''
+                    };
+                })
             };
         }
 
