@@ -530,6 +530,17 @@ function formatV2Label(value) {
         .replace(/\b\w/g, function(match) { return match.toUpperCase(); });
 }
 
+function formatTaskFamilyLabel(value) {
+    if (value === null || value === undefined || value === '') {
+        return 'Mapped task family';
+    }
+
+    return String(value)
+        .replace(/^cluster[_-]+/i, '')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\b\w/g, function(match) { return match.toUpperCase(); });
+}
+
 function formatConfidence(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) {
@@ -710,7 +721,8 @@ function createCompositionSelectionState(composition) {
     return {
         occupationId: composition?.occupation_id || null,
         selectedTaskIds: new Set(composition?.defaults?.task_ids || []),
-        selectedFunctionIds: new Set(composition?.defaults?.function_ids || [])
+        selectedFunctionIds: new Set(composition?.defaults?.function_ids || []),
+        taskShareOverrides: {}
     };
 }
 
@@ -720,7 +732,8 @@ function getCompositionEditsForEngine() {
             removed_task_ids: [],
             added_task_ids: [],
             removed_function_ids: [],
-            added_function_ids: []
+            added_function_ids: [],
+            task_share_overrides: {}
         };
     }
 
@@ -733,7 +746,12 @@ function getCompositionEditsForEngine() {
         removed_task_ids: Array.from(defaultTaskIds).filter((taskId) => !v2RoleCompositionState.selectedTaskIds.has(taskId)),
         added_task_ids: selectedTaskIds.filter((taskId) => !defaultTaskIds.has(taskId)),
         removed_function_ids: Array.from(defaultFunctionIds).filter((functionId) => !v2RoleCompositionState.selectedFunctionIds.has(functionId)),
-        added_function_ids: selectedFunctionIds.filter((functionId) => !defaultFunctionIds.has(functionId))
+        added_function_ids: selectedFunctionIds.filter((functionId) => !defaultFunctionIds.has(functionId)),
+        task_share_overrides: Object.fromEntries(
+            Object.entries(v2RoleCompositionState.taskShareOverrides || {}).filter(([taskId, value]) => {
+                return v2RoleCompositionState.selectedTaskIds.has(taskId) && Number.isFinite(Number(value));
+            }).map(([taskId, value]) => [taskId, Number(value)])
+        )
     };
 }
 
@@ -748,6 +766,44 @@ function getCompositionSelectedIds(cardKey) {
         return v2RoleCompositionState?.selectedFunctionIds || new Set();
     }
     return v2RoleCompositionState?.selectedTaskIds || new Set();
+}
+
+function getSelectedFunctionSupportMap() {
+    if (!v2RoleCompositionState?.raw) {
+        return new Map();
+    }
+
+    const map = new Map();
+    const allTasks = []
+        .concat(v2RoleCompositionState.raw.onet_tasks || [])
+        .concat(v2RoleCompositionState.raw.reviewed_job_posting_tasks || [])
+        .concat(v2RoleCompositionState.raw.reviewed_role_graph_tasks || []);
+
+    allTasks.forEach((task) => {
+        if (!v2RoleCompositionState.selectedTaskIds.has(task.task_id) || !Array.isArray(task.linked_functions)) {
+            return;
+        }
+
+        task.linked_functions.forEach((entry) => {
+            if (!entry?.function_id || !v2RoleCompositionState.selectedFunctionIds.has(entry.function_id)) {
+                return;
+            }
+            if (!map.has(entry.function_id)) {
+                map.set(entry.function_id, []);
+            }
+            map.get(entry.function_id).push({
+                task_statement: task.task_statement,
+                weight: Number(entry.task_to_function_weight) || 0
+            });
+        });
+    });
+
+    map.forEach((rows, functionId) => {
+        rows.sort((left, right) => right.weight - left.weight);
+        map.set(functionId, rows);
+    });
+
+    return map;
 }
 
 function createCompositionChip(item, cardKey) {
@@ -768,9 +824,13 @@ function createCompositionChip(item, cardKey) {
 
     const meta = document.createElement('div');
     meta.className = 'v2-composition-chip-meta';
+    const supportMap = cardKey === 'functions' ? getSelectedFunctionSupportMap() : null;
+    const detailNodes = [];
     let metaText = cardKey === 'functions'
-        ? `${Math.round((Number(item.function_weight) || 0) * 100)}% function weight · ${Math.round((Number(item.source_confidence) || 0) * 100)}% confidence`
-        : `${formatV2Label(item.task_family_id || 'task')} · ${Math.round((Number(item.time_share_prior) || 0) * 100)}% baseline share · ${Math.round((Number(item.source_confidence) || 0) * 100)}% confidence`;
+        ? `${Math.round((Number(item.function_weight) || 0) * 100)}% function weight`
+        : `${item.task_family_label || formatTaskFamilyLabel(item.task_family_id || 'task')} · ${Math.round((Number(item.time_share_prior) || 0) * 100)}% baseline share`;
+    meta.textContent = metaText;
+
     if (cardKey !== 'functions' && Array.isArray(item.linked_functions) && item.linked_functions.length) {
         const functionRead = item.linked_functions
             .map((entry) => {
@@ -778,9 +838,57 @@ function createCompositionChip(item, cardKey) {
                 return `${truncateV2TaskLabel(label, 54)} (${Math.round((Number(entry.task_to_function_weight) || 0) * 100)}%)`;
             })
             .join(' · ');
-        metaText += ` · mainly supports ${functionRead}`;
+        const supportLine = document.createElement('div');
+        supportLine.className = 'v2-composition-linkline';
+        supportLine.textContent = `Supports: ${functionRead}`;
+        detailNodes.push(supportLine);
     }
-    meta.textContent = metaText;
+    if (cardKey === 'functions') {
+        const supportedBy = supportMap?.get(item.function_id) || [];
+        if (supportedBy.length) {
+            const supportLine = document.createElement('div');
+            supportLine.className = 'v2-composition-linkline';
+            supportLine.textContent = `Currently supported by: ${supportedBy.slice(0, 3).map((entry) => truncateV2TaskLabel(entry.task_statement, 42)).join(' · ')}`;
+            detailNodes.push(supportLine);
+        }
+    }
+
+    if (cardKey !== 'functions') {
+        const shareControls = document.createElement('div');
+        shareControls.className = 'v2-composition-share-row';
+
+        const shareLabel = document.createElement('label');
+        shareLabel.className = 'v2-composition-share-label';
+        shareLabel.textContent = 'Role share';
+
+        const shareSelect = document.createElement('select');
+        shareSelect.className = 'plane-dropdown v2-composition-share-select';
+        shareSelect.dataset.action = 'share-weight';
+        shareSelect.dataset.itemId = item.task_id;
+        shareSelect.setAttribute('aria-label', `Adjust role share for ${item.task_statement || 'selected task'}`);
+
+        const currentOverride = Number(v2RoleCompositionState?.taskShareOverrides?.[item.task_id]);
+        const baselineShare = Math.round((Number(item.time_share_prior) || 0) * 100);
+        [
+            { value: '', label: `Baseline (${baselineShare}%)` },
+            { value: '0.05', label: '5%' },
+            { value: '0.10', label: '10%' },
+            { value: '0.15', label: '15%' },
+            { value: '0.20', label: '20%' },
+            { value: '0.25', label: '25%' },
+            { value: '0.30', label: '30%' }
+        ].forEach((optionConfig) => {
+            const option = document.createElement('option');
+            option.value = optionConfig.value;
+            option.textContent = optionConfig.label;
+            shareSelect.appendChild(option);
+        });
+        shareSelect.value = Number.isFinite(currentOverride) ? currentOverride.toFixed(2) : '';
+
+        shareLabel.appendChild(shareSelect);
+        shareControls.appendChild(shareLabel);
+        body.appendChild(shareControls);
+    }
 
     const remove = document.createElement('button');
     remove.type = 'button';
@@ -792,6 +900,7 @@ function createCompositionChip(item, cardKey) {
 
     body.appendChild(title);
     body.appendChild(meta);
+    detailNodes.forEach((node) => body.appendChild(node));
     chip.appendChild(body);
     chip.appendChild(remove);
     return chip;
@@ -870,7 +979,7 @@ function renderV2RoleComposition(composition) {
             card.hidden = true;
         });
         headline.textContent = 'Select a mapped occupation to load the editable role composition.';
-        summary.textContent = 'The model starts from the occupation baseline, then you can edit which baseline tasks, reviewed additions, and value-defining functions should count in this run.';
+        summary.textContent = 'The model starts from the occupation baseline, links tasks to the functions they serve, and then lets you add optional task-to-task support links when your version of the role needs them.';
         renderV2DependencyEditor();
         return;
     }
@@ -881,7 +990,7 @@ function renderV2RoleComposition(composition) {
     const functionCount = (composition.functions || []).filter((row) => v2RoleCompositionState.selectedFunctionIds.has(row.function_id)).length;
 
     headline.textContent = 'This is the role composition the model will score next.';
-    summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. Remove anything that does not fit your role and add back occupation-scoped items that do.`;
+    summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. Tasks already show the functions they mainly support. Optional support links only add task-to-task dependencies when your real workflow is more connected than the default graph.`;
 
     V2_COMPOSITION_CARD_CONFIG.forEach(renderCompositionCard);
     renderV2DependencyEditor();
@@ -942,6 +1051,13 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
         if (!v2RoleCompositionState.selectedFunctionIds.size) {
             v2RoleCompositionState.selectedFunctionIds = new Set(composition.defaults.function_ids || []);
         }
+        v2RoleCompositionState.taskShareOverrides = Object.fromEntries(
+            Object.entries(previousState.taskShareOverrides || {}).filter(([taskId, value]) => {
+                const exists = composition.onet_tasks.concat(composition.reviewed_job_posting_tasks, composition.reviewed_role_graph_tasks)
+                    .some((row) => row.task_id === taskId);
+                return exists && Number.isFinite(Number(value));
+            }).map(([taskId, value]) => [taskId, Number(value)])
+        );
         v2CustomDependencyEdges = previousDependencies.filter((edge) => {
             return v2RoleCompositionState.selectedTaskIds.has(edge.from_task_id) && v2RoleCompositionState.selectedTaskIds.has(edge.to_task_id);
         });
@@ -1408,6 +1524,9 @@ function renderV2OccupationAssignment(assignment) {
         if (Number(assignment.selected_composition.added_dependency_count) > 0) {
             parts.push(`You also added ${assignment.selected_composition.added_dependency_count} custom support link${assignment.selected_composition.added_dependency_count === 1 ? '' : 's'} on top of the default dependency graph.`);
         }
+        if (Number(assignment.selected_composition.share_override_count) > 0) {
+            parts.push(`You adjusted the role-share weight for ${assignment.selected_composition.share_override_count} task${assignment.selected_composition.share_override_count === 1 ? '' : 's'}, so the task mix was renormalized before scoring.`);
+        }
     }
     if (assignment?.questionnaire_effect) {
         parts.push(assignment.questionnaire_effect);
@@ -1485,14 +1604,13 @@ function createV2TaskBreakdownItem(task) {
 
     const meta = document.createElement('div');
     meta.className = 'v2-task-meta';
-    meta.appendChild(createV2TaskChip(task?.task_cluster_label || 'Unknown cluster', 'accent'));
+    meta.appendChild(createV2TaskChip(task?.task_cluster_label || 'Unknown task family', 'accent'));
     meta.appendChild(createV2TaskChip(`${formatV2Label(task?.exposure_level)} exposure`, task?.exposure_level === 'high' ? 'warning' : (task?.exposure_level === 'moderate' ? 'accent' : '')));
     meta.appendChild(createV2TaskChip(formatV2Label(task?.likely_mode || 'mixed'), task?.likely_mode === 'automation' ? 'warning' : 'success'));
     meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.direct_exposure_pressure) || 0) * 100)}% direct pressure`, 'warning'));
     meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.indirect_dependency_pressure) || 0) * 100)}% spillover`, 'accent'));
     meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.retained_leverage) || 0) * 100)}% retained leverage`, 'success'));
-    meta.appendChild(createV2TaskChip(`${Math.round((Number(task?.evidence_confidence) || 0) * 100)}% confidence`));
-    meta.appendChild(createV2TaskChip(task?.has_direct_evidence ? 'Direct task evidence' : 'Cluster fallback'));
+    meta.appendChild(createV2TaskChip(task?.has_direct_evidence ? 'Direct task evidence' : 'Task-family fallback'));
 
     if (task?.is_role_critical) {
         meta.appendChild(createV2TaskChip('Role-defining task', 'accent'));
@@ -1999,6 +2117,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!cardKey || !itemId || !v2RoleCompositionState) return;
             const selectionSet = cardKey === 'functions' ? v2RoleCompositionState.selectedFunctionIds : v2RoleCompositionState.selectedTaskIds;
             selectionSet.delete(itemId);
+            if (cardKey !== 'functions' && v2RoleCompositionState.taskShareOverrides) {
+                delete v2RoleCompositionState.taskShareOverrides[itemId];
+            }
             renderV2RoleComposition(v2RoleCompositionState.raw);
             updateV2Results({ preserveSelection: true }).catch((error) => {
                 console.error('[V2] Failed to rerender after composition removal:', error);
@@ -2018,6 +2139,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('[V2] Failed to rerender after composition add:', error);
             });
         }
+    });
+
+    compositionCards?.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLSelectElement) || target.dataset.action !== 'share-weight' || !v2RoleCompositionState) {
+            return;
+        }
+
+        const taskId = target.dataset.itemId || '';
+        if (!taskId) {
+            return;
+        }
+
+        if (!target.value) {
+            delete v2RoleCompositionState.taskShareOverrides[taskId];
+        } else {
+            const value = Number(target.value);
+            if (!Number.isFinite(value)) {
+                delete v2RoleCompositionState.taskShareOverrides[taskId];
+            } else {
+                v2RoleCompositionState.taskShareOverrides[taskId] = value;
+            }
+        }
+
+        updateV2Results({ preserveSelection: true }).catch((error) => {
+            console.error('[V2] Failed to rerender after task share change:', error);
+        });
     });
 
     document.getElementById('v2-dependency-add')?.addEventListener('click', () => {

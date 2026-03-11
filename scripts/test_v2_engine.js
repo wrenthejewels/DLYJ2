@@ -58,6 +58,9 @@ async function main() {
   if (!sampleLinkedTask) {
     throw new Error('Expected at least one editable task to expose linked function explanations.');
   }
+  if (String(sampleLinkedTask.task_family_label || '').toLowerCase().includes('cluster')) {
+    throw new Error('Expected editable task rows to expose plain-English task family labels.');
+  }
 
   if (!result.recomposition_summary) {
     throw new Error('Expected recomposition_summary in result payload.');
@@ -168,6 +171,30 @@ async function main() {
     throw new Error('Expected at least one active function after composition edits.');
   }
   assertBounded('taskDrivenResult.role_fate_confidence', taskDrivenResult.role_fate_confidence);
+
+  const shareOverrideTaskId = roleComposition.defaults.task_ids[0];
+  const baseTaskRow = result.task_breakdown.tasks.find((task) => task.task_id === shareOverrideTaskId);
+  const shareDrivenResult = engine.computeResult({
+    occupationId: result.selected_occupation_id,
+    roleCategory: 'software',
+    questionnaireProfile: result.questionnaire_profile,
+    seniorityLevel: 3,
+    compositionEdits: {
+      task_share_overrides: {
+        [shareOverrideTaskId]: 0.30
+      }
+    }
+  });
+  const shareTaskRow = shareDrivenResult.task_breakdown.tasks.find((task) => task.task_id === shareOverrideTaskId);
+  if (!baseTaskRow || !shareTaskRow) {
+    throw new Error('Expected task share override scenario to find the target task in both runs.');
+  }
+  if (shareTaskRow.share_of_role <= baseTaskRow.share_of_role) {
+    throw new Error('Expected task share override to increase the task share_of_role.');
+  }
+  if ((shareDrivenResult.occupation_assignment?.selected_composition?.share_override_count || 0) !== 1) {
+    throw new Error('Expected task share override count to register in the selected composition summary.');
+  }
 
   const dependencyDrivenResult = engine.computeResult({
     occupationId: result.selected_occupation_id,

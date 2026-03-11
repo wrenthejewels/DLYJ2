@@ -598,6 +598,7 @@
             onet_task_id: task.onet_task_id,
             task_statement: task.task_statement,
             task_family_id: task.task_family_id,
+            task_family_label: slugToLabel(task.task_family_id || 'task'),
             task_type: task.task_type || '',
             time_share_prior: Number(toNumber(task.time_share_prior, 0).toFixed(4)),
             value_centrality: Number(toNumber(task.value_centrality, 0).toFixed(4)),
@@ -864,6 +865,24 @@
         });
 
         return clusterMap;
+    }
+
+    function applyTaskShareOverrides(taskRows, taskShareOverrides) {
+        var overrides = taskShareOverrides || {};
+        return (taskRows || []).map(function (row) {
+            var overrideValue = overrides[row.task_id];
+            if (overrideValue === undefined || overrideValue === null || overrideValue === '') {
+                return row;
+            }
+
+            var normalizedOverride = clamp(toNumber(overrideValue, toNumber(row.time_share_prior, 0)), 0.005, 0.95);
+            var clone = {};
+            Object.keys(row).forEach(function (key) {
+                clone[key] = row[key];
+            });
+            clone.time_share_prior = normalizedOverride;
+            return clone;
+        });
     }
 
     function buildTaskClustersFromInventory(taskRows) {
@@ -1682,6 +1701,8 @@
             var taskInventoryRows = (store.taskInventoryByOcc[occupationId] || []).filter(function (row) {
                 return !!activeTaskLookup[row.task_id];
             });
+            var taskShareOverrides = compositionEdits.task_share_overrides || {};
+            taskInventoryRows = applyTaskShareOverrides(taskInventoryRows, taskShareOverrides);
             var dependencyEdges = (store.taskDependencyEdgesByOcc[occupationId] || []).filter(function (edge) {
                 return activeTaskLookup[edge.from_task_id] && activeTaskLookup[edge.to_task_id];
             });
@@ -2355,6 +2376,9 @@
                     active_task_count: taskInventoryRows.length,
                     active_function_count: activeFunctionRows.length,
                     added_dependency_count: addedDependencyEdges.length,
+                    share_override_count: Object.keys(taskShareOverrides).filter(function (taskId) {
+                        return !!activeTaskLookup[taskId];
+                    }).length,
                     removed_task_count: uniqueStrings(compositionEdits.removed_task_ids || []).length,
                     added_task_count: uniqueStrings(compositionEdits.added_task_ids || []).length,
                     removed_function_count: uniqueStrings(compositionEdits.removed_function_ids || []).length,

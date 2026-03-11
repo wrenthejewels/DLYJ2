@@ -99,6 +99,20 @@
                     <h3>Role breakdown</h3>
                     <p id="v2-composition-headline">Select an occupation to load the role breakdown the model will score.</p>
                     <p id="v2-composition-summary">We start with baseline tasks from O*NET, add reviewed tasks from public postings and role review, then keep the main functions that define why the role exists. You can edit that mix before scoring.</p>
+                    <div class="v2-structure-guide" id="v2-structure-guide">
+                        <div class="v2-structure-guide-item">
+                            <strong>1. Tasks</strong>
+                            <span>These are the concrete asks that make up your role.</span>
+                        </div>
+                        <div class="v2-structure-guide-item">
+                            <strong>2. Support links</strong>
+                            <span>Use these only when one selected task mostly exists to enable another selected task.</span>
+                        </div>
+                        <div class="v2-structure-guide-item">
+                            <strong>3. Functions</strong>
+                            <span>These are the higher-level outcomes or responsibilities the role is there to deliver.</span>
+                        </div>
+                    </div>
 
                     <div class="v2-composition-cards" id="v2-composition-cards">
                         <div class="v2-composition-card" id="v2-composition-onet_tasks" hidden>
@@ -165,7 +179,7 @@
                         </summary>
                         <div class="v2-inline-collapsible-body">
                             <div class="v2-composition-card-header">
-                                <p>Add a support link when one selected task mostly exists to enable another. This helps the model capture spillover more accurately.</p>
+                                <p>Tasks already connect directly to the functions they serve. Add a support link only when one selected task mostly exists to enable another selected task and the default dependency graph misses that connection.</p>
                             </div>
                             <div class="v2-dependency-controls">
                                 <select id="v2-dependency-source" class="plane-dropdown">
@@ -404,7 +418,7 @@
                             <strong id="v2-task-direct">-</strong>
                         </div>
                         <div class="v2-task-stat" hidden aria-hidden="true">
-                            <span>Cluster fallback rows</span>
+                            <span>Task-family fallback rows</span>
                             <strong id="v2-task-fallback">-</strong>
                         </div>
                         <div class="v2-task-stat" hidden aria-hidden="true">
