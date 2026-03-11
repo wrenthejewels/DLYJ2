@@ -130,6 +130,15 @@
                         <div class="equation-display">$$f^{\text{document}}=\operatorname{avg}(\text{aiObservability},\ \text{workflowDecomposability}), \quad f^{\text{tacit}}=\operatorname{avg}(\text{exceptionLoad},\ \text{dependencyBottlenecks},\ \text{externalTrust})$$</div>
                     </div>
                     <p>In plain English, the questionnaire tells the model whether AI mainly helps the role, compresses the role, or still leaves a human-retained core because of function, accountability, trust, and messy exceptions.</p>
+                    <p>When the selected occupation has a reviewed function graph, the model blends function-level accountability signals into the questionnaire-derived values before scoring. This anchors the signals to the occupation's actual authority and delegation structure rather than relying on user responses alone.</p>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Function-layer blending</div>
+                        <div class="equation-display">$$\text{functionRetention} \leftarrow 0.72\,\text{functionRetention} + 0.14\,\text{humanAuthorityReq} + 0.14\,\text{bargainingPowerRetention}$$</div>
+                        <div class="equation-display">$$\text{couplingProtection} \leftarrow 0.78\,\text{couplingProtection} + 0.10\,\text{delegabilityGuardrail} + 0.06\,\text{trustReq} + 0.06\,\text{judgmentReq}$$</div>
+                        <div class="equation-display">$$\text{augmentationFit} \leftarrow 0.80\,\text{augmentationFit} + 0.10\,\text{bargainingPowerRetention} + 0.10\,\text{judgmentReq}$$</div>
+                        <div class="equation-display">$$\text{substitutionRiskModifier} \leftarrow 0.82\,\text{substitutionRiskModifier} + 0.10(1-\text{delegabilityGuardrail}) + 0.08(1-\text{humanAuthorityReq})$$</div>
+                    </div>
+                    <p>The same blending applies to three friction dimensions: <code>accountability_load</code>, <code>judgment_requirement</code>, and <code>tacit_context_dependence</code> each blend at 0.75 questionnaire / 0.25 function-graph. Occupations without a reviewed function graph skip this step entirely and use the questionnaire signals as-is.</p>
                 </section>
 
                 <!-- 5. Absorption -->
@@ -141,11 +150,18 @@
                         <div class="equation-display">$$F_i = 0.25f^{\text{accountability}}_i + 0.22f^{\text{judgment}}_i + 0.22f^{\text{tacit}}_i + 0.18f^{\text{exception}}_i + 0.13(1-f^{\text{document}}_i)$$</div>
                     </div>
                     <div class="r-equation">
-                        <div class="r-equation-label">Difficulty score</div>
-                        <div class="equation-display">$$D_i = \operatorname{clamp}\!\left(0.40F_i + 0.25(0.35h_i) + 0.25R_i + 0.08\cdot\text{functionRetention} + 0.04\cdot\text{augmentationFit} + 0.08\cdot\text{substitutionRiskModifier},\,0.02,\,0.98\right)$$</div>
-                        <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.10B_i + 0.05C_i + 0.04\max(0,V_i-0.5) - 0.07A_i + 0.08K_i,\,0.02,\,0.98\right)$$</div>
+                        <div class="r-equation-label">Difficulty score — base</div>
+                        <div class="equation-display">$$D_i = \operatorname{clamp}\!\left(0.40F_i + 0.25(0.35\,h_i) + 0.25R_i + 0.10\cdot\text{couplingProtection},\,0.02,\,0.98\right)$$</div>
                     </div>
-                    <p><code>h_i</code> is human advantage, <code>R_i</code> is empirical resistance, <code>B_i</code> is bargaining-power weight, <code>C_i</code> is core-task share, <code>V_i</code> is value centrality, <code>A_i</code> is AI-support observability, and <code>K_i</code> indicates a role-critical family. Lower difficulty means the task family is easier to absorb sooner.</p>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Difficulty score — task-graph adjustments</div>
+                        <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.08\,h_i\cdot\text{functionRetention} + 0.04\,\text{augmentationFit} + 0.10B_i + 0.05C_i + 0.04\max(0,V_i-0.5) - 0.07A_i - 0.08\,\text{substitutionRiskModifier},\,0.02,\,0.98\right)$$</div>
+                    </div>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Difficulty score — criticality boost</div>
+                        <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.08,\,0.02,\,0.98\right) \quad \text{if task family is role-critical}$$</div>
+                    </div>
+                    <p><code>h_i</code> is human advantage, <code>R_i</code> is empirical resistance, <code>B_i</code> is bargaining-power weight, <code>C_i</code> is core-task share, <code>V_i</code> is value centrality, <code>A_i</code> is AI-support observability. The base step combines friction, human advantage, empirical resistance, and coupling protection. The second step adjusts for task-graph signals: tasks with high bargaining power or value centrality resist automation, while high AI-support observability and substitution risk lower difficulty. The criticality boost applies only to task families flagged as role-critical. Lower difficulty means the task family is easier to absorb sooner.</p>
                     <p>The evidence underneath those estimates is layered. The model prefers direct task evidence when it has it, then reviewed task estimates and benchmark task labels, and only then broader proxy estimates. That is why some occupations are better supported than others.</p>
                     <p>After that, each task family is placed into an approximate timing bucket: current wave, next wave, or distant wave.</p>
                     <div class="r-equation">
@@ -157,6 +173,16 @@
 \text{distant}, & D_i > 0.65
 \end{cases}$$</div>
                     </div>
+                    <p>Within each wave, the model also estimates an absorption rate: how much of the task family's share is likely to be absorbed into AI-assisted workflows. This is not a binary on/off — it captures the realistic pace of organizational uptake.</p>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Adoption realization</div>
+                        <div class="equation-display">$$\text{adoptionRealization} = 0.92 + 0.16\cdot\text{adoptionPressure}$$</div>
+                    </div>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Absorption rate</div>
+                        <div class="equation-display">$$a_i = \operatorname{clamp}\!\left(\text{adoptionRealization}\,(1 - 0.3D_i)\,(0.92 + 0.10A_i - 0.06C_i)\,(1 - 0.10\,\text{dependencyBottlenecks})\,(1 - 0.08\,\text{signoff}),\,0.45,\,0.95\right)$$</div>
+                    </div>
+                    <p>The absorbed share for each task family is then <code>share_of_role × absorption_rate</code> for current-wave families. This feeds directly into the recomposition layer's workflow compression estimate.</p>
                 </section>
 
                 <!-- 6. Risk & spillover -->
