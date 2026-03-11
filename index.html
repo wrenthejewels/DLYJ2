@@ -156,6 +156,87 @@
                             <div class="v2-dependency-list" id="v2-dependency-list"></div>
                         </div>
                     </div>
+
+                    <!-- Card-based role breakdown (classic view) -->
+                    <div class="v2-composition-cards" id="v2-breakdown-cards">
+                        <div class="v2-composition-card" id="v2-breakdown-onet_tasks" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Tasks from O*NET</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="onet_tasks">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add" data-card="onet_tasks">Add</button>
+                            </div>
+                        </div>
+
+                        <div class="v2-composition-card" id="v2-breakdown-reviewed_job_posting_tasks" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Tasks added from public job postings</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="reviewed_job_posting_tasks">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add" data-card="reviewed_job_posting_tasks">Add</button>
+                            </div>
+                        </div>
+
+                        <div class="v2-composition-card" id="v2-breakdown-reviewed_role_graph_tasks" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Tasks added during role review</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="reviewed_role_graph_tasks">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add" data-card="reviewed_role_graph_tasks">Add</button>
+                            </div>
+                        </div>
+
+                        <div class="v2-composition-card" id="v2-breakdown-functions" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Value-defining functions</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="functions">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add" data-card="functions">Add</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <details class="v2-inline-collapsible v2-inline-collapsible--nested v2-dependency-editor" id="v2-dependency-editor-panel">
+                        <summary class="v2-inline-collapsible-summary">
+                            <span>Optional support links</span>
+                            <span class="v2-inline-collapsible-helper">Click to open. Only use this if one selected task mainly exists to support another and the default graph misses that link.</span>
+                        </summary>
+                        <div class="v2-inline-collapsible-body">
+                            <div class="v2-composition-card-header">
+                                <p>Tasks already connect directly to the functions they serve. Add a support link only when one selected task mostly exists to enable another selected task and the default dependency graph misses that connection.</p>
+                            </div>
+                            <div class="v2-dependency-controls">
+                                <select id="v2-dependency-source-classic" class="plane-dropdown">
+                                    <option value="">Choose support task</option>
+                                </select>
+                                <select id="v2-dependency-target-classic" class="plane-dropdown">
+                                    <option value="">Choose task it mainly supports</option>
+                                </select>
+                                <button type="button" class="r-refine-link" id="v2-dependency-add-classic">Add link</button>
+                            </div>
+                            <div class="v2-dependency-list" id="v2-dependency-list-classic"></div>
+                        </div>
+                    </details>
                 </section>
 
                 <!-- Role refinement -->
