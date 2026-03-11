@@ -32,23 +32,23 @@ Core join path:
 12. `occupation_quality_indicators.csv`
 13. `occupation_labor_market_context.csv`
 
-Next role-fate extension:
-14. `occupation_task_inventory.csv` (scaffolded richer task contract)
-15. `task_dependency_edges.csv` (scaffolded role-graph edges)
-16. `occupation_task_role_profiles.csv` (scaffolded role-graph summaries)
-17. `job_description_task_evidence.csv` (pilot task-gap expansion evidence)
+Current role-fate extension:
+14. `occupation_task_inventory.csv` (live richer task contract)
+15. `task_dependency_edges.csv` (live role-graph edges)
+16. `occupation_task_role_profiles.csv` (live role-graph summaries)
+17. `job_description_task_evidence.csv` (reviewed task-gap expansion evidence)
 18. `task_source_evidence.csv` (source-specific task evidence contract)
 19. `occupation_source_priors.csv` (source-specific occupation prior contract)
 20. `role_functions.csv` (role summary and function anchors)
 21. `occupation_function_map.csv` (occupation-to-function binding and guardrails)
 22. `task_function_edges.csv` (task-to-function graph edges, including reviewed multi-anchor splits)
 23. `function_accountability_profiles.csv` (judgment, trust, liability, authority profiles)
-24. `occupation_role_transformation.csv` (first-pass role-fate outputs)
+24. `occupation_role_transformation.csv` (live role-fate outputs)
 25. `occupation_role_explanations.csv` (plain-English explanation summaries for each occupation output)
 
 ## Purpose of the normalized layer
 
-This layer is designed so the future v2.0 model can answer:
+This layer is designed so the live v2.x model can answer:
 - what tasks are exposed
 - which tasks define the role's value
 - which tasks carry bargaining power

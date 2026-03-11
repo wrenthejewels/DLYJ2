@@ -13,7 +13,7 @@ This document describes the current live intake contract for the `2.0` role-fate
 
 The live intake is now a hybrid:
 - occupation anchoring
-- five structured task selectors
+- an editable role composition studio
 - a questionnaire UI that renders as core questions plus optional deeper modules
 - a native role-refinement profile authored from named refinement factors
 
@@ -24,87 +24,91 @@ The live page collects inputs in this order:
 1. broad role category
 2. occupation anchor
 3. hierarchy / seniority
-4. optional structured task detail
+4. optional role breakdown editing
 5. optional role refinement
 
-## Current Structured Task Inputs
+## Current Role Composition Inputs
 
-The live direct-input block in `index.html` now exposes five occupation-specific selectors:
+The live role-breakdown studio in `index.html` now exposes an occupation-scoped composition editor built from `engine.getRoleComposition(selectedOccupationId)`.
 
-1. `Primary current task`
-2. `Secondary current task`
-3. `Value-defining task`
-4. `Task already helped by AI`
-5. `Support task tied to exposed work`
+Current editable elements:
 
-These selectors are populated from `engine.getTaskInventory(selectedOccupationId)`.
+1. source-bucketed task rows:
+   - baseline `O*NET` tasks
+   - reviewed public-posting tasks
+   - reviewed role-review tasks
+2. reviewed function anchors for the selected occupation
+3. custom task-to-task support links
+4. custom task-to-function links
+5. optional per-task share overrides in the graph editor
+
+The live app starts from an occupation default bundle, then lets the user add/remove tasks and functions, connect nodes, and optionally rebalance task shares before scoring.
 
 ## Current Runtime Mapping
 
-The client translates those five selectors into this runtime input contract:
+The client translates composition edits into this runtime contract:
 
 ```ts
-type DirectTaskInputs = {
-  dominantTaskIds: string[]
-  roleCriticalTaskIds: string[]
-  aiSupportTaskIds: string[]
-  supportTaskIds: string[]
-  dominantTaskClusters: string[]
-  roleCriticalClusters: string[]
+type CompositionEdits = {
+  removed_task_ids: string[]
+  added_task_ids: string[]
+  removed_function_ids: string[]
+  added_function_ids: string[]
+  task_share_overrides: Record<string, number>
+  task_function_links: Array<{
+    task_id: string
+    function_id: string
+  }>
+}
+
+type DependencyEdits = {
+  added_edges: Array<{
+    from_task_id: string
+    to_task_id: string
+  }>
 }
 ```
 
-The current translation logic is:
-- `Primary current task` + `Secondary current task` -> `dominantTaskIds`
-- `Value-defining task` -> `criticalTaskIds`
-- `Task already helped by AI` -> `aiSupportTaskIds`
-- `Support task tied to exposed work` -> `supportTaskIds`
-- selected task-family ids are derived from the chosen task options and used to tilt cluster weights
+The live model-page path no longer depends on five standalone task selectors.
 
-## Current Engine Effect Of Task Inputs
+The engine still accepts the older `dominantTaskIds` / `criticalTaskIds` / `aiSupportTaskIds` / `supportTaskIds` path for compatibility with external callers and tests, but that is no longer the main browser runtime path.
 
-The engine currently applies those task inputs in four places:
+## Current Engine Effect Of Composition Inputs
 
-### 1. Cluster-share tilting
+The engine currently applies composition inputs in four places:
 
-Selected task-family ids are converted into cluster overrides:
-- `+0.16` for dominant clusters
-- `+0.10` for role-critical clusters
+### 1. Active role bundle selection
 
-These weights are passed through `buildTaskOverrides(...)` before cluster normalization.
+Selected task ids determine which inventory rows remain active in the run.
+
+Selected function ids determine which occupation function anchors remain active in the run.
+
+This changes:
+- the task inventory passed into scoring
+- the active function summary
+- the default dependency graph
+- the occupation-assignment summary shown in the UI
 
 ### 2. Task-share reweighting
 
-Selected task rows receive multiplicative share boosts:
-- dominant task: `+0.40`
-- critical task: `+0.12`
-- support task: `+0.18`
+If the user changes task share weights in the graph editor, the engine applies `task_share_overrides`, then renormalizes the role mix before cluster aggregation and task-level scoring.
 
-The task shares are then renormalized across the role.
+### 3. Dependency and function remapping
 
-### 3. Task-pressure adjustment
+User-declared task-to-task support links are appended to the default occupation dependency graph through `DependencyEdits.added_edges`.
 
-Current task-input effects on task-level scoring:
-- critical task:
-  - raises `bargaining_power_weight`
-  - raises `value_centrality`
-  - promotes the task toward `core`
-- AI-assisted task:
-  - raises `ai_support_observability`
-  - lowers direct pressure slightly
-  - raises retained leverage slightly
-- support/spillover task:
-  - raises indirect dependency pressure
-  - raises dependency penalty
+User-declared task-to-function links are applied before scoring and can raise a task's effective authority, bargaining-power, and judgment contribution inside the active function bundle.
 
 ### 4. Role-fate interpretation
 
-These task selections indirectly affect:
+These composition changes indirectly affect:
 - `role_fate_state`
 - `role_fate_label`
 - `role_fate_confidence`
 - `fate_drivers`
 - `fate_counterweights`
+- `occupation_assignment.selected_composition`
+- `questionnaire_effect`
 
 ## Current Questionnaire Layer
 
@@ -205,44 +209,19 @@ These drive:
 ### Task Composition
 
 Current live fields:
-- primary task
-- secondary task
+- source-bucketed tasks
+- function anchors
+- custom support links
+- custom task-to-function links
+- optional task share overrides
 
 These drive:
-- cluster-share tilting
+- active task selection
+- active function selection
 - task-share reweighting
-- visible current-role rows
-
-### Value And Bargaining Power
-
-Current live field:
-- value-defining task
-
-This drives:
-- role-critical cluster weighting
-- task-level bargaining power weighting
-- retained leverage
-- role-defining task selection
-
-### AI Pressure And Support
-
-Current live field:
-- AI-assisted task
-
-This drives:
-- lower direct pressure on the selected task
-- higher augmentation interpretation
-- slightly stronger retained leverage
-
-### Dependency And Spillover
-
-Current live field:
-- support task tied to exposed work
-
-This drives:
-- higher indirect dependency pressure
-- higher dependency penalty
-- stronger split/compression pressure in the role-fate classifier
+- task-to-task spillover changes
+- function-sensitive weighting
+- visible current-role rows and assignment summaries
 
 ### Adaptation And Demand Context
 
@@ -260,18 +239,20 @@ These drive:
 ## Current UX Rules
 
 The live UI now enforces these behaviors:
-- task selectors are occupation-specific
-- duplicate task picks across the five selectors are disabled in the client
-- all five task selectors are optional
-- if no task is chosen, the engine falls back to the occupation prior
+- the composition editor is occupation-specific
+- the default role bundle is loaded from `getRoleComposition(...)`
+- add/remove controls only show tasks and functions not currently active
+- custom support links only connect currently selected tasks
+- task-to-function links only persist when both the task and function stay selected
+- if the user removes all active tasks or functions, the engine falls back to the occupation defaults rather than scoring an empty role
+- graph edits rerun scoring live on the same occupation
 - the questionnaire is rendered from schema in the client rather than hardcoded page markup
 
 ## Current Gaps
 
 Still missing from the intake relative to the broader redesign:
-- weighted task-share buckets
-- explicit `AI-danger task` selection separate from `value-defining task`
-- user-authored dependency links between chosen tasks
+- simpler weighted task-share buckets layered on top of the current graph-level share overrides
+- explicit `AI-danger task` or bargaining-break prompt separate from the current composition editor
 - direct residual-role-distinctiveness question
 - deeper role-mode branching for occupations with multiple distinct function paths
 
@@ -279,7 +260,7 @@ Still missing from the intake relative to the broader redesign:
 
 Recommended next changes:
 
-1. replace single task picks with rough weighted task buckets
+1. add lighter-weight task-share controls so users can mark work as major, medium, or minor without editing raw share values in the graph
 2. add explicit `if AI got very good at this task, would bargaining power break?` prompts
-3. let users declare a small number of dependency links between their chosen tasks
+3. add a direct residual-role-distinctiveness question for roles that still feel under-described by the occupation default
 4. decide whether the legacy `Q*` fallback should remain for external compatibility or be removed entirely

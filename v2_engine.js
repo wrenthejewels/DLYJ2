@@ -11,7 +11,6 @@
         occupations: 'data/normalized/occupations.csv',
         selector: 'data/normalized/occupation_selector_index.csv',
         occupationTaskClusters: 'data/normalized/occupation_task_clusters.csv',
-        occupationTasks: 'data/normalized/occupation_tasks.csv',
         occupationTaskInventory: 'data/normalized/occupation_task_inventory.csv',
         taskDependencyEdges: 'data/normalized/task_dependency_edges.csv',
         occupationTaskRoleProfiles: 'data/normalized/occupation_task_role_profiles.csv',
@@ -24,7 +23,6 @@
         taskEvidence: 'data/normalized/task_exposure_evidence.csv',
         taskPriors: 'data/normalized/task_augmentation_automation_priors.csv',
         occupationPriors: 'data/normalized/occupation_exposure_priors.csv',
-        adaptationPriors: 'data/normalized/occupation_adaptation_priors.csv',
         laborContext: 'data/normalized/occupation_labor_market_context.csv',
         unemploymentMonthly: 'data/normalized/occupation_unemployment_monthly.csv',
         uiRoleMap: 'data/metadata/ui_role_category_map.csv'
@@ -1527,6 +1525,24 @@
         var currentWaveState = metrics.current_wave_state || '';
         var nextWaveState = metrics.next_wave_state || '';
         var exposedTaskShare = toNumber(metrics.exposed_task_share, 0);
+        var hasMeaningfulElevationSignal =
+            nextWaveState === 'transformed' ||
+            currentWaveState === 'narrowed' ||
+            (
+                elevatedShare >= 0.03 &&
+                (
+                    indirectDependency >= 0.10 ||
+                    directExposure >= 0.38 ||
+                    demandExpansionModifier >= 0.75
+                )
+            );
+        var hasSplitRecompositionSignal =
+            nextWaveState === 'transformed' &&
+            nextWaveIntegrity < 0.42 &&
+            demandExpansionModifier <= 0.15 &&
+            directExposure >= 0.34 &&
+            retainedCoreShare >= 0.24 &&
+            residualRoleIntegrity >= 0.50;
 
         var state = 'mixed_transition';
         if (demandExpansionModifier >= 0.82 && retainedLeverage >= 0.56 && residualRoleIntegrity >= 0.60 && nextWaveRetained >= 0.62 && directExposure < 0.48) {
@@ -1539,7 +1555,7 @@
             nextWaveRetained >= 0.55 &&
             directExposure < 0.48 &&
             demandExpansionModifier >= 0.30 &&
-            (elevatedShare >= 0.03 || nextWaveState === 'transformed' || currentWaveState === 'narrowed')
+            hasMeaningfulElevationSignal
         ) {
             state = 'elevated';
         } else if (
@@ -1548,6 +1564,7 @@
             directExposure >= 0.38 &&
             directExposure < 0.68 &&
             residualRoleIntegrity >= 0.42) ||
+            hasSplitRecompositionSignal ||
             (directExposure >= 0.55 && retainedCoreShare >= 0.22 && nextWaveRetained >= 0.28)
         ) {
             state = 'split';
@@ -1848,7 +1865,6 @@
             );
             var taskPriorsByCluster = indexBy(store.taskPriorsByOcc[occupationId] || [], 'task_cluster_id');
             var occupationPrior = pickOccupationPrior(store.occupationPriorsByOcc[occupationId] || []);
-            var adaptationPrior = store.adaptationByOcc[occupationId] || null;
             var laborContext = store.laborByOcc[occupationId] || null;
             var unemploymentSeries = laborContext && laborContext.unemployment_group_id
                 ? (store.unemploymentByGroup[laborContext.unemployment_group_id] || [])
@@ -1903,7 +1919,7 @@
             var occupationAutomation = occupationPrior ? toNumber(occupationPrior.automation_score, 0.25) : 0.25;
             var occupationAdaptive = occupationPrior && occupationPrior.adaptive_capacity_score
                 ? toNumber(occupationPrior.adaptive_capacity_score, 0.5)
-                : (adaptationPrior ? toNumber(adaptationPrior.adaptive_capacity_score, 0.5) : 0.5);
+                : 0.5;
 
             var currentBundle = [];
             var clusterResultsById = {};
@@ -2800,7 +2816,6 @@
             selectorByOcc: indexBy(loaded.selector, 'occupation_id'),
             occupationTaskClusters: loaded.occupationTaskClusters,
             occupationTaskClustersByOcc: groupBy(loaded.occupationTaskClusters, 'occupation_id'),
-            occupationTasksByOcc: groupBy(loaded.occupationTasks, 'occupation_id'),
             taskInventoryByOcc: groupBy(loaded.occupationTaskInventory, 'occupation_id'),
             taskDependencyEdgesByOcc: groupBy(loaded.taskDependencyEdges, 'occupation_id'),
             taskRoleProfilesByOcc: indexBy(loaded.occupationTaskRoleProfiles, 'occupation_id'),
@@ -2828,7 +2843,6 @@
             taskPriors: loaded.taskPriors,
             taskPriorsByOcc: groupBy(loaded.taskPriors, 'occupation_id'),
             occupationPriorsByOcc: groupBy(loaded.occupationPriors, 'occupation_id'),
-            adaptationByOcc: indexBy(loaded.adaptationPriors, 'occupation_id'),
             laborByOcc: indexBy(loaded.laborContext, 'occupation_id'),
             unemploymentByGroup: groupBy(loaded.unemploymentMonthly, 'unemployment_group_id'),
             occupationExplanationsByOcc: indexBy(loaded.occupationRoleExplanations, 'occupation_id'),

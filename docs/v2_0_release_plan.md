@@ -26,6 +26,7 @@ This document gives a concise snapshot of what is live in the repo right now.
 
 The repo now ships a working role-fate implementation with:
 - occupation-specific task inventory inputs
+- an editable role-composition studio with tasks, functions, and custom support links
 - seeded + manually expanded task-role graph coverage
 - direct and indirect task-pressure scoring
 - calibrated `Role Fate` labels
@@ -81,13 +82,12 @@ Status:
 
 Current state:
 - category, occupation, and hierarchy remain the anchor
-- five structured task selectors are live:
-  - primary current task
-  - secondary current task
-  - value-defining task
-  - AI-assisted task
-  - support/spillover task
-- duplicate task picks are blocked in the client
+- an editable role-composition studio is live with:
+  - source-bucketed tasks
+  - reviewed function anchors
+  - custom task-to-task support links
+  - custom task-to-function links
+  - graph-level task-share overrides
 - the visible questionnaire now renders as:
   - core questions
   - optional deeper modules
@@ -95,9 +95,8 @@ Current state:
 - the engine still uses the legacy-answer bridge under the hood to derive the structured role-refinement profile
 
 Still open:
-- weighted task-share buckets
+- lighter-weight task-share buckets on top of the current share-override controls
 - explicit AI-danger task prompt
-- user-declared task dependency links
 - retained-role distinctiveness prompt
 
 ### 4. Engine redesign
@@ -158,9 +157,9 @@ The repo now includes:
 Current validation coverage:
 - engine payload integrity
 - task-inventory access
-- task-input propagation
+- composition edit propagation
 - anchor occupation role-fate calibration
-- UI contract for the new task selectors and role-fate columns
+- UI contract for the role studio, dependency editor, schema-rendered questionnaire, and role-fate columns
 
 ## Recommended Next Sequence
 

@@ -163,6 +163,8 @@ type V2Result = {
       active_task_count: number
       active_function_count: number
       added_dependency_count: number
+      custom_function_link_count: number
+      share_override_count: number
       removed_task_count: number
       added_task_count: number
       removed_function_count: number
@@ -286,6 +288,11 @@ type CompositionEdits = {
   added_task_ids: string[]
   removed_function_ids: string[]
   added_function_ids: string[]
+  task_share_overrides: Record<string, number>
+  task_function_links: Array<{
+    task_id: string
+    function_id: string
+  }>
 }
 
 type DependencyEdits = {
@@ -295,6 +302,8 @@ type DependencyEdits = {
   }>
 }
 ```
+
+The live model page now usually produces this payload through `getRoleComposition(occupationId)` plus the role graph editor, not through the older five-selector task-input flow.
 
 The engine also exposes an occupation-scoped composition baseline through `getRoleComposition(occupationId)`, with source-bucketed tasks plus function anchors for the editor.
 

@@ -59,7 +59,7 @@
                     <ol class="r-numbered-list">
                         <li>It anchors you to a mapped occupation so the model starts from a real role rather than a vague title.</li>
                         <li>It builds that role from the occupation task inventory, reviewed task expansions, and reviewed function anchors.</li>
-                        <li>It lets you edit that role composition by removing or adding source-bucketed tasks, adjusting which functions count, and optionally declaring a few support links between selected tasks.</li>
+                        <li>It lets you edit that role composition by removing or adding source-bucketed tasks, adjusting which functions count, and optionally declaring a few support links between selected tasks or extra task-to-function links.</li>
                         <li>It converts your role-refinement answers into a structured profile about function retention, sign-off, context load, adoption readiness, augmentation fit, and substitution pressure.</li>
                         <li>It scores direct AI pressure, dependency spillover, retained leverage, and wave timing across the task graph.</li>
                         <li>It turns those structural signals into a role-fate label, a wave trajectory, and a separate recomposition read.</li>
@@ -69,7 +69,7 @@
                         <div class="r-equation-label">Input tuple</div>
                         <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{compositionEdits},\ \text{dependencyEdits})$$</div>
                     </div>
-                    <p>The editable task ids now come from the role breakdown on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The editor also shows which functions the selected tasks mainly support, and it accepts optional user-declared support links when one selected task mainly exists to enable another. The role-refinement panel writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
+                    <p>The editable task ids now come from the role breakdown on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The editor also shows which functions the selected tasks mainly support, and it accepts optional user-declared support links when one selected task mainly exists to enable another or when a selected task should feed an additional selected function. The role-refinement panel writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
                 </section>
 
                 <!-- 2. What it looks at -->
@@ -79,7 +79,7 @@
 
                     <h3>Primary task evidence</h3>
                     <ul>
-                        <li><strong><a href="https://huggingface.co/datasets/Anthropic/EconomicIndex/tree/main/release_2026_01_15" target="_blank" rel="noopener noreferrer">Anthropic Economic Index</a></strong> (2026-01-15 release) &mdash; the primary runtime source. Normalized from Claude.ai and first-party API task telemetry with O*NET task classification, collaboration patterns, human-only ability flags, task success rates, and human/AI time estimates. Covers 276 task evidence rows across 32 occupations.</li>
+                        <li><strong><a href="https://huggingface.co/datasets/Anthropic/EconomicIndex/tree/main/release_2026_01_15" target="_blank" rel="noopener noreferrer">Anthropic Economic Index</a></strong> (2026-01-15 release) &mdash; the primary runtime source. Normalized from Claude.ai and first-party API task telemetry with O*NET task classification, collaboration patterns, human-only ability flags, task success rates, and human/AI time estimates. The checked-in normalized layer currently contains 530 task evidence rows across all 34 modeled occupations.</li>
                     </ul>
 
                     <h3>Structural backbone</h3>
@@ -106,7 +106,7 @@
 
                     <h3>User inputs</h3>
                     <ul>
-                        <li>Your task selections, hierarchy level, optional support-link declarations, and role-refinement profile.</li>
+                        <li>Your task selections, hierarchy level, optional support-link declarations, optional task-to-function link edits, and role-refinement profile.</li>
                     </ul>
 
                     <p>So the page is not asking only "can AI do this task?" It is also asking "if AI gets good at this work, what happens to the rest of the role around it, and does a coherent human role still remain?"</p>
@@ -120,10 +120,10 @@
                     <h3>Evidence layers</h3>
                     <ol class="r-numbered-list">
                         <li><strong>Direct task evidence</strong> &mdash; individual task rows from the <a href="https://huggingface.co/datasets/Anthropic/EconomicIndex/tree/main/release_2026_01_15" target="_blank" rel="noopener noreferrer">Anthropic Economic Index</a>, each carrying an exposure score, automation score, observed usage share, and confidence value. This is the highest-priority layer.</li>
-                        <li><strong>Reviewed task estimates</strong> &mdash; expert-reviewed task-level exposure, augmentation, and automation estimates for occupations with thin Anthropic coverage.</li>
                         <li><strong>Cluster-level priors</strong> &mdash; aggregated from task evidence into task families (clusters), carrying <code>partial_automation_likelihood</code> and <code>high_automation_likelihood</code> estimates with an evidence confidence score and primary source tags.</li>
                         <li><strong>Occupation-level priors</strong> &mdash; a derived aggregate from O*NET structure, Anthropic task evidence, and BLS labor context, carrying an <code>automation_score</code> and <code>adaptive_capacity_score</code>. Used as the broadest fallback when cluster evidence is weak.</li>
                     </ol>
+                    <p>The broader pipeline also keeps reviewed task scoring overrides and benchmark task labels in separate comparison contracts, but the live browser scorer currently uses the three layers above: direct Anthropic task evidence, cluster priors, and occupation priors.</p>
 
                     <h3>Shrinkage toward prior</h3>
                     <p>The core mechanism is a simple Bayesian-inspired shrinkage function. When a task family has strong direct evidence, its observed score is used. When evidence is sparse, the score is pulled toward the broader prior:</p>
@@ -189,7 +189,7 @@
                         <div class="r-equation-label">Baseline blend</div>
                         <div class="equation-display">$$\tilde s_i = 0.65\, s_i^{\text{cluster}} + 0.35\, s_i^{\text{inventory}}, \qquad s_i^{(0)} = \frac{\tilde s_i}{\sum_j \tilde s_j}$$</div>
                     </div>
-                    <p>That baseline is then filtered through your composition edits. Removing tasks takes them out of the active run, adding reviewed tasks puts them into the active run, and function edits renormalize the role's retained-function mix. Optional support links can also add spillover paths that do not exist in the default graph.</p>
+                    <p>That baseline is then filtered through your composition edits. Removing tasks takes them out of the active run, adding reviewed tasks puts them into the active run, and function edits renormalize the role's retained-function mix. Optional support links can also add spillover paths that do not exist in the default graph, and optional task-to-function links can raise a task's effective centrality inside the role.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Edited composition</div>
                         <div class="equation-display">$$\mathcal{T}^{*} = (\mathcal{T}^{(0)} \setminus \mathcal{T}^{-}) \cup \mathcal{T}^{+}, \qquad \mathcal{F}^{*} = (\mathcal{F}^{(0)} \setminus \mathcal{F}^{-}) \cup \mathcal{F}^{+}$$</div>
@@ -256,7 +256,7 @@
                         <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.08,\,0.02,\,0.98\right) \quad \text{if task family is role-critical}$$</div>
                     </div>
                     <p><code>h_i</code> is human advantage, <code>R_i</code> is empirical resistance, <code>B_i</code> is bargaining-power weight, <code>C_i</code> is core-task share, <code>V_i</code> is value centrality, <code>A_i</code> is AI-support observability. The base step combines friction, human advantage, empirical resistance, and coupling protection. The second step adjusts for task-graph signals: tasks with high bargaining power or value centrality resist automation, while high AI-support observability and substitution risk lower difficulty. The criticality boost applies only to task families flagged as role-critical. Lower difficulty means the task family is easier to absorb sooner.</p>
-                    <p>The evidence underneath those estimates is layered. The model prefers direct task evidence when it has it, then reviewed task estimates and benchmark task labels, and only then broader proxy estimates. That is why some occupations are better supported than others.</p>
+                    <p>The evidence underneath those estimates is layered. In the live browser scorer, the model prefers direct task evidence when it has it, then cluster priors, and only then the broader occupation prior. That is why some occupations are better supported than others.</p>
                     <p>After that, each task family is placed into an approximate timing bucket: current wave, next wave, or distant wave.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Wave assignment</div>
@@ -291,9 +291,9 @@
                     <div class="r-equation">
                         <div class="r-equation-label">Task share</div>
                         <div class="equation-display">$$s_t^{\text{raw}} = s_{c(t)} \cdot \frac{\text{timeSharePrior}_t}{\sum_{j \in c(t)} \text{timeSharePrior}_j}$$</div>
-                        <div class="equation-display">$$m_t = 1 + 0.18\mathbf{1}[t\in \mathcal{T}^{+}] - 0.15\mathbf{1}[t\in \mathcal{T}^{-}]$$</div>
-                        <div class="equation-display">$$s_t = \frac{\mathbf{1}[t\in \mathcal{T}^{*}]\, s_t^{\text{raw}}m_t}{\sum_{j \in \mathcal{T}^{*}} s_j^{\text{raw}}m_j}$$</div>
+                        <div class="equation-display">$$s_t = \frac{\mathbf{1}[t\in \mathcal{T}^{*}]\, s_t^{\text{raw}}}{\sum_{j \in \mathcal{T}^{*}} s_j^{\text{raw}}}$$</div>
                     </div>
+                    <p>If you manually edit a task's share in the role graph, the model substitutes your edited share before this normalization step. The live UI does not currently expose separate dominant-task, critical-task, or AI-support toggles, so the browser path does not apply extra task multipliers beyond the edited share itself.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Task pressure</div>
                         <div class="equation-display">$$p_t^{\text{direct}} = \operatorname{clamp}\!\left(0.68(1-D_{c(t)}) + 0.20\alpha_{c(t)} + 0.12A_t,\,0,\,1\right)$$</div>
@@ -301,7 +301,7 @@
                     </div>
                     <div class="r-equation">
                         <div class="r-equation-label">Retained leverage</div>
-                        <div class="equation-display">$$L_t = \operatorname{clamp}\!\left(B_t(1-p_t^{\text{direct}})(1-p_t^{\text{spill}}) + 0.10\mathbf{1}[t\in \text{core}] + 0.08\mathbf{1}[t\in \text{critical}] + 0.08\mathbf{1}[t\in \text{aiSupport}] + 0.60\,\text{elevationBoost}_t,\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$L_t = \operatorname{clamp}\!\left(B_t(1-p_t^{\text{direct}})(1-p_t^{\text{spill}}) + 0.10\mathbf{1}[t\in \text{core}] + 0.60\,\text{elevationBoost}_t,\,0,\,1\right)$$</div>
                     </div>
                     <p>The task graph also produces role-level summary scores:</p>
                     <ul>
@@ -312,7 +312,7 @@
                         <li><code>exposed_core_share</code> and <code>retained_core_share</code></li>
                         <li><code>direct_coverage_ratio</code>, which shows how much of the task graph has direct task evidence rather than fallback estimates</li>
                     </ul>
-                    <p>Those task-graph signals do most of the real explanatory work on the page. The occupation explanation panel is built from this same layer, so the app can now say not just what the label is, but what the main pressure and counterweight actually are. The composition editor exposes part of that logic earlier by showing the top function links for each selected task and by letting you add a few support links when the default graph misses an obvious dependency.</p>
+                    <p>Those task-graph signals do most of the real explanatory work on the page. The occupation explanation panel is paired with this layer through a precomputed explanation summary file, so the app can now say not just what the label is, but what the main pressure and counterweight actually are. The composition editor exposes part of that logic earlier by showing the top function links for each selected task and by letting you add a few support links or task-to-function links when the default graph misses an obvious connection.</p>
                 </section>
 
                 <!-- 8. Fate label -->

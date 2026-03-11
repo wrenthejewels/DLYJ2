@@ -1,8 +1,8 @@
 # Data Scripts
 
-This directory is reserved for future source ingestion and normalization scripts.
+This directory contains the active source ingestion, normalization, comparison, and rebuild scripts for the live data/model pipeline.
 
-Planned script categories:
+Current script categories:
 - fetch raw sources
 - seed launch stubs from metadata
 - build pilot job-description task evidence

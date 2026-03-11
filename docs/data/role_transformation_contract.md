@@ -190,5 +190,5 @@ The current stack now works like this:
 - Job-description evidence now covers all `34` modeled occupations.
 - Multi-anchor function coverage exists only for a reviewed subset of occupations.
 - The transformation output is still a first-pass model and still depends on role-family defaults, benchmark floors, and cluster-prior proxies under the reviewed overrides.
-- The new explanation layer is still review-facing; it is not yet surfaced directly in the end-user product.
-- The live questionnaire layer still reflects an older friction-oriented runtime design and has not yet been fully reworked to map onto the new role-function model.
+- The occupation explanation layer is now surfaced in the model-details panel, but it is still a compact summary rather than a full task/source drill-down surface.
+- The live questionnaire layer now writes a native factor-based role-refinement profile in the app, but the engine still retains the legacy-answer fallback for compatibility with external callers and older tests.
