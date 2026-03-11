@@ -1,0 +1,180 @@
+.v2-rf-shell {
+  width: 100%;
+  height: 100%;
+}
+
+.v2-rf-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 520px;
+  color: var(--ink-secondary, #5f6b77);
+  font-size: 14px;
+}
+
+.v2-rf-node {
+  min-width: 250px;
+  max-width: 290px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 254, 250, 0.98);
+  border: 1px solid rgba(83, 102, 126, 0.12);
+  box-shadow: 0 18px 34px rgba(31, 42, 54, 0.08);
+}
+
+.v2-rf-node--task {
+  border-left: 4px solid rgba(106, 137, 179, 0.9);
+}
+
+.v2-rf-node--function {
+  min-width: 230px;
+  max-width: 260px;
+  border-left: 4px solid rgba(79, 108, 84, 0.88);
+}
+
+.v2-rf-node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.v2-rf-node-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(79, 108, 84, 0.12);
+  color: rgba(53, 79, 58, 1);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.v2-rf-node-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--ink, #20262d);
+}
+
+.v2-rf-node-stats,
+.v2-rf-node-hint {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.v2-rf-node-stats {
+  color: var(--ink-secondary, #5f6b77);
+}
+
+.v2-rf-node-hint {
+  color: var(--ink, #20262d);
+}
+
+.v2-rf-share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-secondary, #5f6b77);
+}
+
+.v2-rf-select {
+  min-width: 120px;
+  padding: 6px 8px;
+  border: 1px solid rgba(83, 102, 126, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink, #20262d);
+}
+
+.v2-rf-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.v2-rf-link-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(83, 102, 126, 0.08);
+  color: var(--ink, #20262d);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.v2-rf-remove,
+.v2-rf-pill-remove {
+  border: 0;
+  background: rgba(83, 102, 126, 0.08);
+  color: var(--ink-secondary, #5f6b77);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.v2-rf-remove {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.v2-rf-pill-remove {
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.v2-rf-handle {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: rgba(92, 122, 167, 0.95);
+}
+
+.v2-rf-node--function .v2-rf-handle {
+  background: rgba(79, 108, 84, 0.92);
+}
+
+.v2-rf .react-flow__edge-path {
+  stroke-width: 3;
+}
+
+.v2-rf .react-flow__edge.v2-rf-edge--default-task .react-flow__edge-path {
+  stroke: rgba(105, 118, 138, 0.46);
+  stroke-dasharray: 8 8;
+}
+
+.v2-rf .react-flow__edge.v2-rf-edge--custom-task .react-flow__edge-path {
+  stroke: rgba(92, 122, 167, 0.92);
+}
+
+.v2-rf .react-flow__edge.v2-rf-edge--default-function .react-flow__edge-path {
+  stroke: rgba(79, 108, 84, 0.48);
+}
+
+.v2-rf .react-flow__edge.v2-rf-edge--custom-function .react-flow__edge-path {
+  stroke: rgba(65, 98, 75, 0.92);
+}
+
+.v2-rf .react-flow__controls {
+  box-shadow: 0 10px 22px rgba(21, 32, 43, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.v2-rf .react-flow__control {
+  background: rgba(255, 254, 250, 0.96);
+  border-color: rgba(83, 102, 126, 0.12);
+}
+
+.v2-rf .react-flow__attribution {
+  display: none;
+}

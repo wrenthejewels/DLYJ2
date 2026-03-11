@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="redesign.css">
+    <link rel="stylesheet" href="assets/role-graph-editor.css">
     <title>Don't Lose Your Job</title>
 </head>
 <body>
@@ -133,18 +134,13 @@
                                 <button type="button" class="r-refine-link" id="v2-function-add" data-action="add" data-card="functions">Add function</button>
                             </div>
                             <div class="v2-graph-mode-group" id="v2-graph-mode-group">
-                                <button type="button" class="v2-graph-mode-button is-active" data-graph-mode="move">Move nodes</button>
-                                <button type="button" class="v2-graph-mode-button" data-graph-mode="task-link">Link tasks</button>
-                                <button type="button" class="v2-graph-mode-button" data-graph-mode="function-link">Link to function</button>
+                                <button type="button" class="v2-graph-mode-button is-active" data-graph-mode="move">Move and pan</button>
                                 <button type="button" class="v2-graph-mode-button" data-graph-mode="remove-link">Remove custom link</button>
                             </div>
                         </div>
-                        <div class="v2-role-graph-editor" id="v2-role-graph-editor">
-                            <svg class="v2-role-graph-svg" id="v2-role-graph-svg" aria-hidden="true"></svg>
-                            <div class="v2-role-graph-layer" id="v2-role-graph-layer"></div>
-                        </div>
+                        <div class="v2-role-graph-editor" id="v2-role-graph-editor"></div>
                         <div class="v2-role-graph-helper" id="v2-role-graph-helper">
-                            Move nodes to reorganize the view. In link modes, click a task first and then click the task or function you want it to feed.
+                            Drag nodes to reorganize the map. Drag from a task handle into another task or a function to create links.
                         </div>
                         <div class="v2-dependency-editor-fallback" hidden>
                             <div id="v2-flow-task-lane"></div>

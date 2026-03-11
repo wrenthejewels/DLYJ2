@@ -26,8 +26,6 @@ function main() {
     'v2-function-add-select',
     'v2-function-add',
     'v2-role-graph-editor',
-    'v2-role-graph-svg',
-    'v2-role-graph-layer',
     'v2-role-graph-helper',
     'v2-graph-mode-group',
     'v2-dependency-source',

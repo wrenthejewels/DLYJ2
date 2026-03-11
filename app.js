@@ -12,9 +12,8 @@ let v2RoleCompositionState = null;
 let v2CustomDependencyEdges = [];
 let v2CustomTaskFunctionLinks = [];
 let v2GraphNodePositions = {};
+let v2RoleGraphControllerPromise = null;
 let v2GraphMode = 'move';
-let v2GraphLinkDraft = null;
-let v2GraphDragState = null;
 
 // ─── 2. Questionnaire schema ────────────────────────────────────────────────
 
@@ -1046,253 +1045,210 @@ function getGraphNodePositions(selectedTasks, selectedFunctions, flowEdges) {
     return v2GraphNodePositions;
 }
 
-function getNodeCenter(position, kind) {
-    if (kind === 'function') {
-        return {
-            x: position.x + 130,
-            y: position.y + 44
-        };
-    }
-    return {
-        x: position.x + 140,
-        y: position.y + 58
-    };
-}
-
 function updateGraphModeButtons() {
     document.querySelectorAll('.v2-graph-mode-button').forEach((button) => {
         button.classList.toggle('is-active', button.dataset.graphMode === v2GraphMode);
     });
 }
 
+async function getRoleGraphController() {
+    const container = document.getElementById('v2-role-graph-editor');
+    if (!container) {
+        throw new Error('Role graph container not found.');
+    }
+
+    if (!v2RoleGraphControllerPromise) {
+        v2RoleGraphControllerPromise = import('./assets/role-graph-editor.js').then((module) => {
+            return module.mountRoleGraphEditor(container, {
+                onTaskRemove(taskId) {
+                    if (!v2RoleCompositionState) return;
+                    v2RoleCompositionState.selectedTaskIds.delete(taskId);
+                    delete v2RoleCompositionState.taskShareOverrides[taskId];
+                    v2RoleCompositionState.taskDisplayOrder = (v2RoleCompositionState.taskDisplayOrder || []).filter((candidate) => candidate !== taskId);
+                    v2CustomTaskFunctionLinks = v2CustomTaskFunctionLinks.filter((link) => link.task_id !== taskId);
+                    v2CustomDependencyEdges = v2CustomDependencyEdges.filter((edge) => edge.from_task_id !== taskId && edge.to_task_id !== taskId);
+                    renderV2RoleComposition(v2RoleCompositionState.raw);
+                    updateV2Results({ preserveSelection: true }).catch((error) => {
+                        console.error('[V2] Failed to rerender after task removal from graph:', error);
+                    });
+                },
+                onFunctionRemove(functionId) {
+                    if (!v2RoleCompositionState) return;
+                    v2RoleCompositionState.selectedFunctionIds.delete(functionId);
+                    v2CustomTaskFunctionLinks = v2CustomTaskFunctionLinks.filter((link) => link.function_id !== functionId);
+                    renderV2RoleComposition(v2RoleCompositionState.raw);
+                    updateV2Results({ preserveSelection: true }).catch((error) => {
+                        console.error('[V2] Failed to rerender after function removal from graph:', error);
+                    });
+                },
+                onTaskShareChange(taskId, rawValue) {
+                    if (!v2RoleCompositionState) return;
+                    if (!rawValue) {
+                        delete v2RoleCompositionState.taskShareOverrides[taskId];
+                    } else {
+                        const value = Number(rawValue);
+                        if (Number.isFinite(value)) {
+                            v2RoleCompositionState.taskShareOverrides[taskId] = value;
+                        }
+                    }
+                    updateV2Results({ preserveSelection: true }).catch((error) => {
+                        console.error('[V2] Failed to rerender after graph share change:', error);
+                    });
+                },
+                onConnect(connection) {
+                    const source = String(connection.source || '');
+                    const target = String(connection.target || '');
+                    if (!source || !target) return;
+                    if (source.startsWith('task:') && target.startsWith('task:')) {
+                        const fromTaskId = source.slice(5);
+                        const toTaskId = target.slice(5);
+                        if (fromTaskId && toTaskId && fromTaskId !== toTaskId) {
+                            const alreadyExists = v2CustomDependencyEdges.some((edge) => edge.from_task_id === fromTaskId && edge.to_task_id === toTaskId);
+                            if (!alreadyExists) {
+                                v2CustomDependencyEdges.push({ from_task_id: fromTaskId, to_task_id: toTaskId });
+                            }
+                        }
+                    } else if (source.startsWith('task:') && target.startsWith('function:')) {
+                        const taskId = source.slice(5);
+                        const functionId = target.slice(9);
+                        if (taskId && functionId) {
+                            const alreadyExists = v2CustomTaskFunctionLinks.some((link) => link.task_id === taskId && link.function_id === functionId);
+                            if (!alreadyExists) {
+                                v2CustomTaskFunctionLinks.push({ task_id: taskId, function_id: functionId });
+                            }
+                        }
+                    }
+                    if (v2RoleCompositionState) {
+                        renderV2RoleComposition(v2RoleCompositionState.raw);
+                    }
+                    updateV2Results({ preserveSelection: true }).catch((error) => {
+                        console.error('[V2] Failed to rerender after React Flow connection:', error);
+                    });
+                },
+                onCustomEdgeRemove(edgeId) {
+                    if (edgeId.startsWith('dep:')) {
+                        const ids = edgeId.slice(4).split('->');
+                        const [fromTaskId, toTaskId] = ids;
+                        v2CustomDependencyEdges = v2CustomDependencyEdges.filter((edge) => !(edge.from_task_id === fromTaskId && edge.to_task_id === toTaskId));
+                    }
+                    if (edgeId.startsWith('fn:')) {
+                        const ids = edgeId.slice(3).split('->');
+                        const [taskId, functionId] = ids;
+                        v2CustomTaskFunctionLinks = v2CustomTaskFunctionLinks.filter((link) => !(link.task_id === taskId && link.function_id === functionId));
+                    }
+                    if (v2RoleCompositionState) {
+                        renderV2RoleComposition(v2RoleCompositionState.raw);
+                    }
+                    updateV2Results({ preserveSelection: true }).catch((error) => {
+                        console.error('[V2] Failed to rerender after custom edge removal:', error);
+                    });
+                },
+                onNodePositionChange(nodeId, position) {
+                    v2GraphNodePositions[nodeId] = {
+                        x: Number(position.x) || 0,
+                        y: Number(position.y) || 0
+                    };
+                }
+            });
+        });
+    }
+
+    return v2RoleGraphControllerPromise;
+}
+
 function renderV2RoleFlowMap() {
     const summary = document.getElementById('v2-flow-map-summary');
     const helper = document.getElementById('v2-role-graph-helper');
-    const svg = document.getElementById('v2-role-graph-svg');
-    const layer = document.getElementById('v2-role-graph-layer');
-    const editor = document.getElementById('v2-role-graph-editor');
-
-    if (!summary || !helper || !svg || !layer || !editor) return;
+    if (!summary || !helper) return;
 
     const selectedTasks = sortTasksByDisplayOrder(getSelectedCompositionTasks());
     const selectedFunctions = getSelectedCompositionFunctions();
     const flowEdges = getCombinedFlowEdges();
-    const taskLookup = new Map(selectedTasks.map((task) => [task.task_id, task]));
     const supportMap = getSelectedFunctionSupportMap();
     const positions = getGraphNodePositions(selectedTasks, selectedFunctions, flowEdges);
-
-    svg.innerHTML = '';
-    layer.innerHTML = '';
     updateGraphModeButtons();
 
     if (!v2RoleCompositionState?.raw || (!selectedTasks.length && !selectedFunctions.length)) {
         summary.textContent = 'Select an occupation to load the role graph.';
         helper.textContent = 'The graph editor will appear once a mapped occupation is selected.';
         renderStudioAddControls();
+        getRoleGraphController().then((controller) => {
+            controller.render({ nodes: [], edges: [], mode: v2GraphMode });
+        }).catch((error) => {
+            console.error('[V2] Failed to render empty role graph:', error);
+        });
         return;
     }
 
-    const allEdges = [];
+    summary.textContent = 'Edit the role as a live graph. Drag nodes, connect tasks to tasks or functions, and remove custom links without leaving the role map.';
+    helper.textContent = v2GraphMode === 'remove-link'
+        ? 'Click any custom edge to remove it from the model.'
+        : 'Drag nodes to reorganize the view. Create links by dragging from a task handle into another task or a function.';
+
+    const nodeState = [];
+    selectedTasks.forEach((task) => {
+        const currentOverride = Number(v2RoleCompositionState?.taskShareOverrides?.[task.task_id]);
+        const functionLinks = getTaskFunctionLinks(task);
+        nodeState.push({
+            id: getGraphNodeKey('task', task.task_id),
+            kind: 'task',
+            position: positions[getGraphNodeKey('task', task.task_id)],
+            taskId: task.task_id,
+            title: task.task_statement || 'Unknown task',
+            sourceLabel: task.source_label || 'Task',
+            baselineShare: Math.round((Number(task.time_share_prior) || 0) * 100),
+            shareOverride: Number.isFinite(currentOverride) ? currentOverride.toFixed(2) : '',
+            taskLinkCount: flowEdges.filter((edge) => edge.from_task_id === task.task_id).length,
+            functionLabels: functionLinks.map((entry) => ({
+                functionId: entry.function_id,
+                label: entry.role_summary || entry.function_statement || 'Function',
+                isCustom: !!entry.is_custom
+            }))
+        });
+    });
+    selectedFunctions.forEach((fn) => {
+        nodeState.push({
+            id: getGraphNodeKey('function', fn.function_id),
+            kind: 'function',
+            position: positions[getGraphNodeKey('function', fn.function_id)],
+            functionId: fn.function_id,
+            title: fn.role_summary || fn.function_statement || 'Unnamed function',
+            supportCount: (supportMap.get(fn.function_id) || []).length
+        });
+    });
+
+    const edgeState = [];
     flowEdges.forEach((edge) => {
-        allEdges.push({
-            edgeKind: 'task',
-            sourceKey: getGraphNodeKey('task', edge.from_task_id),
-            targetKey: getGraphNodeKey('task', edge.to_task_id),
-            edgeType: edge.edge_type || 'default',
-            fromTaskId: edge.from_task_id,
-            toTaskId: edge.to_task_id
+        edgeState.push({
+            id: `dep:${edge.from_task_id}->${edge.to_task_id}`,
+            source: getGraphNodeKey('task', edge.from_task_id),
+            target: getGraphNodeKey('task', edge.to_task_id),
+            kind: 'task',
+            custom: edge.edge_type === 'custom'
         });
     });
     selectedTasks.forEach((task) => {
         getTaskFunctionLinks(task).forEach((entry) => {
             if (!selectedFunctions.some((fn) => fn.function_id === entry.function_id)) return;
-            allEdges.push({
-                edgeKind: 'function',
-                sourceKey: getGraphNodeKey('task', task.task_id),
-                targetKey: getGraphNodeKey('function', entry.function_id),
-                edgeType: entry.is_custom ? 'custom' : 'default',
-                taskId: task.task_id,
-                functionId: entry.function_id
+            edgeState.push({
+                id: `fn:${task.task_id}->${entry.function_id}`,
+                source: getGraphNodeKey('task', task.task_id),
+                target: getGraphNodeKey('function', entry.function_id),
+                kind: 'function',
+                custom: !!entry.is_custom
             });
         });
     });
 
-    const bounds = { width: 0, height: 0 };
-    Object.entries(positions).forEach(([key, position]) => {
-        const kind = key.startsWith('function:') ? 'function' : 'task';
-        bounds.width = Math.max(bounds.width, position.x + (kind === 'function' ? 300 : 320));
-        bounds.height = Math.max(bounds.height, position.y + (kind === 'function' ? 130 : 160));
-    });
-    const surfaceWidth = Math.max(bounds.width, editor.clientWidth || 900, 900);
-    const surfaceHeight = Math.max(bounds.height, editor.clientHeight || 620, 620);
-    svg.setAttribute('viewBox', `0 0 ${surfaceWidth} ${surfaceHeight}`);
-    svg.style.width = `${surfaceWidth}px`;
-    svg.style.height = `${surfaceHeight}px`;
-    layer.style.width = `${surfaceWidth}px`;
-    layer.style.height = `${surfaceHeight}px`;
-
-    allEdges.forEach((edge, index) => {
-        const sourcePosition = positions[edge.sourceKey];
-        const targetPosition = positions[edge.targetKey];
-        if (!sourcePosition || !targetPosition) return;
-        const sourceCenter = getNodeCenter(sourcePosition, edge.sourceKey.startsWith('function:') ? 'function' : 'task');
-        const targetCenter = getNodeCenter(targetPosition, edge.targetKey.startsWith('function:') ? 'function' : 'task');
-        const dx = Math.max((targetCenter.x - sourceCenter.x) * 0.45, 60);
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M ${sourceCenter.x} ${sourceCenter.y} C ${sourceCenter.x + dx} ${sourceCenter.y}, ${targetCenter.x - dx} ${targetCenter.y}, ${targetCenter.x} ${targetCenter.y}`);
-        path.setAttribute('class', `v2-graph-edge v2-graph-edge--${edge.edgeKind} ${edge.edgeType === 'custom' ? 'is-custom' : 'is-default'}`);
-        path.dataset.edgeIndex = String(index);
-        path.dataset.edgeKind = edge.edgeKind;
-        if (edge.edgeType === 'custom') {
-            if (edge.edgeKind === 'task') {
-                path.dataset.fromTaskId = edge.fromTaskId;
-                path.dataset.toTaskId = edge.toTaskId;
-            } else {
-                path.dataset.taskId = edge.taskId;
-                path.dataset.functionId = edge.functionId;
-            }
-        }
-        svg.appendChild(path);
-    });
-
-    selectedTasks.forEach((task) => {
-        const node = document.createElement('div');
-        const key = getGraphNodeKey('task', task.task_id);
-        const position = positions[key];
-        const functionLinks = getTaskFunctionLinks(task);
-        const outgoingTaskCount = flowEdges.filter((edge) => edge.from_task_id === task.task_id).length;
-        node.className = 'v2-graph-node v2-graph-node--task';
-        node.dataset.nodeKind = 'task';
-        node.dataset.taskId = task.task_id;
-        node.style.left = `${position.x}px`;
-        node.style.top = `${position.y}px`;
-
-        const header = document.createElement('div');
-        header.className = 'v2-graph-node-header';
-        const badge = document.createElement('div');
-        badge.className = 'v2-flow-badge';
-        badge.textContent = task.source_label || 'Task';
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'v2-studio-remove';
-        remove.textContent = 'Remove';
-        remove.dataset.action = 'remove';
-        remove.dataset.card = 'tasks';
-        remove.dataset.itemId = task.task_id;
-        header.appendChild(badge);
-        header.appendChild(remove);
-
-        const title = document.createElement('div');
-        title.className = 'v2-flow-node-title';
-        title.textContent = truncateV2TaskLabel(task.task_statement, 90);
-
-        const stats = document.createElement('div');
-        stats.className = 'v2-graph-node-stats';
-        stats.textContent = `${outgoingTaskCount} task link${outgoingTaskCount === 1 ? '' : 's'} · ${functionLinks.length} function link${functionLinks.length === 1 ? '' : 's'}`;
-
-        const shareLabel = document.createElement('label');
-        shareLabel.className = 'v2-studio-share-label';
-        shareLabel.textContent = 'Share';
-        const shareSelect = document.createElement('select');
-        shareSelect.className = 'plane-dropdown v2-composition-share-select';
-        shareSelect.dataset.action = 'share-weight';
-        shareSelect.dataset.itemId = task.task_id;
-        const currentOverride = Number(v2RoleCompositionState?.taskShareOverrides?.[task.task_id]);
-        const baselineShare = Math.round((Number(task.time_share_prior) || 0) * 100);
-        [
-            { value: '', label: `Baseline (${baselineShare}%)` },
-            { value: '0.05', label: '5%' },
-            { value: '0.10', label: '10%' },
-            { value: '0.15', label: '15%' },
-            { value: '0.20', label: '20%' },
-            { value: '0.25', label: '25%' },
-            { value: '0.30', label: '30%' }
-        ].forEach((optionConfig) => {
-            const option = document.createElement('option');
-            option.value = optionConfig.value;
-            option.textContent = optionConfig.label;
-            shareSelect.appendChild(option);
+    getRoleGraphController().then((controller) => {
+        controller.render({
+            nodes: nodeState,
+            edges: edgeState,
+            mode: v2GraphMode
         });
-        shareSelect.value = Number.isFinite(currentOverride) ? currentOverride.toFixed(2) : '';
-        shareLabel.appendChild(shareSelect);
-
-        const hint = document.createElement('div');
-        hint.className = 'v2-graph-node-hint';
-        hint.textContent = functionLinks.length
-            ? `Feeds ${functionLinks.slice(0, 2).map((entry) => truncateV2TaskLabel(entry.role_summary || entry.function_statement || 'function', 26)).join(' · ')}`
-            : 'No function link yet';
-
-        if (v2GraphLinkDraft?.sourceKind === 'task' && v2GraphLinkDraft.sourceId === task.task_id) {
-            node.classList.add('is-link-source');
-        }
-
-        node.appendChild(header);
-        node.appendChild(title);
-        node.appendChild(stats);
-        node.appendChild(shareLabel);
-        node.appendChild(hint);
-        layer.appendChild(node);
+    }).catch((error) => {
+        console.error('[V2] Failed to render React Flow graph:', error);
     });
-
-    selectedFunctions.forEach((fn) => {
-        const node = document.createElement('div');
-        const key = getGraphNodeKey('function', fn.function_id);
-        const position = positions[key];
-        const supportRows = supportMap.get(fn.function_id) || [];
-        node.className = 'v2-graph-node v2-graph-node--function';
-        node.dataset.nodeKind = 'function';
-        node.dataset.functionId = fn.function_id;
-        node.style.left = `${position.x}px`;
-        node.style.top = `${position.y}px`;
-
-        const header = document.createElement('div');
-        header.className = 'v2-graph-node-header';
-        const chip = document.createElement('div');
-        chip.className = 'v2-graph-node-chip';
-        chip.textContent = 'Function';
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'v2-studio-remove';
-        remove.textContent = 'Remove';
-        remove.dataset.action = 'remove';
-        remove.dataset.card = 'functions';
-        remove.dataset.itemId = fn.function_id;
-        header.appendChild(chip);
-        header.appendChild(remove);
-
-        const title = document.createElement('div');
-        title.className = 'v2-flow-node-title';
-        title.textContent = truncateV2TaskLabel(fn.role_summary || fn.function_statement || 'Unnamed function', 74);
-
-        const hint = document.createElement('div');
-        hint.className = 'v2-graph-node-hint';
-        hint.textContent = supportRows.length
-            ? `${supportRows.length} supporting task${supportRows.length === 1 ? '' : 's'}`
-            : 'No task linked here yet';
-
-        if (v2GraphLinkDraft?.sourceKind === 'task' && v2GraphMode === 'function-link') {
-            node.classList.add('is-link-target');
-        }
-
-        node.appendChild(header);
-        node.appendChild(title);
-        node.appendChild(hint);
-        layer.appendChild(node);
-    });
-
-    if (v2GraphMode === 'move') {
-        helper.textContent = 'Drag nodes to reorganize the role map. The layout is visual only; the model changes when you add or remove links, tasks, functions, or task share.';
-    } else if (v2GraphMode === 'task-link') {
-        helper.textContent = v2GraphLinkDraft
-            ? 'Now click the downstream task this selected task mainly feeds.'
-            : 'Click a task, then click the next task it mainly supports.';
-    } else if (v2GraphMode === 'function-link') {
-        helper.textContent = v2GraphLinkDraft
-            ? 'Now click the function this selected task directly supports.'
-            : 'Click a task, then click the function it directly serves.';
-    } else {
-        helper.textContent = 'Click any custom edge to remove it from the model.';
-    }
 
     renderStudioAddControls();
 }
@@ -1306,7 +1262,6 @@ function renderV2RoleComposition(composition) {
 
     if (!composition) {
         v2CustomDependencyEdges = [];
-        v2GraphLinkDraft = null;
         headline.textContent = 'Select a mapped occupation to load the editable role composition.';
         summary.textContent = 'The model starts from the occupation baseline, then lets you edit tasks, workflow links, and functions in one studio before scoring.';
         renderV2RoleFlowMap();
@@ -2560,136 +2515,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         v2GraphMode = target.dataset.graphMode;
-        v2GraphLinkDraft = null;
         renderV2RoleFlowMap();
-    });
-
-    const graphEditor = document.getElementById('v2-role-graph-editor');
-    const graphLayer = document.getElementById('v2-role-graph-layer');
-    const graphSvg = document.getElementById('v2-role-graph-svg');
-
-    graphLayer?.addEventListener('pointerdown', (event) => {
-        if (v2GraphMode !== 'move' || !v2RoleCompositionState) {
-            return;
-        }
-        const target = event.target;
-        if (!(target instanceof HTMLElement) || target.closest('button, select, option, label')) {
-            return;
-        }
-        const node = target.closest('.v2-graph-node');
-        if (!(node instanceof HTMLElement)) {
-            return;
-        }
-        const nodeKind = node.dataset.nodeKind || '';
-        const nodeId = nodeKind === 'function' ? node.dataset.functionId : node.dataset.taskId;
-        if (!nodeKind || !nodeId || !graphEditor) {
-            return;
-        }
-        const editorRect = graphEditor.getBoundingClientRect();
-        const nodeRect = node.getBoundingClientRect();
-        v2GraphDragState = {
-            nodeKey: getGraphNodeKey(nodeKind, nodeId),
-            offsetX: event.clientX - nodeRect.left,
-            offsetY: event.clientY - nodeRect.top,
-            editorRect
-        };
-        node.setPointerCapture?.(event.pointerId);
-        event.preventDefault();
-    });
-
-    graphLayer?.addEventListener('click', (event) => {
-        const target = event.target;
-        if (!(target instanceof HTMLElement) || target.closest('button, select, option')) {
-            return;
-        }
-        const node = target.closest('.v2-graph-node');
-        if (!(node instanceof HTMLElement) || !v2RoleCompositionState) {
-            return;
-        }
-        const nodeKind = node.dataset.nodeKind || '';
-        const taskId = node.dataset.taskId || '';
-        const functionId = node.dataset.functionId || '';
-
-        if (v2GraphMode === 'task-link') {
-            if (!v2GraphLinkDraft) {
-                if (nodeKind !== 'task' || !taskId) return;
-                v2GraphLinkDraft = { sourceKind: 'task', sourceId: taskId };
-                renderV2RoleFlowMap();
-                return;
-            }
-            if (nodeKind !== 'task' || !taskId || taskId === v2GraphLinkDraft.sourceId) return;
-            const alreadyExists = v2CustomDependencyEdges.some((edge) => edge.from_task_id === v2GraphLinkDraft.sourceId && edge.to_task_id === taskId);
-            if (!alreadyExists) {
-                v2CustomDependencyEdges.push({ from_task_id: v2GraphLinkDraft.sourceId, to_task_id: taskId });
-            }
-            v2GraphLinkDraft = null;
-            renderV2RoleComposition(v2RoleCompositionState.raw);
-            updateV2Results({ preserveSelection: true }).catch((error) => {
-                console.error('[V2] Failed to rerender after graph dependency add:', error);
-            });
-            return;
-        }
-
-        if (v2GraphMode === 'function-link') {
-            if (!v2GraphLinkDraft) {
-                if (nodeKind !== 'task' || !taskId) return;
-                v2GraphLinkDraft = { sourceKind: 'task', sourceId: taskId };
-                renderV2RoleFlowMap();
-                return;
-            }
-            if (nodeKind !== 'function' || !functionId) return;
-            const alreadyExists = v2CustomTaskFunctionLinks.some((link) => link.task_id === v2GraphLinkDraft.sourceId && link.function_id === functionId);
-            if (!alreadyExists) {
-                v2CustomTaskFunctionLinks.push({ task_id: v2GraphLinkDraft.sourceId, function_id: functionId });
-            }
-            v2GraphLinkDraft = null;
-            renderV2RoleComposition(v2RoleCompositionState.raw);
-            updateV2Results({ preserveSelection: true }).catch((error) => {
-                console.error('[V2] Failed to rerender after graph function link add:', error);
-            });
-        }
-    });
-
-    document.addEventListener('pointermove', (event) => {
-        if (!v2GraphDragState || !graphEditor) {
-            return;
-        }
-        const width = v2GraphDragState.nodeKey.startsWith('function:') ? 260 : 280;
-        const height = v2GraphDragState.nodeKey.startsWith('function:') ? 110 : 138;
-        const nextX = Math.max(12, event.clientX - v2GraphDragState.editorRect.left - v2GraphDragState.offsetX);
-        const nextY = Math.max(12, event.clientY - v2GraphDragState.editorRect.top - v2GraphDragState.offsetY);
-        v2GraphNodePositions[v2GraphDragState.nodeKey] = {
-            x: Math.min(nextX, Math.max(12, graphEditor.clientWidth - width - 12)),
-            y: Math.min(nextY, Math.max(12, graphEditor.clientHeight - height - 12))
-        };
-        renderV2RoleFlowMap();
-    });
-
-    document.addEventListener('pointerup', () => {
-        v2GraphDragState = null;
-    });
-
-    graphSvg?.addEventListener('click', (event) => {
-        if (v2GraphMode !== 'remove-link') {
-            return;
-        }
-        const target = event.target;
-        if (!(target instanceof SVGPathElement) || !target.classList.contains('is-custom')) {
-            return;
-        }
-        if (target.dataset.edgeKind === 'task') {
-            const fromTaskId = target.dataset.fromTaskId || '';
-            const toTaskId = target.dataset.toTaskId || '';
-            v2CustomDependencyEdges = v2CustomDependencyEdges.filter((edge) => !(edge.from_task_id === fromTaskId && edge.to_task_id === toTaskId));
-        } else if (target.dataset.edgeKind === 'function') {
-            const taskId = target.dataset.taskId || '';
-            const functionId = target.dataset.functionId || '';
-            v2CustomTaskFunctionLinks = v2CustomTaskFunctionLinks.filter((link) => !(link.task_id === taskId && link.function_id === functionId));
-        }
-        renderV2RoleComposition(v2RoleCompositionState?.raw || null);
-        updateV2Results({ preserveSelection: true }).catch((error) => {
-            console.error('[V2] Failed to rerender after custom edge removal:', error);
-        });
     });
 
     document.getElementById('v2-dependency-add')?.addEventListener('click', () => {
