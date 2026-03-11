@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build:role-graph": "vite build --config vite.role-graph.config.ts"
+    "build:role-graph": "vite build --config vite.role-graph.config.ts && mv assets/role-graph-editor assets/role-graph-editor.tmp.js && npx esbuild assets/role-graph-editor.tmp.js --minify --outfile=assets/role-graph-editor.js --format=esm --bundle=false && rm assets/role-graph-editor.tmp.js"
   },
   "dependencies": {
     "@xyflow/react": "^12.10.1",

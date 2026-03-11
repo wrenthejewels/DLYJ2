@@ -9,11 +9,16 @@ export default defineConfig({
     emptyOutDir: false,
     sourcemap: false,
     cssCodeSplit: false,
+    lib: {
+      entry: path.resolve(__dirname, 'src/role-graph-editor/main.tsx'),
+      formats: ['es'],
+      fileName: () => 'role-graph-editor',
+      cssFileName: 'role-graph-editor',
+    },
     rollupOptions: {
-      input: path.resolve(__dirname, 'src/role-graph-editor/main.tsx'),
       output: {
-        entryFileNames: 'role-graph-editor.js',
-        chunkFileNames: 'role-graph-editor-[name].js',
+        // Vite lib mode ES format produces .mjs by default;
+        // rename to .js after build or run esbuild --minify on the output.
         assetFileNames: (assetInfo) => {
           if (assetInfo.name && assetInfo.name.endsWith('.css')) {
             return 'role-graph-editor.css';
