@@ -113,133 +113,54 @@
                             <span>These are the higher-level outcomes or responsibilities the role is there to deliver.</span>
                         </div>
                     </div>
-                    <div class="v2-flow-map-shell" id="v2-flow-map-shell">
-                        <div class="v2-flow-map-header">
-                            <div>
-                                <div class="r-section-label">Live role map</div>
-                                <h4>How the work flows into the role's purpose</h4>
-                            </div>
-                            <p id="v2-flow-map-summary">Select an occupation to load the task and function flow.</p>
-                        </div>
-                        <div class="v2-flow-map-board" id="v2-flow-map-board">
-                            <div class="v2-flow-lane v2-flow-lane--tasks">
-                                <div class="v2-flow-lane-header">
-                                    <span>Tasks</span>
-                                    <strong id="v2-flow-task-count">-</strong>
-                                </div>
-                                <div class="v2-flow-lane-body" id="v2-flow-task-lane"></div>
-                            </div>
-                            <div class="v2-flow-lane v2-flow-lane--links">
-                                <div class="v2-flow-lane-header">
-                                    <span>Workflow feed</span>
-                                    <strong id="v2-flow-link-count">-</strong>
-                                </div>
-                                <div class="v2-flow-lane-body" id="v2-flow-link-lane"></div>
-                            </div>
-                            <div class="v2-flow-lane v2-flow-lane--functions">
-                                <div class="v2-flow-lane-header">
-                                    <span>Functions</span>
-                                    <strong id="v2-flow-function-count">-</strong>
-                                </div>
-                                <div class="v2-flow-lane-body" id="v2-flow-function-lane"></div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="v2-role-studio" id="v2-composition-cards">
                         <div class="v2-role-studio-lane v2-role-studio-lane--tasks">
                             <div class="v2-role-studio-header">
-                                <div class="r-section-label">Left edge</div>
+                                <div class="r-section-label">Tasks</div>
                                 <h4>Edit the tasks that make up your role</h4>
+                                <p id="v2-flow-map-summary">Select an occupation to load the role studio.</p>
                             </div>
-                            <div class="v2-composition-card" id="v2-composition-onet_tasks" hidden>
-                                <div class="v2-composition-card-header">
-                                    <h4 data-role="title">Tasks from O*NET</h4>
-                                    <p data-role="description"></p>
-                                </div>
-                                <div class="v2-composition-active-list" data-role="active-list"></div>
-                                <div class="v2-composition-add-row">
-                                    <select class="plane-dropdown" data-role="add-select" data-card="onet_tasks">
-                                        <option value="">Select occupation first</option>
-                                    </select>
-                                    <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
-                                </div>
+                            <div class="v2-studio-add-row">
+                                <select class="plane-dropdown" id="v2-task-add-select" data-card="tasks">
+                                    <option value="">Add task from this occupation</option>
+                                </select>
+                                <button type="button" class="r-refine-link" id="v2-task-add" data-action="add" data-card="tasks">Add</button>
                             </div>
-
-                            <div class="v2-composition-card" id="v2-composition-reviewed_job_posting_tasks" hidden>
-                                <div class="v2-composition-card-header">
-                                    <h4 data-role="title">Tasks added from public job postings</h4>
-                                    <p data-role="description"></p>
-                                </div>
-                                <div class="v2-composition-active-list" data-role="active-list"></div>
-                                <div class="v2-composition-add-row">
-                                    <select class="plane-dropdown" data-role="add-select" data-card="reviewed_job_posting_tasks">
-                                        <option value="">Select occupation first</option>
-                                    </select>
-                                    <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
-                                </div>
-                            </div>
-
-                            <div class="v2-composition-card" id="v2-composition-reviewed_role_graph_tasks" hidden>
-                                <div class="v2-composition-card-header">
-                                    <h4 data-role="title">Tasks added during role review</h4>
-                                    <p data-role="description"></p>
-                                </div>
-                                <div class="v2-composition-active-list" data-role="active-list"></div>
-                                <div class="v2-composition-add-row">
-                                    <select class="plane-dropdown" data-role="add-select" data-card="reviewed_role_graph_tasks">
-                                        <option value="">Select occupation first</option>
-                                    </select>
-                                    <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
-                                </div>
-                            </div>
+                            <div class="v2-flow-lane-body" id="v2-flow-task-lane"></div>
                         </div>
 
                         <div class="v2-role-studio-lane v2-role-studio-lane--links">
                             <div class="v2-role-studio-header">
-                                <div class="r-section-label">Middle feed</div>
-                                <h4>Shape the workflow between tasks</h4>
-                                <p>Drop a task onto another task here to say it mainly feeds that step. Use this when the default workflow graph misses a real dependency.</p>
+                                <div class="r-section-label">Workflow</div>
+                                <h4>Shape the task tree</h4>
+                                <p>Tasks can feed other tasks before they feed the role's functions. Drag a task onto a task here to add a missing support link.</p>
                             </div>
-                            <details class="v2-inline-collapsible v2-inline-collapsible--nested v2-dependency-editor" id="v2-dependency-editor-panel" open>
-                                <summary class="v2-inline-collapsible-summary">
-                                    <span>Support links</span>
-                                    <span class="v2-inline-collapsible-helper">Visible here because workflow links change spillover across the role.</span>
-                                </summary>
-                                <div class="v2-inline-collapsible-body">
-                                    <div class="v2-dependency-controls">
-                                        <select id="v2-dependency-source" class="plane-dropdown">
-                                            <option value="">Choose support task</option>
-                                        </select>
-                                        <select id="v2-dependency-target" class="plane-dropdown">
-                                            <option value="">Choose task it mainly supports</option>
-                                        </select>
-                                        <button type="button" class="r-refine-link" id="v2-dependency-add">Add link</button>
-                                    </div>
-                                    <div class="v2-dependency-list" id="v2-dependency-list"></div>
-                                </div>
-                            </details>
+                            <div class="v2-flow-lane-body" id="v2-flow-link-lane"></div>
+                            <div class="v2-dependency-editor-fallback" hidden>
+                                <select id="v2-dependency-source" class="plane-dropdown">
+                                    <option value="">Choose support task</option>
+                                </select>
+                                <select id="v2-dependency-target" class="plane-dropdown">
+                                    <option value="">Choose task it mainly supports</option>
+                                </select>
+                                <button type="button" class="r-refine-link" id="v2-dependency-add">Add link</button>
+                                <div class="v2-dependency-list" id="v2-dependency-list"></div>
+                            </div>
                         </div>
 
                         <div class="v2-role-studio-lane v2-role-studio-lane--functions">
                             <div class="v2-role-studio-header">
-                                <div class="r-section-label">Right edge</div>
-                                <h4>Edit the functions the role exists to deliver</h4>
-                                <p>Drop a task onto a function to mark that task as directly serving that higher-level purpose.</p>
+                                <div class="r-section-label">Functions</div>
+                                <h4>Edit the role's defining functions</h4>
+                                <p>Drag a task onto a function to say that work directly supports that higher-level purpose.</p>
                             </div>
-                            <div class="v2-composition-card" id="v2-composition-functions" hidden>
-                                <div class="v2-composition-card-header">
-                                    <h4 data-role="title">Value-defining functions</h4>
-                                    <p data-role="description"></p>
-                                </div>
-                                <div class="v2-composition-active-list" data-role="active-list"></div>
-                                <div class="v2-composition-add-row">
-                                    <select class="plane-dropdown" data-role="add-select" data-card="functions">
-                                        <option value="">Select occupation first</option>
-                                    </select>
-                                    <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
-                                </div>
+                            <div class="v2-studio-add-row">
+                                <select class="plane-dropdown" id="v2-function-add-select" data-card="functions">
+                                    <option value="">Add function from this occupation</option>
+                                </select>
+                                <button type="button" class="r-refine-link" id="v2-function-add" data-action="add" data-card="functions">Add</button>
                             </div>
+                            <div class="v2-flow-lane-body" id="v2-flow-function-lane"></div>
                         </div>
                     </div>
                 </section>

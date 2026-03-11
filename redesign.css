@@ -1181,7 +1181,7 @@ img, svg { display: block; max-width: 100%; }
 }
 .v2-role-studio {
     display: grid;
-    grid-template-columns: minmax(420px, 1.45fr) minmax(280px, 0.95fr) minmax(340px, 1.1fr);
+    grid-template-columns: minmax(360px, 1.15fr) minmax(500px, 1.55fr) minmax(320px, 1fr);
     gap: clamp(16px, 1.7vw, 24px);
     align-items: start;
     padding: clamp(18px, 2vw, 26px);
@@ -1259,6 +1259,100 @@ img, svg { display: block; max-width: 100%; }
     border-radius: 8px;
     background: rgba(249, 246, 239, 0.96);
 }
+.v2-studio-add-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+}
+.v2-studio-card {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 12px;
+    background: rgba(255, 254, 250, 0.98);
+}
+.v2-studio-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.v2-studio-remove,
+.v2-studio-pill-remove {
+    border: 0;
+    background: rgba(83, 102, 126, 0.08);
+    color: var(--ink-secondary);
+    border-radius: 999px;
+    cursor: pointer;
+}
+.v2-studio-remove {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.v2-studio-pill-remove {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.v2-studio-task-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.v2-studio-share-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--text-xs);
+    color: var(--ink-secondary);
+}
+.v2-studio-linklist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.v2-studio-linkpill,
+.v2-tree-branch {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(83, 102, 126, 0.08);
+    color: var(--ink);
+    font-size: var(--text-xs);
+    line-height: 1.35;
+}
+.v2-workflow-tree {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(190px, 1fr);
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+.v2-workflow-stage {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+.v2-workflow-stage-label {
+    position: sticky;
+    top: 0;
+    padding-bottom: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-tertiary);
+}
+.v2-tree-branch-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 @media (max-width: 900px) {
     .v2-structure-guide,
     .v2-flow-map-shell,
@@ -1283,6 +1377,10 @@ img, svg { display: block; max-width: 100%; }
     }
     .v2-role-studio {
         grid-template-columns: 1fr;
+    }
+    .v2-workflow-tree {
+        grid-auto-flow: row;
+        grid-auto-columns: auto;
     }
     .v2-role-studio-lane--tasks::after,
     .v2-role-studio-lane--links::after {

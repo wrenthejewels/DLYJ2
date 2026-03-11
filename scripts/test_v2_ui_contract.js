@@ -21,10 +21,13 @@ function main() {
   [
     'v2-composition-headline',
     'v2-composition-summary',
-    'v2-composition-onet_tasks',
-    'v2-composition-reviewed_job_posting_tasks',
-    'v2-composition-reviewed_role_graph_tasks',
-    'v2-composition-functions',
+    'v2-task-add-select',
+    'v2-task-add',
+    'v2-flow-task-lane',
+    'v2-flow-link-lane',
+    'v2-function-add-select',
+    'v2-function-add',
+    'v2-flow-function-lane',
     'v2-dependency-source',
     'v2-dependency-target',
     'v2-dependency-add',
@@ -74,7 +77,7 @@ function main() {
   console.log(JSON.stringify({
     status: 'ok',
     checked: {
-      compositionCards: 4,
+      unifiedRoleStudio: true,
       dependencyEditor: true,
       roleFateColumns: 5,
       questionnaireRenderedFromSchema: true
