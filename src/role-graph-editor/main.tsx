@@ -58,12 +58,13 @@ type RoleGraphCallbacks = {
   onTaskRemove: (taskId: string) => void;
   onFunctionRemove: (functionId: string) => void;
   onTaskShareChange: (taskId: string, value: string) => void;
+  onTaskFunctionLinkRemove: (taskId: string, functionId: string) => void;
   onConnect: (connection: Connection) => void;
   onCustomEdgeRemove: (edgeId: string) => void;
   onNodePositionChange: (nodeId: string, position: { x: number; y: number }) => void;
 };
 
-type TaskNodeData = TaskNodeModel & Pick<RoleGraphCallbacks, 'onTaskRemove' | 'onTaskShareChange'>;
+type TaskNodeData = TaskNodeModel & Pick<RoleGraphCallbacks, 'onTaskRemove' | 'onTaskShareChange' | 'onTaskFunctionLinkRemove'>;
 type FunctionNodeData = FunctionNodeModel & Pick<RoleGraphCallbacks, 'onFunctionRemove'>;
 
 const truncate = (value: string, maxLength: number) => {
@@ -110,7 +111,16 @@ const TaskNode = memo(({ data }: NodeProps<Node<TaskNodeData>>) => {
         {data.functionLabels.length ? (
           data.functionLabels.map((entry) => (
             <div className="v2-rf-link-pill" key={`${data.taskId}:${entry.functionId}`}>
-              {truncate(entry.label, 32)}
+              <span>{truncate(entry.label, 32)}</span>
+              {entry.isCustom ? (
+                <button
+                  type="button"
+                  className="v2-rf-pill-remove"
+                  onClick={() => data.onTaskFunctionLinkRemove(data.taskId, entry.functionId)}
+                >
+                  ×
+                </button>
+              ) : null}
             </div>
           ))
         ) : (
@@ -165,6 +175,7 @@ function RoleGraphCanvas({
               ...node,
               onTaskRemove: callbacks.onTaskRemove,
               onTaskShareChange: callbacks.onTaskShareChange,
+              onTaskFunctionLinkRemove: callbacks.onTaskFunctionLinkRemove,
             },
           };
         }
@@ -178,7 +189,7 @@ function RoleGraphCanvas({
           },
         };
       }),
-    [callbacks.onFunctionRemove, callbacks.onTaskRemove, callbacks.onTaskShareChange, state.nodes]
+    [callbacks.onFunctionRemove, callbacks.onTaskFunctionLinkRemove, callbacks.onTaskRemove, callbacks.onTaskShareChange, state.nodes]
   );
 
   const edges = useMemo<Array<Edge>>(
@@ -223,7 +234,7 @@ function RoleGraphCanvas({
         fitView
         minZoom={0.4}
         maxZoom={1.6}
-        nodesConnectable
+        nodesConnectable={state.mode !== 'remove-link'}
         nodesDraggable
         panOnDrag
         elementsSelectable

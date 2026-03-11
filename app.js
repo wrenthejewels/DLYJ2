@@ -1095,6 +1095,15 @@ async function getRoleGraphController() {
                         console.error('[V2] Failed to rerender after graph share change:', error);
                     });
                 },
+                onTaskFunctionLinkRemove(taskId, functionId) {
+                    v2CustomTaskFunctionLinks = v2CustomTaskFunctionLinks.filter((link) => !(link.task_id === taskId && link.function_id === functionId));
+                    if (v2RoleCompositionState) {
+                        renderV2RoleComposition(v2RoleCompositionState.raw);
+                    }
+                    updateV2Results({ preserveSelection: true }).catch((error) => {
+                        console.error('[V2] Failed to rerender after graph task/function link removal:', error);
+                    });
+                },
                 onConnect(connection) {
                     const source = String(connection.source || '');
                     const target = String(connection.target || '');
