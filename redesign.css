@@ -826,9 +826,51 @@ img, svg { display: block; max-width: 100%; }
     color: var(--ink);
     line-height: 1.45;
 }
+.v2-inline-collapsible {
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--surface);
+}
+.v2-inline-collapsible-summary {
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    cursor: pointer;
+}
+.v2-inline-collapsible-summary::-webkit-details-marker {
+    display: none;
+}
+.v2-inline-collapsible-summary span:first-child {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    color: var(--ink);
+}
+.v2-inline-collapsible-helper {
+    font-size: var(--text-sm);
+    color: var(--ink-secondary);
+    max-width: 38rem;
+    text-align: right;
+}
+.v2-inline-collapsible-body {
+    padding: 0 var(--space-lg) var(--space-lg);
+}
+.v2-inline-collapsible[open] .v2-inline-collapsible-summary {
+    padding-bottom: var(--space-md);
+}
 @media (max-width: 900px) {
     .v2-dependency-controls {
         grid-template-columns: 1fr;
+    }
+    .v2-inline-collapsible-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .v2-inline-collapsible-helper {
+        max-width: none;
+        text-align: left;
     }
 }
 

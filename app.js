@@ -1540,7 +1540,7 @@ function renderV2TaskBreakdown(taskBreakdown, assignment) {
     safeSetText(
         'v2-task-summary-copy',
         assignment
-            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} active role tasks. This list live-updates as your composition edits and role-refinement answers change role share, direct pressure, spillover pressure, and retained leverage inside that occupation anchor. Use “Show model details” if you want the evidence and fallback notes.`
+            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} active role tasks. This list live-updates as your composition edits and role-refinement answers change role share, direct pressure, spillover pressure, and retained leverage. Use “Show model details” if you want the evidence and fallback notes.`
             : 'Choose a mapped occupation to load its task inventory and the blended role-fate view.'
     );
 
@@ -2122,9 +2122,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const questionnaireButton = document.getElementById('questionnaire-button');
     questionnaireButton?.addEventListener('click', () => {
         const setupWizard = document.getElementById('setup-wizard');
+        const roleRefinementPanel = document.getElementById('v2-role-refinement-panel');
         if (setupWizard) {
             setupWizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
             document.getElementById('step-open-survey')?.click();
+        }
+        if (roleRefinementPanel) {
+            roleRefinementPanel.open = false;
         }
     });
 

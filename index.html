@@ -158,80 +158,87 @@
                         </div>
                     </div>
 
-                    <div class="v2-dependency-editor">
-                        <div class="v2-composition-card-header">
-                            <h4>Optional support links</h4>
-                            <p>If one selected task mainly exists to support another selected task, add that link here so the model can reflect spillover more accurately.</p>
+                    <details class="v2-inline-collapsible v2-dependency-editor" id="v2-dependency-editor-panel">
+                        <summary class="v2-inline-collapsible-summary">
+                            <span>Optional support links</span>
+                            <span class="v2-inline-collapsible-helper">Add task-to-task support links only if the default graph misses an obvious dependency.</span>
+                        </summary>
+                        <div class="v2-inline-collapsible-body">
+                            <div class="v2-composition-card-header">
+                                <p>If one selected task mainly exists to support another selected task, add that link here so the model can reflect spillover more accurately.</p>
+                            </div>
+                            <div class="v2-dependency-controls">
+                                <select id="v2-dependency-source" class="plane-dropdown">
+                                    <option value="">Choose support task</option>
+                                </select>
+                                <select id="v2-dependency-target" class="plane-dropdown">
+                                    <option value="">Choose task it mainly supports</option>
+                                </select>
+                                <button type="button" class="r-refine-link" id="v2-dependency-add">Add link</button>
+                            </div>
+                            <div class="v2-dependency-list" id="v2-dependency-list"></div>
                         </div>
-                        <div class="v2-dependency-controls">
-                            <select id="v2-dependency-source" class="plane-dropdown">
-                                <option value="">Choose support task</option>
-                            </select>
-                            <select id="v2-dependency-target" class="plane-dropdown">
-                                <option value="">Choose task it mainly supports</option>
-                            </select>
-                            <button type="button" class="r-refine-link" id="v2-dependency-add">Add link</button>
-                        </div>
-                        <div class="v2-dependency-list" id="v2-dependency-list"></div>
-                    </div>
+                    </details>
                 </section>
 
                 <!-- Role refinement -->
-                <section class="r-questions-section">
-                    <div class="r-questions-header">
-                        <h3>Role refinement</h3>
-                        <p>How your version of the occupation actually works: what must stay human, what is easier to delegate, and where accountability still sits.</p>
-                    </div>
+                <details class="v2-inline-collapsible r-questions-section" id="v2-role-refinement-panel">
+                    <summary class="v2-inline-collapsible-summary">
+                        <span>Role refinement</span>
+                        <span class="v2-inline-collapsible-helper">Optional questions about what must stay human, what is easier to delegate, and where accountability still sits.</span>
+                    </summary>
+                    <div class="v2-inline-collapsible-body">
+                        <div class="r-questions-header">
+                            <p>How your version of the occupation actually works: what must stay human, what is easier to delegate, and where accountability still sits.</p>
+                        </div>
 
-                    <label class="r-prefill-toggle">
-                        <input type="checkbox" id="prefill-questions">
-                        <span>Prefill from selected occupation + hierarchy</span>
-                    </label>
+                        <label class="r-prefill-toggle">
+                            <input type="checkbox" id="prefill-questions">
+                            <span>Prefill from selected occupation + hierarchy</span>
+                        </label>
 
-                    <!-- Readout -->
-                    <div class="r-readout">
-                        <div class="r-section-label">Current role-refinement readout</div>
-                        <p class="card-description" id="v2-refinement-summary">Answer the core questions to see how this version of the role is likely to retain function, sign-off, and substitution resistance.</p>
-                        <div class="r-readout-metrics">
-                            <div class="v2-outlook-note">
-                                <span>Function retention</span>
-                                <strong id="v2-refinement-function">-</strong>
-                            </div>
-                            <div class="v2-outlook-note">
-                                <span>Human sign-off</span>
-                                <strong id="v2-refinement-signoff">-</strong>
-                            </div>
-                            <div class="v2-outlook-note">
-                                <span>Workflow decomposability</span>
-                                <strong id="v2-refinement-workflow">-</strong>
-                            </div>
-                            <div class="v2-outlook-note">
-                                <span>Adoption readiness</span>
-                                <strong id="v2-refinement-adoption">-</strong>
-                            </div>
-                            <div class="v2-outlook-note">
-                                <span>Substitution pressure</span>
-                                <strong id="v2-refinement-pressure">-</strong>
+                        <div class="r-readout">
+                            <div class="r-section-label">Current role-refinement readout</div>
+                            <p class="card-description" id="v2-refinement-summary">Answer the core questions to see how this version of the role is likely to retain function, sign-off, and substitution resistance.</p>
+                            <div class="r-readout-metrics">
+                                <div class="v2-outlook-note">
+                                    <span>Function retention</span>
+                                    <strong id="v2-refinement-function">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Human sign-off</span>
+                                    <strong id="v2-refinement-signoff">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Workflow decomposability</span>
+                                    <strong id="v2-refinement-workflow">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Adoption readiness</span>
+                                    <strong id="v2-refinement-adoption">-</strong>
+                                </div>
+                                <div class="v2-outlook-note">
+                                    <span>Substitution pressure</span>
+                                    <strong id="v2-refinement-pressure">-</strong>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Core questions -->
-                    <div class="r-questions-header">
-                        <div class="r-section-label">Core questions</div>
-                        <p class="card-description">These six questions do the most to determine whether AI mainly assists your role, compresses it, or leaves a human-retained core.</p>
-                    </div>
-                    <div class="question-grid" id="v2-core-refinement-grid"></div>
+                        <div class="r-questions-header">
+                            <div class="r-section-label">Core questions</div>
+                            <p class="card-description">These six questions do the most to determine whether AI mainly assists your role, compresses it, or leaves a human-retained core.</p>
+                        </div>
+                        <div class="question-grid" id="v2-core-refinement-grid"></div>
 
-                    <!-- Optional deeper modules -->
-                    <details class="v2-advanced-refinement" id="v2-advanced-refinement">
-                        <summary class="v2-advanced-summary">
-                            <span>Optional deeper modules</span>
-                            <span class="v2-advanced-helper" id="v2-advanced-helper">Remaining questions</span>
-                        </summary>
-                        <div class="v2-advanced-body" id="v2-advanced-refinement-body"></div>
-                    </details>
-                </section>
+                        <details class="v2-advanced-refinement" id="v2-advanced-refinement">
+                            <summary class="v2-advanced-summary">
+                                <span>Optional deeper modules</span>
+                                <span class="v2-advanced-helper" id="v2-advanced-helper">Remaining questions</span>
+                            </summary>
+                            <div class="v2-advanced-body" id="v2-advanced-refinement-body"></div>
+                        </details>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -284,7 +291,7 @@
             </div>
 
             <!-- Occupation picker -->
-            <div style="margin-bottom: var(--space-xl);">
+            <div style="margin-bottom: var(--space-xl);" hidden aria-hidden="true">
                 <label for="occupation-match-select" class="r-section-label" style="display: block;">Occupation anchor</label>
                 <div class="r-select-wrap" style="max-width: 400px;">
                     <select id="occupation-match-select" class="plane-dropdown" disabled>
