@@ -300,31 +300,6 @@
                 </div>
             </div>
 
-            <!-- Wave Timeline -->
-            <div style="margin-bottom: var(--space-3xl);">
-                <div class="r-section-label">Wave trajectory</div>
-                <div class="r-wave-timeline">
-                    <div class="r-wave-step">
-                        <div class="r-wave-step-label">Current wave</div>
-                        <div class="r-wave-step-state" id="v2-wave-current-state">-</div>
-                        <div class="r-wave-step-detail" id="v2-wave-current-retained">-</div>
-                        <div class="r-wave-step-detail" id="v2-wave-current-coherence">-</div>
-                    </div>
-                    <div class="r-wave-step">
-                        <div class="r-wave-step-label">Next wave</div>
-                        <div class="r-wave-step-state" id="v2-wave-next-state">-</div>
-                        <div class="r-wave-step-detail" id="v2-wave-next-retained">-</div>
-                        <div class="r-wave-step-detail" id="v2-wave-next-coherence">-</div>
-                    </div>
-                    <div class="r-wave-step">
-                        <div class="r-wave-step-label">Distant wave</div>
-                        <div class="r-wave-step-state" id="v2-wave-distant-state">-</div>
-                        <div class="r-wave-step-detail" id="v2-wave-distant-retained">-</div>
-                        <div class="r-wave-step-detail" id="v2-wave-distant-coherence">-</div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Narrative -->
             <section class="r-narrative">
                 <div class="r-section-label">Why this result</div>
@@ -348,6 +323,32 @@
                 </div>
             </section>
 
+            <!-- Wave Timeline -->
+            <section class="r-wave-section r-wave-section--support">
+                <div class="r-section-label">Supporting timing view</div>
+                <p class="r-wave-support-copy">This is a secondary timing read. Use it to see when pressure is likely to build, not as the main answer to what the role becomes.</p>
+                <div class="r-wave-timeline">
+                    <div class="r-wave-step">
+                        <div class="r-wave-step-label">Current wave</div>
+                        <div class="r-wave-step-state" id="v2-wave-current-state">-</div>
+                        <div class="r-wave-step-detail" id="v2-wave-current-retained">-</div>
+                        <div class="r-wave-step-detail" id="v2-wave-current-coherence">-</div>
+                    </div>
+                    <div class="r-wave-step">
+                        <div class="r-wave-step-label">Next wave</div>
+                        <div class="r-wave-step-state" id="v2-wave-next-state">-</div>
+                        <div class="r-wave-step-detail" id="v2-wave-next-retained">-</div>
+                        <div class="r-wave-step-detail" id="v2-wave-next-coherence">-</div>
+                    </div>
+                    <div class="r-wave-step">
+                        <div class="r-wave-step-label">Distant wave</div>
+                        <div class="r-wave-step-state" id="v2-wave-distant-state">-</div>
+                        <div class="r-wave-step-detail" id="v2-wave-distant-retained">-</div>
+                        <div class="r-wave-step-detail" id="v2-wave-distant-coherence">-</div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Role Fate Map -->
             <section class="r-map">
                 <div class="r-map-header">
@@ -356,24 +357,29 @@
                     <p id="v2-map-subtitle">This map starts with the current task mix, then shows which tasks hold bargaining power, face direct AI pressure, lose value through spillover, or still anchor the retained role.</p>
                 </div>
                 <div class="r-map-grid">
-                    <div class="r-map-column">
+                    <div class="r-map-column r-map-column--current">
                         <h4>Current role</h4>
+                        <p class="r-map-column-note">What currently takes up the role.</p>
                         <div class="v2-cluster-list" id="v2-current-bundle"></div>
                     </div>
-                    <div class="r-map-column">
+                    <div class="r-map-column r-map-column--bargaining">
                         <h4>Bargaining power</h4>
+                        <p class="r-map-column-note">What most explains why the role still matters.</p>
                         <div class="v2-cluster-list" id="v2-bargaining-bundle"></div>
                     </div>
-                    <div class="r-map-column">
+                    <div class="r-map-column r-map-column--direct">
                         <h4>Direct AI pressure</h4>
+                        <p class="r-map-column-note">What AI is most likely to absorb first.</p>
                         <div class="v2-cluster-list" id="v2-direct-bundle"></div>
                     </div>
-                    <div class="r-map-column">
+                    <div class="r-map-column r-map-column--spillover">
                         <h4>Indirect spillover</h4>
+                        <p class="r-map-column-note">What loses value because connected work changes.</p>
                         <div class="v2-cluster-list" id="v2-indirect-bundle"></div>
                     </div>
-                    <div class="r-map-column">
+                    <div class="r-map-column r-map-column--retained">
                         <h4>Retained leverage</h4>
+                        <p class="r-map-column-note">What still helps the role hold together.</p>
                         <div class="v2-cluster-list" id="v2-residual-bundle"></div>
                     </div>
                 </div>
