@@ -86,7 +86,7 @@
             </div>
 
             <div class="r-intake-step">
-                <button id="questionnaire-button" class="r-refine-link" type="button">Refine your result with task and role detail</button>
+                <button id="questionnaire-button" class="r-refine-link" type="button">Review and edit the role composition</button>
             </div>
         </section>
 
@@ -95,50 +95,66 @@
         <div class="r-refinement legacy-wizard hidden-block" id="setup-wizard-wrapper">
             <div class="setup-wizard" id="setup-wizard">
 
-                <!-- Task detail -->
                 <section class="r-task-detail">
-                    <h3>Task detail</h3>
-                    <p>Tag the tasks that actually define your week if the occupation baseline is too generic.</p>
+                    <h3>Role composition editor</h3>
+                    <p id="v2-composition-headline">Select a mapped occupation to load the editable role composition.</p>
+                    <p id="v2-composition-summary">The model starts from the occupation baseline, then you can edit which baseline tasks, reviewed additions, and value-defining functions should count in this run.</p>
 
-                    <div class="r-task-fields">
-                        <div class="r-task-field">
-                            <label for="v2-task-primary">Primary current task</label>
-                            <select id="v2-task-primary" class="plane-dropdown v2-direct-input">
-                                <option value="">Select occupation first</option>
-                            </select>
-                            <p>The task that takes the biggest share of your actual week.</p>
+                    <div class="v2-composition-cards" id="v2-composition-cards">
+                        <div class="v2-composition-card" id="v2-composition-onet_tasks" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Tasks from O*NET</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="onet_tasks">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
+                            </div>
                         </div>
 
-                        <div class="r-task-field">
-                            <label for="v2-task-secondary">Secondary current task</label>
-                            <select id="v2-task-secondary" class="plane-dropdown v2-direct-input">
-                                <option value="">Select occupation first</option>
-                            </select>
-                            <p>Only if another task meaningfully shares your week.</p>
+                        <div class="v2-composition-card" id="v2-composition-reviewed_job_posting_tasks" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Tasks added from public job postings</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="reviewed_job_posting_tasks">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
+                            </div>
                         </div>
 
-                        <div class="r-task-field">
-                            <label for="v2-task-critical">Value-defining task</label>
-                            <select id="v2-task-critical" class="plane-dropdown v2-direct-input">
-                                <option value="">Select occupation first</option>
-                            </select>
-                            <p>The task that most explains why the role exists, even if it's not the largest share.</p>
+                        <div class="v2-composition-card" id="v2-composition-reviewed_role_graph_tasks" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Tasks added during role review</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="reviewed_role_graph_tasks">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
+                            </div>
                         </div>
 
-                        <div class="r-task-field">
-                            <label for="v2-task-supported">Task already helped by AI</label>
-                            <select id="v2-task-supported" class="plane-dropdown v2-direct-input">
-                                <option value="">Select occupation first</option>
-                            </select>
-                            <p>Work where AI mostly speeds you up rather than threatening your bargaining power.</p>
-                        </div>
-
-                        <div class="r-task-field">
-                            <label for="v2-task-spillover">Support task tied to exposed work</label>
-                            <select id="v2-task-spillover" class="plane-dropdown v2-direct-input">
-                                <option value="">Select occupation first</option>
-                            </select>
-                            <p>A support task that could shrink because the core work it serves gets automated.</p>
+                        <div class="v2-composition-card" id="v2-composition-functions" hidden>
+                            <div class="v2-composition-card-header">
+                                <h4 data-role="title">Value-defining functions</h4>
+                                <p data-role="description"></p>
+                            </div>
+                            <div class="v2-composition-active-list" data-role="active-list"></div>
+                            <div class="v2-composition-add-row">
+                                <select class="plane-dropdown" data-role="add-select" data-card="functions">
+                                    <option value="">Select occupation first</option>
+                                </select>
+                                <button type="button" class="r-refine-link" data-role="add-button" data-action="add">Add</button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -219,7 +235,7 @@
                 <div class="r-verdict-kicker">V2.1 Role Fate Briefing</div>
                 <h2 id="v2-role-state-label">Select a category to begin</h2>
                 <div class="r-verdict-fate" id="v2-role-state-card">-</div>
-                <p class="r-verdict-summary" id="v2-role-summary">Choose a category, select the closest occupation, and optionally refine the result with task-mix or role-structure detail.</p>
+                <p class="r-verdict-summary" id="v2-role-summary">Choose a category, select the closest occupation, and optionally edit the role composition before scoring.</p>
                 <p class="r-verdict-summary" id="v2-outlook-summary-copy" style="display: none;">This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.</p>
 
                 <dl class="r-verdict-metrics">
@@ -344,7 +360,7 @@
                 <div class="r-map-header">
                     <div class="r-section-label">Task-level view</div>
                     <h3>Live task breakdown</h3>
-                    <p id="v2-task-note">This view reorders the selected occupation's task inventory as your task picks and role-refinement answers change the underlying role share, direct pressure, spillover risk, and retained leverage.</p>
+                    <p id="v2-task-note">This view reorders the edited role composition as your task/function edits and role-refinement answers change the underlying role share, direct pressure, spillover risk, and retained leverage.</p>
                 </div>
                 <div class="r-task-summary">
                     <p class="r-task-summary-copy" id="v2-task-summary-copy">Choose a mapped occupation to load its task inventory and the blended role-fate breakdown.</p>

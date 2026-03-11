@@ -41,6 +41,20 @@ async function main() {
     throw new Error('Expected getTaskInventory to return seeded role tasks for the selected occupation.');
   }
 
+  const roleComposition = engine.getRoleComposition(result.selected_occupation_id);
+  if (!roleComposition) {
+    throw new Error('Expected getRoleComposition to return editable role composition data.');
+  }
+  if (!Array.isArray(roleComposition.onet_tasks) || !Array.isArray(roleComposition.functions)) {
+    throw new Error('Expected getRoleComposition to expose task buckets and functions.');
+  }
+  if (!roleComposition.defaults?.task_ids?.length) {
+    throw new Error('Expected default selected task ids in role composition.');
+  }
+  if (!roleComposition.defaults?.function_ids?.length) {
+    throw new Error('Expected default selected function ids in role composition.');
+  }
+
   if (!result.recomposition_summary) {
     throw new Error('Expected recomposition_summary in result payload.');
   }
@@ -133,28 +147,21 @@ async function main() {
     roleCategory: 'software',
     questionnaireProfile: result.questionnaire_profile,
     seniorityLevel: 3,
-    dominantTaskIds: [taskInventory[0].task_id],
-    criticalTaskIds: [taskInventory[1].task_id],
-    aiSupportTaskIds: [taskInventory[2].task_id],
-    supportTaskIds: [taskInventory[3].task_id]
+    compositionEdits: {
+      removed_task_ids: roleComposition.defaults.task_ids.slice(0, 2),
+      removed_function_ids: roleComposition.defaults.function_ids.slice(1)
+    }
   });
 
-  const dominantTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[0].task_id);
-  const criticalTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[1].task_id);
-  const aiSupportTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[2].task_id);
-  const supportTask = taskDrivenResult.task_breakdown.tasks.find((task) => task.task_id === taskInventory[3].task_id);
-
-  if (!dominantTask?.is_user_selected_dominant) {
-    throw new Error('Expected selected dominant task to be marked in task_breakdown.');
+  if (taskDrivenResult.task_breakdown.total_tasks_considered >= result.task_breakdown.total_tasks_considered) {
+    throw new Error('Expected composition edits to shrink the active task set.');
   }
-  if (!criticalTask?.is_user_selected_critical) {
-    throw new Error('Expected selected critical task to be marked in task_breakdown.');
+  const activeFunctionCount = taskDrivenResult.occupation_assignment?.selected_composition?.active_function_count || 0;
+  if (roleComposition.defaults.function_ids.length > 1 && activeFunctionCount >= roleComposition.defaults.function_ids.length) {
+    throw new Error('Expected composition edits to shrink the active function set when multiple function anchors exist.');
   }
-  if (!aiSupportTask?.is_user_selected_ai_support) {
-    throw new Error('Expected selected AI-supported task to be marked in task_breakdown.');
-  }
-  if (!supportTask?.is_user_selected_support_task) {
-    throw new Error('Expected selected spillover task to be marked in task_breakdown.');
+  if (activeFunctionCount < 1) {
+    throw new Error('Expected at least one active function after composition edits.');
   }
   assertBounded('taskDrivenResult.role_fate_confidence', taskDrivenResult.role_fate_confidence);
 

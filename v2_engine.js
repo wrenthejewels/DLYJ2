@@ -16,6 +16,9 @@
         taskDependencyEdges: 'data/normalized/task_dependency_edges.csv',
         occupationTaskRoleProfiles: 'data/normalized/occupation_task_role_profiles.csv',
         occupationRoleExplanations: 'data/normalized/occupation_role_explanations.csv',
+        roleFunctions: 'data/normalized/role_functions.csv',
+        occupationFunctionMap: 'data/normalized/occupation_function_map.csv',
+        functionAccountabilityProfiles: 'data/normalized/function_accountability_profiles.csv',
         taskMembership: 'data/normalized/task_cluster_membership.csv',
         taskEvidence: 'data/normalized/task_exposure_evidence.csv',
         taskPriors: 'data/normalized/task_augmentation_automation_priors.csv',
@@ -507,6 +510,111 @@
         return String(occupationId || '') + '|' + String(onetTaskId || '');
     }
 
+    function taskSourceBucket(task) {
+        var notes = String(task && task.notes || '').toLowerCase();
+        if (notes.indexOf('seeded_from_job_description_expansion') !== -1) {
+            return 'reviewed_job_posting_tasks';
+        }
+        if (notes.indexOf('seeded_from_manual_task_expansion') !== -1) {
+            return 'reviewed_role_graph_tasks';
+        }
+        return 'onet_tasks';
+    }
+
+    function taskSourceLabel(task) {
+        var bucket = taskSourceBucket(task);
+        if (bucket === 'reviewed_job_posting_tasks') {
+            return 'Reviewed public posting task';
+        }
+        if (bucket === 'reviewed_role_graph_tasks') {
+            return 'Reviewed role-graph task';
+        }
+        return 'O*NET baseline task';
+    }
+
+    function rankTaskForDefaultSelection(task) {
+        return average([
+            toNumber(task && task.time_share_prior, 0),
+            toNumber(task && task.bargaining_power_weight, 0),
+            toNumber(task && task.value_centrality, 0)
+        ]);
+    }
+
+    function defaultSelectedTaskIds(taskRows) {
+        var onetRows = [];
+        var selected = [];
+
+        (taskRows || []).forEach(function (task) {
+            var bucket = taskSourceBucket(task);
+            if (bucket === 'onet_tasks') {
+                onetRows.push(task);
+            } else {
+                selected.push(task.task_id);
+            }
+        });
+
+        onetRows
+            .slice()
+            .sort(function (left, right) {
+                return rankTaskForDefaultSelection(right) - rankTaskForDefaultSelection(left);
+            })
+            .slice(0, 8)
+            .forEach(function (task) {
+                selected.push(task.task_id);
+            });
+
+        return uniqueStrings(selected);
+    }
+
+    function defaultSelectedFunctionIds(functionRows) {
+        return uniqueStrings((functionRows || []).map(function (row) {
+            return row.function_id;
+        }));
+    }
+
+    function resolveCompositionSelection(defaultIds, edits, addKey, removeKey) {
+        var selectedMap = toLookup(defaultIds || []);
+        var added = uniqueStrings(edits && edits[addKey] || []);
+        var removed = uniqueStrings(edits && edits[removeKey] || []);
+
+        added.forEach(function (id) {
+            selectedMap[id] = true;
+        });
+        removed.forEach(function (id) {
+            delete selectedMap[id];
+        });
+
+        return Object.keys(selectedMap);
+    }
+
+    function buildEditableTaskRow(task, selectedTaskLookup) {
+        return {
+            task_id: task.task_id,
+            onet_task_id: task.onet_task_id,
+            task_statement: task.task_statement,
+            task_family_id: task.task_family_id,
+            task_type: task.task_type || '',
+            time_share_prior: Number(toNumber(task.time_share_prior, 0).toFixed(4)),
+            value_centrality: Number(toNumber(task.value_centrality, 0).toFixed(4)),
+            bargaining_power_weight: Number(toNumber(task.bargaining_power_weight, 0).toFixed(4)),
+            source_label: taskSourceLabel(task),
+            source_confidence: Number(toNumber(task.source_confidence, 0.45).toFixed(3)),
+            selected_by_default: !!selectedTaskLookup[task.task_id]
+        };
+    }
+
+    function buildEditableFunctionRow(functionMapRow, roleFunctionRow, selectedFunctionLookup) {
+        return {
+            function_id: functionMapRow.function_id,
+            function_category: roleFunctionRow ? roleFunctionRow.function_category : null,
+            role_summary: roleFunctionRow ? roleFunctionRow.role_summary : null,
+            function_statement: roleFunctionRow ? roleFunctionRow.function_statement : null,
+            function_weight: Number(toNumber(functionMapRow.function_weight, 0).toFixed(4)),
+            source_confidence: Number(toNumber(functionMapRow.source_confidence, 0.45).toFixed(3)),
+            selected_by_default: !!selectedFunctionLookup[functionMapRow.function_id]
+        };
+    }
+
     function parseCsv(text) {
         var rows = [];
         var row = [];
@@ -822,6 +930,40 @@
         }
 
         return mergedRows;
+    }
+
+    function summarizeActiveFunctions(functionMapRows, accountabilityByFunctionId) {
+        var rows = Array.isArray(functionMapRows) ? functionMapRows.slice() : [];
+        if (!rows.length) {
+            return null;
+        }
+
+        var totalWeight = sum(rows.map(function (row) {
+            return Math.max(toNumber(row.function_weight, 0), 0);
+        })) || rows.length;
+
+        var normalizedRows = rows.map(function (row) {
+            var accountability = accountabilityByFunctionId[row.function_id] || {};
+            var weight = Math.max(toNumber(row.function_weight, 0), 0);
+            return {
+                function_id: row.function_id,
+                function_weight: totalWeight > 0 ? (weight / totalWeight) : (1 / rows.length),
+                delegability_guardrail: toNumber(row.delegability_guardrail, 0.55),
+                judgment_requirement: toNumber(accountability.judgment_requirement, 0.6),
+                trust_requirement: toNumber(accountability.trust_requirement, 0.6),
+                human_authority_requirement: toNumber(accountability.human_authority_requirement, 0.6),
+                bargaining_power_retention: toNumber(accountability.bargaining_power_retention, 0.6)
+            };
+        });
+
+        return {
+            function_count: normalizedRows.length,
+            delegability_guardrail: weightedAverage(normalizedRows, 'delegability_guardrail', 'function_weight'),
+            judgment_requirement: weightedAverage(normalizedRows, 'judgment_requirement', 'function_weight'),
+            trust_requirement: weightedAverage(normalizedRows, 'trust_requirement', 'function_weight'),
+            human_authority_requirement: weightedAverage(normalizedRows, 'human_authority_requirement', 'function_weight'),
+            bargaining_power_retention: weightedAverage(normalizedRows, 'bargaining_power_retention', 'function_weight')
+        };
     }
 
     function buildTaskRoleGraphBreakdown(options) {
@@ -1447,6 +1589,54 @@
             return null;
         }
 
+        function getRoleComposition(occupationId) {
+            var taskRows = (store.taskInventoryByOcc[occupationId] || []).slice();
+            var functionMapRows = (store.occupationFunctionMapByOcc[occupationId] || []).slice();
+            var defaultTaskIds = defaultSelectedTaskIds(taskRows);
+            var defaultFunctionIds = defaultSelectedFunctionIds(functionMapRows);
+            var selectedTaskLookup = toLookup(defaultTaskIds);
+            var selectedFunctionLookup = toLookup(defaultFunctionIds);
+            var groupedTasks = {
+                onet_tasks: [],
+                reviewed_job_posting_tasks: [],
+                reviewed_role_graph_tasks: []
+            };
+
+            taskRows.forEach(function (task) {
+                var bucket = taskSourceBucket(task);
+                groupedTasks[bucket].push(buildEditableTaskRow(task, selectedTaskLookup));
+            });
+
+            Object.keys(groupedTasks).forEach(function (bucket) {
+                groupedTasks[bucket].sort(function (left, right) {
+                    var rightSelected = right.selected_by_default ? 1 : 0;
+                    var leftSelected = left.selected_by_default ? 1 : 0;
+                    if (rightSelected !== leftSelected) {
+                        return rightSelected - leftSelected;
+                    }
+                    return rankTaskForDefaultSelection(right) - rankTaskForDefaultSelection(left);
+                });
+            });
+
+            var functionRows = functionMapRows.map(function (row) {
+                return buildEditableFunctionRow(row, store.roleFunctionsById[row.function_id] || null, selectedFunctionLookup);
+            }).sort(function (left, right) {
+                return toNumber(right.function_weight, 0) - toNumber(left.function_weight, 0);
+            });
+
+            return {
+                occupation_id: occupationId,
+                defaults: {
+                    task_ids: defaultTaskIds,
+                    function_ids: defaultFunctionIds
+                },
+                onet_tasks: groupedTasks.onet_tasks,
+                reviewed_job_posting_tasks: groupedTasks.reviewed_job_posting_tasks,
+                reviewed_role_graph_tasks: groupedTasks.reviewed_role_graph_tasks,
+                functions: functionRows
+            };
+        }
+
         function computeResult(input) {
             var occupation = resolveOccupation(input || {});
             if (!occupation) {
@@ -1455,11 +1645,41 @@
 
             var occupationId = occupation.occupation_id;
             var roleCategory = input.roleCategory || input.selectedRoleCategory || occupation.role_family;
-            var taskInventoryRows = store.taskInventoryByOcc[occupationId] || [];
-            var dependencyEdges = store.taskDependencyEdgesByOcc[occupationId] || [];
+            var roleComposition = getRoleComposition(occupationId);
+            var compositionEdits = input.compositionEdits || {};
+            var activeTaskIds = resolveCompositionSelection(
+                roleComposition.defaults.task_ids,
+                compositionEdits,
+                'added_task_ids',
+                'removed_task_ids'
+            );
+            if (!activeTaskIds.length) {
+                activeTaskIds = roleComposition.defaults.task_ids.slice(0, 1);
+            }
+            var activeTaskLookup = toLookup(activeTaskIds);
+            var taskInventoryRows = (store.taskInventoryByOcc[occupationId] || []).filter(function (row) {
+                return !!activeTaskLookup[row.task_id];
+            });
+            var dependencyEdges = (store.taskDependencyEdgesByOcc[occupationId] || []).filter(function (edge) {
+                return activeTaskLookup[edge.from_task_id] && activeTaskLookup[edge.to_task_id];
+            });
             var taskRoleProfile = store.taskRoleProfilesByOcc[occupationId] || null;
             var occupationExplanation = store.occupationExplanationsByOcc[occupationId] || null;
             var taskInventoryById = indexBy(taskInventoryRows, 'task_id');
+            var activeFunctionIds = resolveCompositionSelection(
+                roleComposition.defaults.function_ids,
+                compositionEdits,
+                'added_function_ids',
+                'removed_function_ids'
+            );
+            if (!activeFunctionIds.length && roleComposition.defaults.function_ids.length) {
+                activeFunctionIds = roleComposition.defaults.function_ids.slice(0, 1);
+            }
+            var activeFunctionLookup = toLookup(activeFunctionIds);
+            var activeFunctionRows = (store.occupationFunctionMapByOcc[occupationId] || []).filter(function (row) {
+                return !!activeFunctionLookup[row.function_id];
+            });
+            var functionSummary = summarizeActiveFunctions(activeFunctionRows, store.functionAccountabilityByFunctionId);
             var dominantTaskIds = uniqueStrings(input.dominantTaskIds || []);
             var criticalTaskIds = uniqueStrings(input.criticalTaskIds || []);
             var aiSupportTaskIds = uniqueStrings(input.aiSupportTaskIds || []);
@@ -1488,6 +1708,48 @@
                 ? (store.unemploymentByGroup[laborContext.unemployment_group_id] || [])
                 : [];
             var signals = deriveQuestionnaireSignals(input.answers || {}, input || {});
+            if (functionSummary) {
+                signals.functionRetention = clamp(
+                    (signals.functionRetention * 0.72) +
+                    (functionSummary.human_authority_requirement * 0.14) +
+                    (functionSummary.bargaining_power_retention * 0.14),
+                    0, 1
+                );
+                signals.couplingProtection = clamp(
+                    (signals.couplingProtection * 0.78) +
+                    (functionSummary.delegability_guardrail * 0.10) +
+                    (functionSummary.trust_requirement * 0.06) +
+                    (functionSummary.judgment_requirement * 0.06),
+                    0, 1
+                );
+                signals.augmentationFit = clamp(
+                    (signals.augmentationFit * 0.80) +
+                    (functionSummary.bargaining_power_retention * 0.10) +
+                    (functionSummary.judgment_requirement * 0.10),
+                    0, 1
+                );
+                signals.substitutionRiskModifier = clamp(
+                    (signals.substitutionRiskModifier * 0.82) +
+                    ((1 - functionSummary.delegability_guardrail) * 0.10) +
+                    ((1 - functionSummary.human_authority_requirement) * 0.08),
+                    0, 1
+                );
+                signals.frictionDimensions.accountability_load = clamp(
+                    (signals.frictionDimensions.accountability_load * 0.75) +
+                    (functionSummary.human_authority_requirement * 0.25),
+                    0, 1
+                );
+                signals.frictionDimensions.judgment_requirement = clamp(
+                    (signals.frictionDimensions.judgment_requirement * 0.75) +
+                    (functionSummary.judgment_requirement * 0.25),
+                    0, 1
+                );
+                signals.frictionDimensions.tacit_context_dependence = clamp(
+                    (signals.frictionDimensions.tacit_context_dependence * 0.75) +
+                    (functionSummary.trust_requirement * 0.25),
+                    0, 1
+                );
+            }
             var roleCriticalSet = {};
             roleCriticalClusters.forEach(function (clusterId) {
                 roleCriticalSet[clusterId] = true;
@@ -2024,7 +2286,7 @@
                 assignment_method: input.occupationId
                     ? 'Using the occupation you explicitly selected from the mapped launch set.'
                     : 'Using the top mapped occupation for the selected launch category.',
-                task_assignment_method: 'The model starts from the occupation task inventory, blends O*NET task rows with reviewed role-graph expansions where coverage is thin, maps those tasks into task families, and applies direct plus dependency-driven pressure before reweighting the bundle with your role refinement profile.',
+                task_assignment_method: 'The model starts from the editable occupation composition, combining selected O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and active function anchors before it scores pressure, spillover, and retained leverage.',
                 dominant_task_clusters: dominantTaskClusters.map(function (clusterId) {
                     return {
                         task_cluster_id: clusterId,
@@ -2041,9 +2303,17 @@
                     task_cluster_id: roleDefiningWork.task_cluster_id,
                     label: roleDefiningWork.label
                 } : null,
+                selected_composition: {
+                    active_task_count: taskInventoryRows.length,
+                    active_function_count: activeFunctionRows.length,
+                    removed_task_count: uniqueStrings(compositionEdits.removed_task_ids || []).length,
+                    added_task_count: uniqueStrings(compositionEdits.added_task_ids || []).length,
+                    removed_function_count: uniqueStrings(compositionEdits.removed_function_ids || []).length,
+                    added_function_count: uniqueStrings(compositionEdits.added_function_ids || []).length
+                },
                 direct_task_evidence_count: directTaskEvidenceCount,
                 fallback_task_count: fallbackTaskCount,
-                questionnaire_effect: 'Your task picks change which work the model treats as current, value-defining, AI-assisted, or vulnerable to spillover. Your role-refinement answers then shape retained function, sign-off burden, substitution pressure, dependency drag, and the wave-based displacement trajectory.'
+                questionnaire_effect: 'Your composition edits determine which occupation tasks and functions are active in this run. Your role-refinement answers then shape retained function, sign-off burden, substitution pressure, dependency drag, and the wave-based displacement trajectory.'
             };
 
             var evidenceSummary = {
@@ -2093,6 +2363,7 @@
                     'Cluster priors are shrunk toward occupation-level priors using evidence confidence.',
                     'Wave trajectory: current=' + waveResults.current.state + ', next=' + waveResults.next.state + ', distant=' + waveResults.distant.state + '. Primary displacement wave: ' + primaryDisplacementWave + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + ' (wave: ' + roleDefiningWork.wave_assignment + ').') : 'No explicit role-defining task input selected.',
+                    'Active composition: ' + taskInventoryRows.length + ' tasks and ' + activeFunctionRows.length + ' function anchors after user edits.',
                     'Capability signal=' + Number(signals.capabilitySignal.toFixed(2)) + '; function retention=' + Number(signals.functionRetention.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
                     'Labor-market data is shown as context and does not drive the main role labels.',
                     laborContext ? ('Labor context includes employment=' + laborContext.employment_us + ', median_wage=' + laborContext.median_wage_usd + ', growth=' + laborContext.projection_growth_pct + '%.') : 'Labor context unavailable for this occupation.',
@@ -2339,13 +2610,17 @@
 
                 return typeof limit === 'number' && limit > 0 ? rows.slice(0, limit) : rows;
             },
+            getRoleComposition: function (occupationId) {
+                return getRoleComposition(occupationId);
+            },
             computeResult: computeResult,
             getDataSummary: function () {
                 return {
                     occupations: Object.keys(store.occupationsById).length,
                     roleCategories: Object.keys(store.uiRoleMapByRole).length,
                     occupationTaskClusterRows: store.occupationTaskClusters.length,
-                    taskPriorRows: store.taskPriors.length
+                    taskPriorRows: store.taskPriors.length,
+                    roleFunctionRows: store.roleFunctions.length
                 };
             }
         };
@@ -2378,6 +2653,10 @@
             taskInventoryByOcc: groupBy(loaded.occupationTaskInventory, 'occupation_id'),
             taskDependencyEdgesByOcc: groupBy(loaded.taskDependencyEdges, 'occupation_id'),
             taskRoleProfilesByOcc: indexBy(loaded.occupationTaskRoleProfiles, 'occupation_id'),
+            roleFunctions: loaded.roleFunctions,
+            roleFunctionsById: indexBy(loaded.roleFunctions, 'function_id'),
+            occupationFunctionMapByOcc: groupBy(loaded.occupationFunctionMap, 'occupation_id'),
+            functionAccountabilityByFunctionId: indexBy(loaded.functionAccountabilityProfiles, 'function_id'),
             taskMembershipByKey: loaded.taskMembership.reduce(function (map, row) {
                 var key = taskKey(row.occupation_id, row.onet_task_id);
                 var current = map[key];

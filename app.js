@@ -8,13 +8,29 @@ let selectedOccupationId = null;
 let lastV2Result = null;
 let v2EnginePromise = null;
 let v2TaskBreakdownExpanded = false;
+let v2RoleCompositionState = null;
 
-const V2_TASK_INPUT_CONFIG = [
-    { id: 'v2-task-primary', placeholder: 'No task override' },
-    { id: 'v2-task-secondary', placeholder: 'No secondary task override' },
-    { id: 'v2-task-critical', placeholder: 'Infer value-defining task' },
-    { id: 'v2-task-supported', placeholder: 'No explicit AI-assisted task' },
-    { id: 'v2-task-spillover', placeholder: 'No explicit spillover task' }
+const V2_COMPOSITION_CARD_CONFIG = [
+    {
+        key: 'onet_tasks',
+        title: 'Tasks from O*NET',
+        description: 'These are the baseline occupation tasks pulled from O*NET and preselected for this run.'
+    },
+    {
+        key: 'reviewed_job_posting_tasks',
+        title: 'Tasks added from public job postings',
+        description: 'These are reviewed additions we pulled from public job postings for this occupation.'
+    },
+    {
+        key: 'reviewed_role_graph_tasks',
+        title: 'Tasks added during role review',
+        description: 'These are reviewed task additions we kept because they help explain the role but do not come directly from O*NET.'
+    },
+    {
+        key: 'functions',
+        title: 'Value-defining functions',
+        description: 'These are the core functions we think define why this role exists, even if AI changes many of the tasks.'
+    }
 ];
 
 // ─── 2. Questionnaire schema ────────────────────────────────────────────────
@@ -689,97 +705,229 @@ function truncateV2TaskLabel(label, maxLength = 88) {
     return `${value.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
-async function populateV2TaskInputs(occupationId, preserveSelection = true) {
-    const selects = V2_TASK_INPUT_CONFIG
-        .map((config) => document.getElementById(config.id))
-        .filter(Boolean);
-
-    const setEmptyState = (placeholder) => {
-        V2_TASK_INPUT_CONFIG.forEach((config) => {
-            const select = document.getElementById(config.id);
-            if (!select) return;
-            select.disabled = true;
-            select.innerHTML = `<option value="">${placeholder || 'Select occupation first'}</option>`;
-        });
+function createCompositionSelectionState(composition) {
+    return {
+        occupationId: composition?.occupation_id || null,
+        selectedTaskIds: new Set(composition?.defaults?.task_ids || []),
+        selectedFunctionIds: new Set(composition?.defaults?.function_ids || [])
     };
+}
 
+function getCompositionEditsForEngine() {
+    if (!v2RoleCompositionState?.raw) {
+        return {
+            removed_task_ids: [],
+            added_task_ids: [],
+            removed_function_ids: [],
+            added_function_ids: []
+        };
+    }
+
+    const defaultTaskIds = new Set(v2RoleCompositionState.raw.defaults?.task_ids || []);
+    const defaultFunctionIds = new Set(v2RoleCompositionState.raw.defaults?.function_ids || []);
+    const selectedTaskIds = Array.from(v2RoleCompositionState.selectedTaskIds || []);
+    const selectedFunctionIds = Array.from(v2RoleCompositionState.selectedFunctionIds || []);
+
+    return {
+        removed_task_ids: Array.from(defaultTaskIds).filter((taskId) => !v2RoleCompositionState.selectedTaskIds.has(taskId)),
+        added_task_ids: selectedTaskIds.filter((taskId) => !defaultTaskIds.has(taskId)),
+        removed_function_ids: Array.from(defaultFunctionIds).filter((functionId) => !v2RoleCompositionState.selectedFunctionIds.has(functionId)),
+        added_function_ids: selectedFunctionIds.filter((functionId) => !defaultFunctionIds.has(functionId))
+    };
+}
+
+function getCompositionRowsForCard(cardKey) {
+    const raw = v2RoleCompositionState?.raw;
+    if (!raw) return [];
+    return Array.isArray(raw[cardKey]) ? raw[cardKey] : [];
+}
+
+function getCompositionSelectedIds(cardKey) {
+    if (cardKey === 'functions') {
+        return v2RoleCompositionState?.selectedFunctionIds || new Set();
+    }
+    return v2RoleCompositionState?.selectedTaskIds || new Set();
+}
+
+function createCompositionChip(item, cardKey) {
+    const chip = document.createElement('div');
+    chip.className = 'v2-composition-chip';
+
+    const body = document.createElement('div');
+    body.className = 'v2-composition-chip-body';
+
+    const title = document.createElement('div');
+    title.className = 'v2-composition-chip-title';
+    title.textContent = cardKey === 'functions'
+        ? (item.role_summary || item.function_statement || 'Unnamed function')
+        : truncateV2TaskLabel(item.task_statement, 120);
+    title.title = cardKey === 'functions'
+        ? (item.function_statement || item.role_summary || '')
+        : (item.task_statement || '');
+
+    const meta = document.createElement('div');
+    meta.className = 'v2-composition-chip-meta';
+    meta.textContent = cardKey === 'functions'
+        ? `${Math.round((Number(item.function_weight) || 0) * 100)}% function weight · ${Math.round((Number(item.source_confidence) || 0) * 100)}% confidence`
+        : `${formatV2Label(item.task_family_id || 'task')} · ${Math.round((Number(item.time_share_prior) || 0) * 100)}% baseline share · ${Math.round((Number(item.source_confidence) || 0) * 100)}% confidence`;
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'v2-composition-remove';
+    remove.textContent = 'Remove';
+    remove.dataset.action = 'remove';
+    remove.dataset.card = cardKey;
+    remove.dataset.itemId = cardKey === 'functions' ? item.function_id : item.task_id;
+
+    body.appendChild(title);
+    body.appendChild(meta);
+    chip.appendChild(body);
+    chip.appendChild(remove);
+    return chip;
+}
+
+function renderCompositionCard(cardConfig) {
+    const card = document.getElementById(`v2-composition-${cardConfig.key}`);
+    if (!card) return;
+
+    const rows = getCompositionRowsForCard(cardConfig.key);
+    const selectedIds = getCompositionSelectedIds(cardConfig.key);
+    const selectedRows = rows.filter((row) => selectedIds.has(cardConfig.key === 'functions' ? row.function_id : row.task_id));
+    const availableRows = rows.filter((row) => !selectedIds.has(cardConfig.key === 'functions' ? row.function_id : row.task_id));
+
+    card.hidden = !selectedRows.length && !availableRows.length;
+    if (card.hidden) return;
+
+    const title = card.querySelector('[data-role="title"]');
+    const description = card.querySelector('[data-role="description"]');
+    const activeList = card.querySelector('[data-role="active-list"]');
+    const addSelect = card.querySelector('[data-role="add-select"]');
+    const addButton = card.querySelector('[data-role="add-button"]');
+
+    if (title) title.textContent = cardConfig.title;
+    if (description) description.textContent = cardConfig.description;
+    if (activeList) {
+        activeList.innerHTML = '';
+        if (!selectedRows.length) {
+            const empty = document.createElement('div');
+            empty.className = 'v2-composition-empty';
+            empty.textContent = cardConfig.key === 'functions'
+                ? 'No active functions in this card.'
+                : 'No active tasks in this card.';
+            activeList.appendChild(empty);
+        } else {
+            selectedRows.forEach((row) => {
+                activeList.appendChild(createCompositionChip(row, cardConfig.key));
+            });
+        }
+    }
+
+    if (addSelect) {
+        addSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = cardConfig.key === 'functions' ? 'Add function from this occupation' : 'Add task from this occupation';
+        addSelect.appendChild(placeholder);
+
+        availableRows.forEach((row) => {
+            const option = document.createElement('option');
+            option.value = cardConfig.key === 'functions' ? row.function_id : row.task_id;
+            option.textContent = cardConfig.key === 'functions'
+                ? truncateV2TaskLabel(row.role_summary || row.function_statement || 'Unnamed function', 80)
+                : truncateV2TaskLabel(row.task_statement, 92);
+            addSelect.appendChild(option);
+        });
+        addSelect.disabled = !availableRows.length;
+    }
+
+    if (addButton) {
+        addButton.disabled = !availableRows.length;
+        addButton.dataset.card = cardConfig.key;
+    }
+}
+
+function renderV2RoleComposition(composition) {
+    const cards = document.getElementById('v2-composition-cards');
+    const headline = document.getElementById('v2-composition-headline');
+    const summary = document.getElementById('v2-composition-summary');
+
+    if (!cards || !headline || !summary) return;
+
+    if (!composition) {
+        cards.querySelectorAll('.v2-composition-card').forEach((card) => {
+            card.hidden = true;
+        });
+        headline.textContent = 'Select a mapped occupation to load the editable role composition.';
+        summary.textContent = 'The model starts from the occupation baseline, then you can edit which baseline tasks, reviewed additions, and value-defining functions should count in this run.';
+        return;
+    }
+
+    const onetCount = (composition.onet_tasks || []).filter((row) => v2RoleCompositionState.selectedTaskIds.has(row.task_id)).length;
+    const reviewedPostingCount = (composition.reviewed_job_posting_tasks || []).filter((row) => v2RoleCompositionState.selectedTaskIds.has(row.task_id)).length;
+    const reviewedManualCount = (composition.reviewed_role_graph_tasks || []).filter((row) => v2RoleCompositionState.selectedTaskIds.has(row.task_id)).length;
+    const functionCount = (composition.functions || []).filter((row) => v2RoleCompositionState.selectedFunctionIds.has(row.function_id)).length;
+
+    headline.textContent = 'This is the role composition the model will score next.';
+    summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. Remove anything that does not fit your role and add back occupation-scoped items that do.`;
+
+    V2_COMPOSITION_CARD_CONFIG.forEach(renderCompositionCard);
+}
+
+async function populateV2RoleComposition(occupationId, preserveSelection = true) {
     if (!occupationId) {
-        setEmptyState('Select occupation first');
-        return [];
+        v2RoleCompositionState = null;
+        renderV2RoleComposition(null);
+        return null;
     }
 
     let engine;
     try {
         engine = await getV2Engine();
     } catch (error) {
-        console.error('[V2] Failed to load task inventory for direct inputs:', error);
-        setEmptyState('Task inventory unavailable');
-        return [];
+        console.error('[V2] Failed to load role composition:', error);
+        v2RoleCompositionState = null;
+        renderV2RoleComposition(null);
+        return null;
     }
 
-    const tasks = engine.getTaskInventory(occupationId) || [];
-    if (!tasks.length) {
-        setEmptyState('No task inventory for this role yet');
-        return [];
+    const composition = engine.getRoleComposition(occupationId);
+    if (!composition) {
+        v2RoleCompositionState = null;
+        renderV2RoleComposition(null);
+        return null;
     }
 
-    V2_TASK_INPUT_CONFIG.forEach((config) => {
-        const select = document.getElementById(config.id);
-        if (!select) return;
+    const previousState = preserveSelection && v2RoleCompositionState?.occupationId === occupationId
+        ? v2RoleCompositionState
+        : null;
 
-        const previousValue = preserveSelection ? (select.value || '') : '';
-        select.disabled = false;
-        select.innerHTML = '';
+    v2RoleCompositionState = {
+        raw: composition,
+        ...createCompositionSelectionState(composition)
+    };
 
-        const placeholderOption = document.createElement('option');
-        placeholderOption.value = '';
-        placeholderOption.textContent = config.placeholder;
-        select.appendChild(placeholderOption);
-
-        tasks.forEach((task) => {
-            const option = document.createElement('option');
-            option.value = task.task_id;
-            option.textContent = `${truncateV2TaskLabel(task.task_statement)} · ${Math.round((Number(task.time_share_prior) || 0) * 100)}% baseline`;
-            option.title = task.task_statement || '';
-            option.dataset.family = task.task_family_id || '';
-            option.dataset.statement = task.task_statement || '';
-            option.dataset.roleCriticality = task.role_criticality || '';
-            select.appendChild(option);
-        });
-
-        select.value = previousValue && tasks.some((task) => task.task_id === previousValue)
-            ? previousValue
-            : '';
-    });
-
-    syncV2TaskSelectionState();
-
-    return tasks;
-}
-
-function syncV2TaskSelectionState() {
-    const selects = V2_TASK_INPUT_CONFIG
-        .map((config) => document.getElementById(config.id))
-        .filter(Boolean);
-
-    const selectedValues = new Map();
-    selects.forEach((select) => {
-        if (select.value) {
-            selectedValues.set(select.id, select.value);
-        }
-    });
-
-    selects.forEach((select) => {
-        const takenElsewhere = new Set(
-            Array.from(selectedValues.entries())
-                .filter(([id]) => id !== select.id)
-                .map(([, value]) => value)
+    if (previousState) {
+        v2RoleCompositionState.selectedTaskIds = new Set(
+            Array.from(previousState.selectedTaskIds || []).filter((taskId) => {
+                return composition.onet_tasks.concat(composition.reviewed_job_posting_tasks, composition.reviewed_role_graph_tasks)
+                    .some((row) => row.task_id === taskId);
+            })
         );
+        if (!v2RoleCompositionState.selectedTaskIds.size) {
+            v2RoleCompositionState.selectedTaskIds = new Set(composition.defaults.task_ids || []);
+        }
+        v2RoleCompositionState.selectedFunctionIds = new Set(
+            Array.from(previousState.selectedFunctionIds || []).filter((functionId) => {
+                return (composition.functions || []).some((row) => row.function_id === functionId);
+            })
+        );
+        if (!v2RoleCompositionState.selectedFunctionIds.size) {
+            v2RoleCompositionState.selectedFunctionIds = new Set(composition.defaults.function_ids || []);
+        }
+    }
 
-        Array.from(select.options).forEach((option) => {
-            option.disabled = !!(option.value && takenElsewhere.has(option.value));
-        });
-    });
+    renderV2RoleComposition(composition);
+    return composition;
 }
 
 // initializeOccupationSearch is defined inside the DOMContentLoaded handler
@@ -1149,6 +1297,9 @@ function renderV2OccupationAssignment(assignment) {
     if (assignment && totalCount) {
         parts.push(`Task coverage means ${directCoveragePct}% of the ${totalCount} mapped role tasks have direct Anthropic task evidence; the remaining ${fallbackCount} rows use task-family fallback estimates.`);
     }
+    if (assignment?.selected_composition) {
+        parts.push(`This run currently scores ${assignment.selected_composition.active_task_count} active tasks and ${assignment.selected_composition.active_function_count} active functions after your composition edits.`);
+    }
     if (assignment?.questionnaire_effect) {
         parts.push(assignment.questionnaire_effect);
     }
@@ -1280,7 +1431,7 @@ function renderV2TaskBreakdown(taskBreakdown, assignment) {
     safeSetText(
         'v2-task-summary-copy',
         assignment
-            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} mapped role tasks. This list live-updates as your selected occupation, task picks, and role-refinement answers change role share, direct pressure, spillover pressure, and retained leverage inside that occupation anchor. Use “Show model details” if you want the evidence and fallback notes.`
+            ? `${assignment.selected_occupation_title} currently resolves to ${taskBreakdown.total_tasks_considered || 0} active role tasks. This list live-updates as your composition edits and role-refinement answers change role share, direct pressure, spillover pressure, and retained leverage inside that occupation anchor. Use “Show model details” if you want the evidence and fallback notes.`
             : 'Choose a mapped occupation to load its task inventory and the blended role-fate view.'
     );
 
@@ -1309,43 +1460,10 @@ function renderV2TaskBreakdown(taskBreakdown, assignment) {
 
 // ─── 8. V2 Result functions ─────────────────────────────────────────────────
 
-function getDirectV2Inputs() {
-    const getSelectState = (id) => {
-        const select = document.getElementById(id);
-        const option = select?.selectedOptions?.[0];
-        return {
-            taskId: select?.value || '',
-            familyId: option?.dataset?.family || ''
-        };
-    };
-
-    const primary = getSelectState('v2-task-primary');
-    const secondary = getSelectState('v2-task-secondary');
-    const critical = getSelectState('v2-task-critical');
-    const supported = getSelectState('v2-task-supported');
-    const spillover = getSelectState('v2-task-spillover');
-
-    const dominantTaskIds = Array.from(new Set([primary.taskId, secondary.taskId].filter(Boolean)));
-    const roleCriticalTaskIds = critical.taskId ? [critical.taskId] : [];
-    const aiSupportTaskIds = supported.taskId ? [supported.taskId] : [];
-    const supportTaskIds = spillover.taskId ? [spillover.taskId] : [];
-    const dominantTaskClusters = Array.from(new Set([primary.familyId, secondary.familyId, spillover.familyId].filter(Boolean)));
-    const roleCriticalClusters = Array.from(new Set([critical.familyId].filter(Boolean)));
-
-    return {
-        dominantTaskIds: dominantTaskIds,
-        roleCriticalTaskIds: roleCriticalTaskIds,
-        aiSupportTaskIds: aiSupportTaskIds,
-        supportTaskIds: supportTaskIds,
-        dominantTaskClusters: dominantTaskClusters,
-        roleCriticalClusters: roleCriticalClusters
-    };
-}
-
 function resetV2Results(message, detail) {
     v2TaskBreakdownExpanded = false;
     safeSetText('v2-role-state-label', message || 'Select a role to begin');
-    safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or role-structure detail.');
+    safeSetText('v2-role-summary', detail || 'Choose a category, select the closest occupation, and optionally edit the role composition before scoring.');
     safeSetText('v2-outlook-summary-copy', detail || 'This briefing is built from your selected occupation, your task mix, and empirical task-level evidence.');
     safeSetText('v2-role-state-card', '-');
     safeSetText('v2-score-role-outlook', '-');
@@ -1369,7 +1487,7 @@ function resetV2Results(message, detail) {
     safeSetText('v2-explanation-review', '-');
     safeSetText('v2-explanation-copy', 'Choose a mapped occupation to see the plain-English audit summary for the current role readout.');
     safeSetText('v2-map-subtitle', "This map starts from the current task mix, then shows which tasks hold bargaining power, face direct AI pressure, lose value through spillover, or remain central to the retained role.");
-    safeSetText('v2-task-note', 'This view reorders the selected occupation\'s task inventory as your task picks and role-refinement answers change role share, pressure, spillover, and retained leverage.');
+    safeSetText('v2-task-note', 'This view reorders the edited role composition as your selected tasks/functions and role-refinement answers change role share, pressure, spillover, and retained leverage.');
     safeSetText('v2-recomposition-conversion', '-');
     ['current', 'next', 'distant'].forEach(function (w) {
         safeSetText('v2-wave-' + w + '-state', '-');
@@ -1385,6 +1503,7 @@ function resetV2Results(message, detail) {
     renderV2ClusterList('v2-indirect-bundle', [], { emptyText: 'Spillover tasks appear once the role view is active.' });
     renderV2ClusterList('v2-residual-bundle', [], { emptyText: 'Retained-leverage tasks appear once the role view is active.' });
     renderV2TaskBreakdown(null, null);
+    renderV2RoleComposition(v2RoleCompositionState?.raw || null);
     lastV2Result = null;
 }
 
@@ -1393,7 +1512,9 @@ async function updateV2Results(options = {}) {
     const roleCategory = selectedRole;
 
     if (!roleCategory) {
-        resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and optionally refine the result with task-mix or role-structure detail.');
+        v2RoleCompositionState = null;
+        renderV2RoleComposition(null);
+        resetV2Results('Select a category to begin', 'Choose a category, select the closest occupation, and optionally edit the role composition before scoring.');
         return null;
     }
 
@@ -1404,6 +1525,8 @@ async function updateV2Results(options = {}) {
             select.innerHTML = '<option value="">Choose the closest mapped category instead</option>';
         }
         selectedOccupationId = null;
+        v2RoleCompositionState = null;
+        renderV2RoleComposition(null);
         resetV2Results(
             'Choose the closest mapped category',
             'The empirical 2.0 briefing only runs on mapped launch occupations. Choose the closest supported category and occupation before scoring.'
@@ -1413,6 +1536,8 @@ async function updateV2Results(options = {}) {
 
     const candidates = await populateOccupationCandidates(roleCategory, preserveSelection);
     if (!candidates.length || !selectedOccupationId) {
+        v2RoleCompositionState = null;
+        renderV2RoleComposition(null);
         resetV2Results('No occupation match available', 'This category does not yet have a launch occupation mapped into the transformation engine.');
         return null;
     }
@@ -1429,7 +1554,7 @@ async function updateV2Results(options = {}) {
     const responses = getCurrentRefinementResponses();
     const seniorityLevel = parseFloat(document.getElementById('hierarchy-select')?.value || '1');
     const questionnaireProfile = buildStructuredQuestionnaireProfile(responses, seniorityLevel);
-    const directInputs = getDirectV2Inputs();
+    const compositionEdits = getCompositionEditsForEngine();
 
     let result;
     try {
@@ -1437,12 +1562,7 @@ async function updateV2Results(options = {}) {
             roleCategory: roleCategory,
             occupationId: selectedOccupationId,
             seniorityLevel: seniorityLevel,
-            dominantTaskIds: directInputs.dominantTaskIds,
-            criticalTaskIds: directInputs.roleCriticalTaskIds,
-            aiSupportTaskIds: directInputs.aiSupportTaskIds,
-            supportTaskIds: directInputs.supportTaskIds,
-            dominantTaskClusters: directInputs.dominantTaskClusters,
-            roleCriticalClusters: directInputs.roleCriticalClusters
+            compositionEdits: compositionEdits
         };
         if (questionnaireProfile) {
             computeOptions.questionnaireProfile = questionnaireProfile;
@@ -1500,7 +1620,7 @@ async function updateV2Results(options = {}) {
     );
     safeSetText(
         'v2-task-note',
-        `${result.selected_occupation_title} uses its mapped task inventory as the baseline. Each task updates live as your task picks and role-refinement answers change role share, direct pressure, spillover risk, and retained leverage.`
+        `${result.selected_occupation_title} uses the edited role composition as the baseline. Each task updates live as your task/function edits and role-refinement answers change role share, direct pressure, spillover risk, and retained leverage.`
     );
     renderV2RecompositionSummary(result.recomposition_summary);
     renderV2OccupationAssignment(result.occupation_assignment);
@@ -1579,8 +1699,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const explanationSection = document.getElementById('model-explanation-section');
     const legacyWizard = document.querySelector('.legacy-wizard');
     const occupationMatchSelect = document.getElementById('occupation-match-select');
-    const v2DirectInputs = document.querySelectorAll('.v2-direct-input');
     const v2TaskToggle = document.getElementById('v2-task-toggle');
+    const compositionCards = document.getElementById('v2-composition-cards');
 
     const activate = (el) => el && el.classList.add('active');
     const showBlock = (el) => el && el.classList.remove('hidden-block');
@@ -1592,6 +1712,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (roleSelect?.value && hierarchySelect?.value && (selectedOccupationId || roleSelect?.value === 'custom')) {
             showBlock(resultsSection);
             showBlock(explanationSection);
+            legacyWizard?.classList.remove('hidden-block');
         }
     }
 
@@ -1676,10 +1797,10 @@ document.addEventListener('DOMContentLoaded', function() {
         syncSearchInputWithOccupation(selectedOccupationId);
         tryShowResults();
         setPrefillState();
-        populateV2TaskInputs(selectedOccupationId, true)
+        populateV2RoleComposition(selectedOccupationId, true)
             .then(() => updateV2Results({ preserveSelection: true }))
             .catch(error => {
-                console.error('[V2] Failed to rerender after occupation change:', error);
+                console.error('[V2] Failed to rerender after occupation composition change:', error);
             });
     });
 
@@ -1693,10 +1814,10 @@ document.addEventListener('DOMContentLoaded', function() {
         syncSearchInputWithOccupation(selectedOccupationId);
         tryShowResults();
         setPrefillState();
-        populateV2TaskInputs(selectedOccupationId, true)
+        populateV2RoleComposition(selectedOccupationId, true)
             .then(() => updateV2Results({ preserveSelection: true }))
             .catch(error => {
-                console.error('[V2] Failed to rerender after top occupation change:', error);
+                console.error('[V2] Failed to rerender after top occupation composition change:', error);
             });
     });
 
@@ -1748,22 +1869,44 @@ document.addEventListener('DOMContentLoaded', function() {
         occupationSearchInput.value = matchedOccupation.title;
         tryShowResults();
         setPrefillState();
-        populateV2TaskInputs(selectedOccupationId, false)
+        populateV2RoleComposition(selectedOccupationId, false)
             .then(() => analyzeRole())
             .catch((error) => {
-                console.error('[V2] Failed to update task inputs from search selection:', error);
+                console.error('[V2] Failed to update role composition from search selection:', error);
             });
     });
 
-    // v2 direct inputs change handler
-    v2DirectInputs.forEach((input) => {
-        input.addEventListener('change', () => {
-            if (!selectedRole) return;
-            syncV2TaskSelectionState();
-            updateV2Results({ preserveSelection: true }).catch(error => {
-                console.error('[V2] Failed to rerender after direct 2.0 input change:', error);
+    compositionCards?.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement)) {
+            return;
+        }
+
+        if (target.dataset.action === 'remove') {
+            const cardKey = target.dataset.card;
+            const itemId = target.dataset.itemId;
+            if (!cardKey || !itemId || !v2RoleCompositionState) return;
+            const selectionSet = cardKey === 'functions' ? v2RoleCompositionState.selectedFunctionIds : v2RoleCompositionState.selectedTaskIds;
+            selectionSet.delete(itemId);
+            renderV2RoleComposition(v2RoleCompositionState.raw);
+            updateV2Results({ preserveSelection: true }).catch((error) => {
+                console.error('[V2] Failed to rerender after composition removal:', error);
             });
-        });
+            return;
+        }
+
+        if (target.dataset.action === 'add') {
+            const cardKey = target.dataset.card;
+            const select = compositionCards.querySelector(`select[data-card="${cardKey}"]`);
+            const itemId = select?.value || '';
+            if (!cardKey || !itemId || !v2RoleCompositionState) return;
+            const selectionSet = cardKey === 'functions' ? v2RoleCompositionState.selectedFunctionIds : v2RoleCompositionState.selectedTaskIds;
+            selectionSet.add(itemId);
+            renderV2RoleComposition(v2RoleCompositionState.raw);
+            updateV2Results({ preserveSelection: true }).catch((error) => {
+                console.error('[V2] Failed to rerender after composition add:', error);
+            });
+        }
     });
 
     // Role select change handler
@@ -1781,9 +1924,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         try {
-            await populateV2TaskInputs(selectedOccupationId, false);
+            await populateV2RoleComposition(selectedOccupationId, false);
         } catch (error) {
-            console.error('[V2] Failed to populate task inputs from category change:', error);
+            console.error('[V2] Failed to populate role composition from category change:', error);
         }
 
         syncSearchInputWithOccupation(selectedOccupationId);
@@ -1877,8 +2020,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize occupation search
     initializeOccupationSearch();
-    populateV2TaskInputs(selectedOccupationId, false).catch((error) => {
-        console.error('[V2] Failed to initialize task inputs:', error);
+    populateV2RoleComposition(selectedOccupationId, false).catch((error) => {
+        console.error('[V2] Failed to initialize role composition:', error);
     });
 
     // Step cards navigation

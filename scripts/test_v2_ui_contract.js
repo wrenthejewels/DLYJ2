@@ -19,11 +19,12 @@ function main() {
   const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 
   [
-    'v2-task-primary',
-    'v2-task-secondary',
-    'v2-task-critical',
-    'v2-task-supported',
-    'v2-task-spillover',
+    'v2-composition-headline',
+    'v2-composition-summary',
+    'v2-composition-onet_tasks',
+    'v2-composition-reviewed_job_posting_tasks',
+    'v2-composition-reviewed_role_graph_tasks',
+    'v2-composition-functions',
     'v2-current-bundle',
     'v2-bargaining-bundle',
     'v2-direct-bundle',
@@ -39,8 +40,9 @@ function main() {
   });
 
   [
-    'populateV2TaskInputs',
-    'syncV2TaskSelectionState',
+    'populateV2RoleComposition',
+    'renderV2RoleComposition',
+    'getCompositionEditsForEngine',
     'buildRoleFateMap',
     'renderV2OccupationExplanation',
     'QUESTIONNAIRE_MODULES',
@@ -53,11 +55,20 @@ function main() {
   });
 
   assertExcludes(html, 'id="q1-1"', 'index.html');
+  [
+    'id="v2-task-primary"',
+    'id="v2-task-secondary"',
+    'id="v2-task-critical"',
+    'id="v2-task-supported"',
+    'id="v2-task-spillover"'
+  ].forEach((needle) => {
+    assertExcludes(html, needle, 'index.html');
+  });
 
   console.log(JSON.stringify({
     status: 'ok',
     checked: {
-      taskInputs: 5,
+      compositionCards: 4,
       roleFateColumns: 5,
       questionnaireRenderedFromSchema: true
     }

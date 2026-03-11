@@ -63,7 +63,7 @@
                         <div class="r-equation-label">Input tuple</div>
                         <div class="equation-display">$$x = (\text{roleCategory},\ \text{occupationId},\ \text{questionnaireProfile},\ \text{seniorityLevel},\ \text{dominantTaskIds},\ \text{criticalTaskIds},\ \text{aiSupportTaskIds},\ \text{supportTaskIds})$$</div>
                     </div>
-                    <p>The task ids come from the five structured selectors on the main page: primary task, secondary task, value-defining task, AI-assisted task, and support/spillover task. The role-refinement panel now writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
+                    <p>The editable task ids now come from the role composition editor on the main page: O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and value-defining functions. The role-refinement panel also writes a native structured profile before scoring, so the runtime is no longer relying on old numbered question ids in the live app path.</p>
                 </section>
 
                 <!-- 2. What it looks at -->
@@ -253,7 +253,7 @@
                     <ul>
                         <li><strong>Role-fate confidence</strong> is a margin-style score from the current rule set, not a calibrated probability.</li>
                         <li><strong>Task evidence coverage</strong> still varies by occupation and task family, even after the reviewed evidence expansion.</li>
-                        <li><strong>User task input</strong> is still selector-based rather than weighted by rough percentage buckets.</li>
+                        <li><strong>User task input</strong> is now more expressive than before, but it is still list-based rather than weighted by rough percentage buckets.</li>
                         <li><strong>Multi-function roles</strong> are modeled better than before, but not every occupation yet has a fully reviewed multi-anchor function graph.</li>
                         <li><strong>The classifier</strong> is calibrated heuristically against anchor occupations, not trained on a labeled dataset.</li>
                         <li><strong>The wave system</strong> still exists internally, so role fate currently sits on top of the wave engine rather than fully replacing it.</li>
