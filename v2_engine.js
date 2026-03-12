@@ -38,13 +38,13 @@
     };
 
     var ROLE_FATE_LABELS = {
-        augmented: 'Augmented',
-        compressed: 'Compressed',
-        elevated: 'Elevated',
-        split: 'Split',
-        expanded: 'Expanded',
-        collapsed: 'Collapsed',
-        mixed_transition: 'Mixed transition'
+        augmented: 'Reinforced',
+        compressed: 'Shrinking',
+        elevated: 'Narrowed upward',
+        split: 'Polarized',
+        expanded: 'Growing',
+        collapsed: 'Hollowed out',
+        mixed_transition: 'Unclear trajectory'
     };
 
     var ROLE_TRANSFORMATION_TYPE_LABELS = {
@@ -2163,17 +2163,19 @@
 
         var organizationalFate;
         if (fateState === 'expanded') {
-            organizationalFate = 'The role likely expands because AI raises output and span of control faster than it removes core work.';
+            organizationalFate = 'AI doesn\'t threaten this role. It feeds it. The core work resists automation, but AI tools multiply what each person can produce or oversee, so organizations want more of these workers, not fewer. Spreadsheets didn\'t kill accountants. They made every accountant dramatically more productive, which unlocked demand for accounting in places that couldn\'t previously afford it. Roles in this category have strong retained judgment work, high dependency complexity, and sit in markets where latent demand already exists. As AI capabilities grow, the bottleneck isn\'t the tool. It\'s finding enough qualified people to wield it.';
         } else if (fateState === 'augmented') {
-            organizationalFate = 'The role mainly stays intact, with AI acting more like leverage than replacement.';
+            organizationalFate = 'The role stays essentially the same. AI slots in as a productivity layer, not a structural threat. Day-to-day tasks get faster, but the bundle of responsibilities that defines the job (the relationships, the context, the decisions) remains intact and still requires a human seat. This happens when the work AI can reach is real but peripheral: it shaves hours off the week without touching the core reason the role exists. Organizations may expect more output per person over time, but headcount pressure stays modest. The risk is complacency. If you stop developing the judgment-heavy parts of the role, you drift toward compression as capabilities advance.';
         } else if (fateState === 'elevated') {
-            organizationalFate = 'The role likely compresses toward a smaller, more judgment-heavy oversight version.';
+            organizationalFate = 'The execution layer of this role gets substantially thinner as AI handles more routine production work, but a meaningful judgment-and-oversight core survives. In practice, the role becomes more senior in character. Fewer people do it. Each one handles a broader span, spending more time on exceptions, quality calls, and coordination. But this "promotion" is involuntary and structural: the organization doesn\'t need five people doing a mix of execution and judgment anymore. It needs two people doing almost pure judgment. For the individuals who land in the retained version, the job may be better. For everyone else, their slice of the role has been absorbed. This is the fate that looks like a compliment but hides a headcount cut.';
         } else if (fateState === 'split') {
-            organizationalFate = 'The role is likely to split between lower-cost execution and a smaller higher-judgment core.';
+            organizationalFate = 'The role fractures into two distinct tiers. One becomes cheaper, more templated, AI-assisted execution work. Still done by humans, but with lower skill requirements and lower pay. The other becomes a smaller, higher-judgment core: the people who handle exceptions, make the hard calls, and manage the AI-assisted workflow. This is what happens when AI can do most of a role\'s tasks competently but not all of them, and the tasks it can\'t do require fundamentally different skills than the tasks it can. The current single job title splits into what are effectively two different jobs. Most incumbents end up competing for the execution tier, because the oversight tier is smaller and demands capabilities that not everyone in the current role has developed.';
         } else if (fateState === 'collapsed') {
-            organizationalFate = 'The role risks collapsing because AI reaches too much of the work that currently justifies the role.';
+            organizationalFate = 'AI reaches deep enough into this role\'s core responsibilities that the fundamental justification for a dedicated human seat weakens. This doesn\'t mean the work vanishes overnight. It means the organizational logic for bundling these tasks into a standalone role erodes. The work gets absorbed into adjacent roles, distributed across AI-assisted workflows, or done at a fraction of the previous cost. What separates this from shrinking is severity: it\'s not "fewer people doing the same job" but "the job itself stops making sense as a distinct position." Roles here typically have high direct task exposure, weak retained integrity in the surviving task bundle, and limited bargaining-power work that would force organizations to keep the seat.';
+        } else if (fateState === 'compressed') {
+            organizationalFate = 'The work itself doesn\'t disappear. Organizations still need the function performed. But AI makes each worker productive enough that fewer people are needed to cover the same output. This is the most common displacement pattern: not dramatic role elimination, but a slow tightening where teams of eight become teams of five, hiring freezes replace layoffs, and attrition isn\'t backfilled. The role still shows up on org charts and job boards, but the total number of seats in the economy contracts. Individuals already in the role may barely notice at first. Their day-to-day changes only incrementally. But the labor market around them gets meaningfully more competitive. Wage pressure follows headcount pressure.';
         } else {
-            organizationalFate = 'The role likely compresses: firms still need the function, but fewer workers can cover it.';
+            organizationalFate = 'The model\'s signals conflict for this role. Some pressure dimensions point toward compression or splitting, while counterweights like retained judgment work, dependency complexity, or demand growth push back hard. This isn\'t a cop-out. It reflects real ambiguity about how organizations will respond when AI can automate some core work but faces real friction on the rest. The outcome will likely depend on factors outside the task structure: how aggressively a specific industry adopts AI tooling, whether regulatory or institutional barriers slow deployment, and how the labor market for adjacent roles shifts. If you land here, the honest read is that your trajectory is underdetermined, and individual positioning matters more than usual.';
         }
 
         return {
