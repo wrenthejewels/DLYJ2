@@ -192,14 +192,14 @@
                         <div class="r-equation-label">Baseline blend</div>
                         <div class="equation-display">$$\tilde s_i = 0.65\, s_i^{\text{cluster}} + 0.35\, s_i^{\text{inventory}}, \qquad s_i^{(0)} = \frac{\tilde s_i}{\sum_j \tilde s_j}$$</div>
                     </div>
-                    <p>That baseline is then filtered through your composition edits. Removing tasks takes them out of the active run, adding reviewed tasks puts them into the active run, and function edits renormalize the role's retained-function mix. Optional support links can also add spillover paths that do not exist in the default graph, and optional task-to-function links can raise a task's effective centrality inside the role.</p>
+                    <p>That baseline is then filtered through your composition edits. Removing tasks takes them out of the active run, adding reviewed tasks puts them into the active run, and function edits renormalize the role's retained-function mix. The live scorer now uses the reviewed baseline task-to-function graph directly rather than showing it only for reference. Optional support links can add spillover paths that do not exist in the default graph, and optional task-to-function links act as overrides or additions when the default graph misses an important connection.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Edited composition</div>
                         <div class="equation-display">$$\mathcal{T}^{*} = (\mathcal{T}^{(0)} \setminus \mathcal{T}^{-}) \cup \mathcal{T}^{+}, \qquad \mathcal{F}^{*} = (\mathcal{F}^{(0)} \setminus \mathcal{F}^{-}) \cup \mathcal{F}^{+}$$</div>
                         <div class="equation-display">$$s_i = \frac{\mathbf{1}[i\in \mathcal{T}^{*}]\, \tilde s_i}{\sum_{j \in \mathcal{T}^{*}} \tilde s_j}, \qquad w_f = \frac{\mathbf{1}[f\in \mathcal{F}^{*}]\, \tilde w_f}{\sum_{g \in \mathcal{F}^{*}} \tilde w_g}$$</div>
                     </div>
                     <p>In plain English, this is the model's answer to "what is your version of this occupation actually made of?" The extra function layer matters because two roles can have similarly exposed tasks but still differ sharply in whether the human role survives as the accountable core.</p>
-                    <p>Users can change this structure directly. Adding or removing tasks changes what work the role contains. Editing task share changes what matters most. Adding support links changes how pressure can spread through the role. Adding a task-to-function link tells the model that a task contributes to a more central function, which can increase that task's effective centrality, bargaining weight, and sometimes its treatment as core work.</p>
+                    <p>Users can change this structure directly. Adding or removing tasks changes what work the role contains. Editing task share changes what matters most. Adding support links changes how pressure can spread through the role. Adding a task-to-function link tells the model that a task contributes to a more central function, which can increase that task's effective centrality, bargaining weight, and sometimes its treatment as core work. But even without custom edits, the default reviewed task-to-function bindings now already affect live scoring.</p>
                 </section>
 
                 <!-- 5. How your answers matter -->
@@ -229,7 +229,7 @@
                     </div>
                     <p>In plain English, the questionnaire tells the model whether AI mainly helps the role, compresses the role, or still leaves a human-retained core because of function, accountability, trust, and messy exceptions.</p>
                     <p>When the selected occupation has a reviewed function graph, the model blends function-level accountability signals into the questionnaire-derived values before scoring. This anchors the signals to the occupation's actual authority and delegation structure rather than relying on user responses alone.</p>
-                    <p>Those function-level signals are not inferred directly from Anthropic telemetry. They are reviewed function priors first, then summarized mathematically. Each occupation gets one or more function anchors with weighted values for judgment, trust, regulatory burden, human authority, and bargaining retention. The live engine collapses those anchors into weighted averages, then blends them into the runtime signals below.</p>
+                    <p>Those function-level signals are not inferred directly from Anthropic telemetry. They are reviewed function priors first, then summarized mathematically. Each occupation gets one or more function anchors with weighted values for judgment, trust, regulatory burden, human authority, and bargaining retention. The live engine collapses those anchors into weighted averages, blends them into the runtime signals below, and then uses the active task-to-function graph to compute a second live readout of function exposure and retained function strength.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Function-layer blending</div>
                         <div class="equation-display">$$\text{functionRetention} \leftarrow 0.72\,\text{functionRetention} + 0.14\,\text{humanAuthorityReq} + 0.14\,\text{bargainingPowerRetention}$$</div>
@@ -318,7 +318,7 @@
                         <li><code>exposed_core_share</code> and <code>retained_core_share</code></li>
                         <li><code>direct_coverage_ratio</code>, which shows how much of the task graph has direct task evidence rather than fallback estimates</li>
                     </ul>
-                    <p>Those task-graph signals do most of the real explanatory work on the page. The occupation explanation panel is paired with this layer through a precomputed explanation summary file, so the app can now say not just what the label is, but what the main pressure and counterweight actually are. The composition editor exposes part of that logic earlier by showing the top function links for each selected task and by letting you add a few support links or task-to-function links when the default graph misses an obvious connection.</p>
+                    <p>Those task-graph signals do most of the real explanatory work on the page. The explanation panel is now generated from the current live run, so when you edit tasks, functions, support links, or task-to-function links, the explanation updates with the same pressure and counterweight logic used by the scorer. The composition editor exposes part of that logic earlier by showing the top function links for each selected task and by letting you add a few support links or task-to-function links when the default graph misses an obvious connection.</p>
                 </section>
 
                 <!-- 8. Fate label -->
@@ -335,6 +335,7 @@
                         <li><strong><code>Mixed transition</code></strong> &mdash; no single path dominates.</li>
                     </ul>
                     <p>The live classifier is a rule-based tree rather than a trained neural model. It mainly looks at direct exposure pressure, dependency spillover, retained leverage, residual role integrity, exposed versus retained core share, next-wave retained share and coherence, and a simple demand modifier from BLS growth.</p>
+                    <p>Alongside that headline classifier, the live run now also computes a function-level transformation layer: function exposure pressure, retained function strength, retained accountability strength, retained bargaining power, delegation likelihood, and headcount displacement risk. Those function metrics do not replace the task graph; they sit above it and help explain whether exposed work is weakening the role's human-owned purpose or only changing how that purpose gets delivered.</p>
                     <p>That matters because the model is trying to separate three different ideas that often get confused: tasks that are exposed, roles that get recomposed, and roles whose human-retained function actually weakens enough to collapse.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Demand modifier</div>
