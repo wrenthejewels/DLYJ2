@@ -41,10 +41,10 @@ Current role-fate extension:
 19. `occupation_source_priors.csv` (source-specific occupation prior contract)
 20. `role_functions.csv` (role summary and function anchors)
 21. `occupation_function_map.csv` (occupation-to-function binding and guardrails)
-22. `task_function_edges.csv` (task-to-function graph edges, including reviewed multi-anchor splits)
+22. `task_function_edges.csv` (task-to-function graph edges, including reviewed multi-anchor splits; now used by the live browser scorer as the baseline task-to-function graph)
 23. `function_accountability_profiles.csv` (judgment, trust, liability, authority profiles)
-24. `occupation_role_transformation.csv` (live role-fate outputs)
-25. `occupation_role_explanations.csv` (plain-English explanation summaries for each occupation output)
+24. `occupation_role_transformation.csv` (offline occupation-level audit/reference outputs from the broader transformation pipeline)
+25. `occupation_role_explanations.csv` (offline occupation-level explanation summaries derived from the audit/reference outputs)
 
 ## Purpose of the normalized layer
 

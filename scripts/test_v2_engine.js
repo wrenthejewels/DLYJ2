@@ -148,6 +148,23 @@ async function main() {
   if (!result.evidence_summary?.explanation_summary) {
     throw new Error('Expected evidence_summary.explanation_summary in result payload.');
   }
+  if (!result.function_metrics) {
+    throw new Error('Expected function_metrics in result payload.');
+  }
+  [
+    'function_exposure_pressure',
+    'retained_function_strength',
+    'retained_accountability_strength',
+    'retained_bargaining_power',
+    'delegation_likelihood',
+    'headcount_displacement_risk',
+    'confidence_score'
+  ].forEach((key) => {
+    assertBounded(`function_metrics.${key}`, result.function_metrics[key]);
+  });
+  if (!Array.isArray(result.function_metrics.per_function_breakdown) || !result.function_metrics.per_function_breakdown.length) {
+    throw new Error('Expected function_metrics.per_function_breakdown in result payload.');
+  }
 
   const taskDrivenResult = engine.computeResult({
     occupationId: result.selected_occupation_id,
@@ -171,6 +188,9 @@ async function main() {
     throw new Error('Expected at least one active function after composition edits.');
   }
   assertBounded('taskDrivenResult.role_fate_confidence', taskDrivenResult.role_fate_confidence);
+  if ((taskDrivenResult.occupation_explanation?.function_anchor_count || 0) !== activeFunctionCount) {
+    throw new Error('Expected live occupation explanation to reflect the edited active function count.');
+  }
 
   const shareOverrideTaskId = roleComposition.defaults.task_ids[0];
   const baseTaskRow = result.task_breakdown.tasks.find((task) => task.task_id === shareOverrideTaskId);
@@ -212,6 +232,9 @@ async function main() {
   });
   if ((functionLinkedResult.occupation_assignment?.selected_composition?.custom_function_link_count || 0) !== 1) {
     throw new Error('Expected task-to-function link count to register in the selected composition summary.');
+  }
+  if ((functionLinkedResult.occupation_assignment?.selected_composition?.active_task_function_link_count || 0) < 1) {
+    throw new Error('Expected active task-to-function link count to be tracked in the selected composition summary.');
   }
 
   const dependencyDrivenResult = engine.computeResult({

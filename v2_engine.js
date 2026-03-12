@@ -14,7 +14,7 @@
         occupationTaskInventory: 'data/normalized/occupation_task_inventory.csv',
         taskDependencyEdges: 'data/normalized/task_dependency_edges.csv',
         occupationTaskRoleProfiles: 'data/normalized/occupation_task_role_profiles.csv',
-        occupationRoleExplanations: 'data/normalized/occupation_role_explanations.csv',
+        occupationAdaptationPriors: 'data/normalized/occupation_adaptation_priors.csv',
         roleFunctions: 'data/normalized/role_functions.csv',
         occupationFunctionMap: 'data/normalized/occupation_function_map.csv',
         functionAccountabilityProfiles: 'data/normalized/function_accountability_profiles.csv',
@@ -45,6 +45,33 @@
         expanded: 'Expanded',
         collapsed: 'Collapsed',
         mixed_transition: 'Mixed transition'
+    };
+
+    var ROLE_TRANSFORMATION_TYPE_LABELS = {
+        limited_near_term_change: 'limited near-term change',
+        augmented_core_role: 'augmented core role',
+        workflow_recomposition: 'workflow recomposition',
+        workflow_fragmentation: 'workflow fragmentation',
+        delegated_but_retained_function: 'delegated but retained function',
+        substitution_pressure: 'substitution pressure'
+    };
+
+    var ROLE_TRANSFORMATION_DRIVER_LABELS = {
+        direct_task_pressure: 'direct task pressure',
+        function_exposure_pressure: 'core-function pressure',
+        indirect_dependency_pressure: 'dependency spillover',
+        role_fragmentation_risk: 'workflow fragmentation',
+        role_compressibility: 'workflow compressibility',
+        headcount_displacement_risk: 'headcount displacement risk',
+        delegation_likelihood: 'delegation pressure',
+        demand_expansion_signal: 'demand expansion'
+    };
+
+    var ROLE_TRANSFORMATION_COUNTERWEIGHT_LABELS = {
+        retained_function_strength: 'retained function',
+        retained_accountability_strength: 'human accountability',
+        retained_bargaining_power: 'bargaining leverage',
+        demand_expansion_signal: 'demand expansion'
     };
 
     var ELEVATION_CLUSTERS = {
@@ -732,6 +759,39 @@
         }, {});
     }
 
+    function computeLaborStats(rows) {
+        var values = Array.isArray(rows) ? rows : [];
+        var growthValues = [];
+        var openingsRates = [];
+
+        values.forEach(function (row) {
+            var growth = toNumber(row && row.projection_growth_pct, null);
+            var employment = Math.max(toNumber(row && row.employment_us, 0), 1);
+            var openings = toNumber(row && row.annual_openings, null);
+
+            if (growth !== null) {
+                growthValues.push(growth);
+            }
+            if (openings !== null) {
+                openingsRates.push(openings / employment);
+            }
+        });
+
+        var minGrowth = growthValues.length ? Math.min.apply(null, growthValues) : 0;
+        var maxGrowth = growthValues.length ? Math.max.apply(null, growthValues) : 1;
+        var minOpeningsRate = openingsRates.length ? Math.min.apply(null, openingsRates) : 0;
+        var maxOpeningsRate = openingsRates.length ? Math.max.apply(null, openingsRates) : 0.0001;
+
+        return {
+            minGrowth: minGrowth,
+            maxGrowth: maxGrowth,
+            minOpeningsRate: minOpeningsRate,
+            maxOpeningsRate: maxOpeningsRate,
+            growthRange: Math.max(1, maxGrowth - minGrowth),
+            openingsRange: Math.max(0.0001, maxOpeningsRate - minOpeningsRate)
+        };
+    }
+
     function groupRoleMap(rows) {
         return rows.reduce(function (map, row) {
             if (!map[row.ui_role_key]) {
@@ -883,6 +943,56 @@
         });
     }
 
+    function mergeRuntimeTaskFunctionLinks(taskRows, activeFunctionRows, baselineLinksByTaskId, customTaskFunctionLinks) {
+        var rows = Array.isArray(taskRows) ? taskRows : [];
+        var functionRows = Array.isArray(activeFunctionRows) ? activeFunctionRows : [];
+        var activeTaskLookup = toLookup(rows.map(function (row) { return row.task_id; }));
+        var activeFunctionLookup = toLookup(functionRows.map(function (row) { return row.function_id; }));
+        var merged = {};
+
+        rows.forEach(function (row) {
+            var baselineLinks = (baselineLinksByTaskId[row.task_id] || []).filter(function (link) {
+                return !!activeFunctionLookup[link.function_id];
+            });
+
+            baselineLinks.forEach(function (link) {
+                var key = row.task_id + '|' + link.function_id;
+                merged[key] = {
+                    task_id: row.task_id,
+                    function_id: link.function_id,
+                    task_to_function_weight: clamp(toNumber(link.task_to_function_weight, 0.5), 0.05, 0.98),
+                    is_custom: false
+                };
+            });
+        });
+
+        (customTaskFunctionLinks || []).forEach(function (link) {
+            if (!link || !activeTaskLookup[link.task_id] || !activeFunctionLookup[link.function_id]) {
+                return;
+            }
+
+            var key = link.task_id + '|' + link.function_id;
+            var customWeight = clamp(toNumber(link.task_to_function_weight, 0.85), 0.05, 0.98);
+            var existing = merged[key];
+
+            if (existing) {
+                existing.task_to_function_weight = clamp(Math.max(existing.task_to_function_weight, customWeight), 0.05, 0.98);
+                existing.is_custom = true;
+            } else {
+                merged[key] = {
+                    task_id: link.task_id,
+                    function_id: link.function_id,
+                    task_to_function_weight: customWeight,
+                    is_custom: true
+                };
+            }
+        });
+
+        return Object.keys(merged).map(function (key) {
+            return merged[key];
+        });
+    }
+
     function applyTaskFunctionLinks(taskRows, taskFunctionLinks, activeFunctionRows, accountabilityByFunctionId) {
         var rows = Array.isArray(taskRows) ? taskRows : [];
         var links = Array.isArray(taskFunctionLinks) ? taskFunctionLinks : [];
@@ -909,19 +1019,26 @@
             }
 
             var totalWeight = sum(taskLinks.map(function (link) {
-                return Math.max(toNumber(functionRowsById[link.function_id].function_weight, 0.2), 0.05);
+                var functionWeight = Math.max(toNumber(functionRowsById[link.function_id].function_weight, 0.2), 0.05);
+                return functionWeight * clamp(toNumber(link.task_to_function_weight, 0.5), 0.05, 0.98);
             })) || taskLinks.length;
 
             var authority = 0;
             var bargaining = 0;
             var judgment = 0;
+            var customLinkCount = 0;
             taskLinks.forEach(function (link) {
                 var functionRow = functionRowsById[link.function_id];
                 var accountability = accountabilityByFunctionId[link.function_id] || {};
-                var weight = Math.max(toNumber(functionRow.function_weight, 0.2), 0.05) / totalWeight;
+                var functionWeight = Math.max(toNumber(functionRow.function_weight, 0.2), 0.05);
+                var edgeWeight = clamp(toNumber(link.task_to_function_weight, 0.5), 0.05, 0.98);
+                var weight = (functionWeight * edgeWeight) / totalWeight;
                 authority += toNumber(accountability.human_authority_requirement, 0.6) * weight;
                 bargaining += toNumber(accountability.bargaining_power_retention, 0.6) * weight;
                 judgment += toNumber(accountability.judgment_requirement, 0.6) * weight;
+                if (link.is_custom) {
+                    customLinkCount += 1;
+                }
             });
 
             var clone = {};
@@ -943,7 +1060,8 @@
             if (authority >= 0.62 || bargaining >= 0.66) {
                 clone.role_criticality = 'core';
             }
-            clone.custom_function_link_count = taskLinks.length;
+            clone.function_link_count = taskLinks.length;
+            clone.custom_function_link_count = customLinkCount;
             return clone;
         });
     }
@@ -1039,8 +1157,13 @@
                 delegability_guardrail: toNumber(row.delegability_guardrail, 0.55),
                 judgment_requirement: toNumber(accountability.judgment_requirement, 0.6),
                 trust_requirement: toNumber(accountability.trust_requirement, 0.6),
+                regulatory_liability_weight: toNumber(accountability.regulatory_liability_weight, 0.6),
                 human_authority_requirement: toNumber(accountability.human_authority_requirement, 0.6),
-                bargaining_power_retention: toNumber(accountability.bargaining_power_retention, 0.6)
+                bargaining_power_retention: toNumber(accountability.bargaining_power_retention, 0.6),
+                source_confidence: average([
+                    toNumber(row.source_confidence, null),
+                    toNumber(accountability.source_confidence, null)
+                ])
             };
         });
 
@@ -1049,8 +1172,404 @@
             delegability_guardrail: weightedAverage(normalizedRows, 'delegability_guardrail', 'function_weight'),
             judgment_requirement: weightedAverage(normalizedRows, 'judgment_requirement', 'function_weight'),
             trust_requirement: weightedAverage(normalizedRows, 'trust_requirement', 'function_weight'),
+            regulatory_liability_weight: weightedAverage(normalizedRows, 'regulatory_liability_weight', 'function_weight'),
             human_authority_requirement: weightedAverage(normalizedRows, 'human_authority_requirement', 'function_weight'),
-            bargaining_power_retention: weightedAverage(normalizedRows, 'bargaining_power_retention', 'function_weight')
+            bargaining_power_retention: weightedAverage(normalizedRows, 'bargaining_power_retention', 'function_weight'),
+            source_confidence: weightedAverage(normalizedRows, 'source_confidence', 'function_weight')
+        };
+    }
+
+    function getRoleTransformationLabel(type) {
+        return ROLE_TRANSFORMATION_TYPE_LABELS[type] || String(type || '').replace(/_/g, ' ');
+    }
+
+    function getConfidenceBandKey(value) {
+        var score = clamp(toNumber(value, 0.5), 0, 1);
+        if (score >= 0.72) {
+            return 'high';
+        }
+        if (score >= 0.50) {
+            return 'medium';
+        }
+        return 'low';
+    }
+
+    function classifyLiveRoleTransformationType(metrics) {
+        var weightedDirectPressure = clamp(toNumber(metrics.direct_task_pressure, 0), 0, 1);
+        var functionExposurePressure = clamp(toNumber(metrics.function_exposure_pressure, 0), 0, 1);
+        var retainedFunctionStrength = clamp(toNumber(metrics.retained_function_strength, 0), 0, 1);
+        var retainedAccountabilityStrength = clamp(toNumber(metrics.retained_accountability_strength, 0), 0, 1);
+        var retainedBargainingPower = clamp(toNumber(metrics.retained_bargaining_power, 0), 0, 1);
+        var roleFragmentationRisk = clamp(toNumber(metrics.role_fragmentation_risk, 0), 0, 1);
+        var roleCompressibility = clamp(toNumber(metrics.role_compressibility, 0), 0, 1);
+        var demandExpansionSignal = clamp(toNumber(metrics.demand_expansion_signal, 0), 0, 1);
+        var delegationLikelihood = clamp(toNumber(metrics.delegation_likelihood, 0), 0, 1);
+        var headcountDisplacementRisk = clamp(toNumber(metrics.headcount_displacement_risk, 0), 0, 1);
+
+        if (headcountDisplacementRisk >= 0.68 && retainedFunctionStrength < 0.45) {
+            return 'substitution_pressure';
+        }
+        if (weightedDirectPressure >= 0.55 && retainedFunctionStrength >= 0.58 && delegationLikelihood >= 0.55) {
+            return 'augmented_core_role';
+        }
+        if (roleFragmentationRisk >= 0.60 && roleCompressibility >= 0.55) {
+            return 'workflow_fragmentation';
+        }
+        if (functionExposurePressure >= 0.55 && retainedAccountabilityStrength >= 0.60) {
+            return 'delegated_but_retained_function';
+        }
+        if (
+            (weightedDirectPressure < 0.33 && retainedFunctionStrength >= 0.60 && headcountDisplacementRisk < 0.28) ||
+            (retainedFunctionStrength >= 0.78 && retainedAccountabilityStrength >= 0.80 && headcountDisplacementRisk < 0.28) ||
+            (retainedFunctionStrength >= 0.72 && retainedBargainingPower >= 0.74 && weightedDirectPressure < 0.32 && headcountDisplacementRisk < 0.24)
+        ) {
+            return 'limited_near_term_change';
+        }
+        return 'workflow_recomposition';
+    }
+
+    function buildLiveFunctionMetrics(options) {
+        var taskRows = options && Array.isArray(options.taskRows) ? options.taskRows : [];
+        var taskFunctionLinks = options && Array.isArray(options.taskFunctionLinks) ? options.taskFunctionLinks : [];
+        var activeFunctionRows = options && Array.isArray(options.activeFunctionRows) ? options.activeFunctionRows : [];
+        var roleFunctionsById = options && options.roleFunctionsById ? options.roleFunctionsById : {};
+        var functionAccountabilityByFunctionId = options && options.functionAccountabilityByFunctionId ? options.functionAccountabilityByFunctionId : {};
+        var functionSummary = options && options.functionSummary ? options.functionSummary : null;
+        var signals = options && options.signals ? options.signals : {};
+        var adaptationPrior = options && options.adaptationPrior ? options.adaptationPrior : null;
+        var laborContext = options && options.laborContext ? options.laborContext : null;
+        var laborStats = options && options.laborStats ? options.laborStats : null;
+        var occupationAdaptive = clamp(toNumber(options && options.occupationAdaptive, 0.5), 0, 1);
+        var linksByTaskId = groupBy(taskFunctionLinks, 'task_id');
+        var functionRowsById = indexBy(activeFunctionRows, 'function_id');
+        var weightedDirectPressure = 0;
+        var weightedIndirectPressure = 0;
+        var weightedFunctionPressure = 0;
+        var functionWeightTotal = 0;
+        var weightedBargaining = 0;
+        var weightedAiSupport = 0;
+        var supportHighPressureShare = 0;
+        var routineHighPressureShare = 0;
+        var perFunction = {};
+
+        if (!taskRows.length || !activeFunctionRows.length || !functionSummary) {
+            return null;
+        }
+
+        taskRows.forEach(function (task) {
+            var share = clamp(toNumber(task.share_of_role, 0), 0, 1);
+            var directPressure = clamp(toNumber(task.direct_exposure_pressure, 0), 0, 1);
+            var indirectPressure = clamp(toNumber(task.indirect_dependency_pressure, 0), 0, 1);
+            var bargainingWeight = clamp(toNumber(task.bargaining_power_weight, 0.5), 0, 1);
+            var aiSupportObservability = clamp(toNumber(task.ai_support_observability, 0.3), 0, 1);
+            var retainedLeverage = clamp(toNumber(task.retained_leverage, 0.5), 0, 1);
+            var links = (linksByTaskId[task.task_id] || []).filter(function (link) {
+                return !!functionRowsById[link.function_id];
+            });
+
+            weightedDirectPressure += share * directPressure;
+            weightedIndirectPressure += share * indirectPressure;
+            weightedBargaining += share * bargainingWeight;
+            weightedAiSupport += share * aiSupportObservability;
+
+            if (task.role_criticality !== 'core' && directPressure >= 0.60) {
+                supportHighPressureShare += share;
+            }
+            if (
+                (task.task_cluster_id === 'cluster_execution_routine' ||
+                task.task_cluster_id === 'cluster_workflow_admin' ||
+                task.task_cluster_id === 'cluster_documentation') &&
+                directPressure >= 0.55
+            ) {
+                routineHighPressureShare += share;
+            }
+
+            links.forEach(function (link) {
+                var functionRow = functionRowsById[link.function_id];
+                var functionWeight = Math.max(toNumber(functionRow.function_weight, 0.2), 0.05);
+                var edgeWeight = clamp(toNumber(link.task_to_function_weight, 0.5), 0.05, 0.98);
+                var combinedWeight = functionWeight * edgeWeight;
+                var functionPressure = clamp((directPressure * 0.78) + (indirectPressure * 0.22), 0, 1);
+
+                weightedFunctionPressure += combinedWeight * functionPressure;
+                functionWeightTotal += combinedWeight;
+
+                if (!perFunction[link.function_id]) {
+                    perFunction[link.function_id] = {
+                        function_id: link.function_id,
+                        function_weight: functionWeight,
+                        pressure_numerator: 0,
+                        weight_total: 0,
+                        retained_numerator: 0,
+                        supported_share: 0,
+                        exposed_share: 0,
+                        custom_link_count: 0
+                    };
+                }
+
+                perFunction[link.function_id].pressure_numerator += combinedWeight * functionPressure;
+                perFunction[link.function_id].weight_total += combinedWeight;
+                perFunction[link.function_id].retained_numerator += combinedWeight * retainedLeverage;
+                perFunction[link.function_id].supported_share += share * edgeWeight;
+                perFunction[link.function_id].exposed_share += share * directPressure * edgeWeight;
+                if (link.is_custom) {
+                    perFunction[link.function_id].custom_link_count += 1;
+                }
+            });
+        });
+
+        var functionExposurePressure = functionWeightTotal > 0
+            ? clamp(weightedFunctionPressure / functionWeightTotal, 0, 1)
+            : weightedDirectPressure;
+        var weightedAugmentation = clamp(
+            (weightedAiSupport * 0.45) + (clamp(toNumber(signals.augmentationFit, 0.5), 0, 1) * 0.55),
+            0,
+            1
+        );
+        var guardrail = clamp(toNumber(functionSummary.delegability_guardrail, 0.55), 0, 1);
+        var retainedFunctionStrength = clamp(
+            ((1 - functionExposurePressure) * 0.42) +
+            (guardrail * 0.42) +
+            (weightedBargaining * 0.16),
+            0,
+            1
+        );
+        var retainedAccountabilityStrength = clamp(
+            ((1 - functionExposurePressure) * 0.28) +
+            (clamp(toNumber(functionSummary.trust_requirement, 0.6), 0, 1) * 0.24) +
+            (clamp(toNumber(functionSummary.regulatory_liability_weight, 0.6), 0, 1) * 0.24) +
+            (clamp(toNumber(functionSummary.human_authority_requirement, 0.6), 0, 1) * 0.24),
+            0,
+            1
+        );
+        var retainedBargainingPower = clamp(
+            (weightedBargaining * 0.52) +
+            (guardrail * 0.28) +
+            ((1 - weightedDirectPressure) * 0.20),
+            0,
+            1
+        );
+        var roleFragmentationRisk = clamp(
+            (supportHighPressureShare * 0.34) +
+            (weightedDirectPressure * 0.18) +
+            (weightedIndirectPressure * 0.18) +
+            ((1 - retainedFunctionStrength) * 0.16) +
+            ((1 - retainedAccountabilityStrength) * 0.14),
+            0,
+            1
+        );
+        var roleCompressibility = clamp(
+            (routineHighPressureShare * 0.34) +
+            (supportHighPressureShare * 0.26) +
+            (weightedDirectPressure * 0.18) +
+            ((1 - retainedAccountabilityStrength) * 0.12) +
+            ((1 - retainedBargainingPower) * 0.10),
+            0,
+            1
+        );
+        var adaptiveCapacity = adaptationPrior ? clamp(toNumber(adaptationPrior.adaptive_capacity_score, occupationAdaptive), 0, 1) : occupationAdaptive;
+        var transferability = adaptationPrior ? clamp(toNumber(adaptationPrior.transferability_score, occupationAdaptive), 0, 1) : occupationAdaptive;
+        var learningIntensity = adaptationPrior ? clamp(toNumber(adaptationPrior.learning_intensity_score, occupationAdaptive), 0, 1) : occupationAdaptive;
+        var growthNorm = 0.5;
+        var openingsNorm = 0.5;
+
+        if (laborContext && laborStats) {
+            growthNorm = clamp(
+                (toNumber(laborContext.projection_growth_pct, laborStats.minGrowth) - laborStats.minGrowth) / laborStats.growthRange,
+                0,
+                1
+            );
+            openingsNorm = clamp(
+                ((toNumber(laborContext.annual_openings, 0) / Math.max(1, toNumber(laborContext.employment_us, 0))) - laborStats.minOpeningsRate) / laborStats.openingsRange,
+                0,
+                1
+            );
+        }
+
+        var demandExpansionSignal = clamp(
+            (adaptiveCapacity * 0.35) +
+            (transferability * 0.20) +
+            (learningIntensity * 0.15) +
+            (growthNorm * 0.15) +
+            (openingsNorm * 0.15),
+            0,
+            1
+        );
+        var delegationLikelihood = clamp(
+            (functionExposurePressure * 0.34) +
+            (weightedDirectPressure * 0.24) +
+            (weightedAugmentation * 0.20) +
+            ((1 - retainedAccountabilityStrength) * 0.12) +
+            (supportHighPressureShare * 0.10),
+            0,
+            1
+        );
+        var headcountDisplacementRisk = clamp(
+            (weightedDirectPressure * 0.18) +
+            (weightedIndirectPressure * 0.12) +
+            (roleFragmentationRisk * 0.22) +
+            (roleCompressibility * 0.22) +
+            ((1 - retainedFunctionStrength) * 0.18) +
+            ((1 - demandExpansionSignal) * 0.08),
+            0,
+            1
+        );
+        var confidenceScore = clamp(average([
+            clamp(toNumber(functionSummary.source_confidence, 0.6), 0, 1),
+            clamp(toNumber(options.directCoverageRatio, 0.5), 0, 1),
+            clamp(toNumber(options.recompositionConfidence, 0.5), 0, 1)
+        ]), 0, 1);
+        var roleTransformationType = classifyLiveRoleTransformationType({
+            direct_task_pressure: weightedDirectPressure,
+            function_exposure_pressure: functionExposurePressure,
+            retained_function_strength: retainedFunctionStrength,
+            retained_accountability_strength: retainedAccountabilityStrength,
+            retained_bargaining_power: retainedBargainingPower,
+            role_fragmentation_risk: roleFragmentationRisk,
+            role_compressibility: roleCompressibility,
+            demand_expansion_signal: demandExpansionSignal,
+            delegation_likelihood: delegationLikelihood,
+            headcount_displacement_risk: headcountDisplacementRisk
+        });
+
+        var perFunctionBreakdown = activeFunctionRows.map(function (functionRow) {
+            var functionId = functionRow.function_id;
+            var bucket = perFunction[functionId] || {
+                pressure_numerator: 0,
+                weight_total: 0,
+                retained_numerator: 0,
+                supported_share: 0,
+                exposed_share: 0,
+                custom_link_count: 0
+            };
+            var accountability = functionAccountabilityByFunctionId[functionId] || {};
+            var functionPressure = bucket.weight_total > 0
+                ? clamp(bucket.pressure_numerator / bucket.weight_total, 0, 1)
+                : functionExposurePressure;
+            var functionGuardrail = clamp(toNumber(functionRow.delegability_guardrail, guardrail), 0, 1);
+            var retainedStrength = clamp(
+                ((1 - functionPressure) * 0.42) +
+                (functionGuardrail * 0.38) +
+                (clamp(toNumber(accountability.bargaining_power_retention, 0.6), 0, 1) * 0.20),
+                0,
+                1
+            );
+            var roleFunction = roleFunctionsById[functionId] || {};
+
+            return {
+                function_id: functionId,
+                function_category: roleFunction.function_category || null,
+                role_summary: roleFunction.role_summary || null,
+                function_statement: roleFunction.function_statement || null,
+                function_weight: Number(toNumber(functionRow.function_weight, 0).toFixed(3)),
+                exposure_pressure: Number(functionPressure.toFixed(3)),
+                retained_strength: Number(retainedStrength.toFixed(3)),
+                supported_share: Number(clamp(bucket.supported_share, 0, 1).toFixed(3)),
+                exposed_share: Number(clamp(bucket.exposed_share, 0, 1).toFixed(3)),
+                custom_link_count: bucket.custom_link_count
+            };
+        }).sort(function (left, right) {
+            return right.function_weight - left.function_weight;
+        });
+
+        return {
+            function_exposure_pressure: Number(functionExposurePressure.toFixed(3)),
+            retained_function_strength: Number(retainedFunctionStrength.toFixed(3)),
+            retained_accountability_strength: Number(retainedAccountabilityStrength.toFixed(3)),
+            retained_bargaining_power: Number(retainedBargainingPower.toFixed(3)),
+            role_fragmentation_risk: Number(roleFragmentationRisk.toFixed(3)),
+            role_compressibility: Number(roleCompressibility.toFixed(3)),
+            demand_expansion_signal: Number(demandExpansionSignal.toFixed(3)),
+            delegation_likelihood: Number(delegationLikelihood.toFixed(3)),
+            headcount_displacement_risk: Number(headcountDisplacementRisk.toFixed(3)),
+            role_transformation_type: roleTransformationType,
+            confidence_score: Number(confidenceScore.toFixed(3)),
+            support_high_pressure_share: Number(clamp(supportHighPressureShare, 0, 1).toFixed(3)),
+            routine_high_pressure_share: Number(clamp(routineHighPressureShare, 0, 1).toFixed(3)),
+            per_function_breakdown: perFunctionBreakdown
+        };
+    }
+
+    function buildLiveOccupationExplanation(options) {
+        var occupation = options && options.occupation ? options.occupation : null;
+        var functionMetrics = options && options.functionMetrics ? options.functionMetrics : null;
+        var directCoverageRatio = clamp(toNumber(options && options.directCoverageRatio, 0.5), 0, 1);
+        var activeFunctionRows = options && Array.isArray(options.activeFunctionRows) ? options.activeFunctionRows : [];
+        var roleFunctionsById = options && options.roleFunctionsById ? options.roleFunctionsById : {};
+
+        if (!occupation || !functionMetrics) {
+            return null;
+        }
+
+        var metricValues = {
+            direct_task_pressure: clamp(toNumber(options.directTaskPressure, 0), 0, 1),
+            function_exposure_pressure: clamp(toNumber(functionMetrics.function_exposure_pressure, 0), 0, 1),
+            indirect_dependency_pressure: clamp(toNumber(options.indirectDependencyPressure, 0), 0, 1),
+            role_fragmentation_risk: clamp(toNumber(functionMetrics.role_fragmentation_risk, 0), 0, 1),
+            role_compressibility: clamp(toNumber(functionMetrics.role_compressibility, 0), 0, 1),
+            headcount_displacement_risk: clamp(toNumber(functionMetrics.headcount_displacement_risk, 0), 0, 1),
+            delegation_likelihood: clamp(toNumber(functionMetrics.delegation_likelihood, 0), 0, 1),
+            demand_expansion_signal: clamp(toNumber(functionMetrics.demand_expansion_signal, 0), 0, 1),
+            retained_function_strength: clamp(toNumber(functionMetrics.retained_function_strength, 0), 0, 1),
+            retained_accountability_strength: clamp(toNumber(functionMetrics.retained_accountability_strength, 0), 0, 1),
+            retained_bargaining_power: clamp(toNumber(functionMetrics.retained_bargaining_power, 0), 0, 1)
+        };
+        var transformationType = functionMetrics.role_transformation_type;
+        var driverKeys = transformationType === 'augmented_core_role'
+            ? ['demand_expansion_signal', 'delegation_likelihood', 'direct_task_pressure', 'function_exposure_pressure']
+            : transformationType === 'delegated_but_retained_function'
+                ? ['delegation_likelihood', 'function_exposure_pressure', 'direct_task_pressure', 'indirect_dependency_pressure']
+                : transformationType === 'workflow_fragmentation'
+                    ? ['role_fragmentation_risk', 'indirect_dependency_pressure', 'function_exposure_pressure', 'direct_task_pressure']
+                    : transformationType === 'substitution_pressure'
+                        ? ['headcount_displacement_risk', 'role_compressibility', 'direct_task_pressure', 'function_exposure_pressure']
+                        : transformationType === 'limited_near_term_change'
+                            ? ['direct_task_pressure', 'function_exposure_pressure', 'role_compressibility', 'headcount_displacement_risk']
+                            : ['role_compressibility', 'function_exposure_pressure', 'direct_task_pressure', 'headcount_displacement_risk'];
+        var counterweightKeys = (transformationType === 'augmented_core_role')
+            ? ['retained_function_strength', 'retained_accountability_strength', 'demand_expansion_signal', 'retained_bargaining_power']
+            : (transformationType === 'delegated_but_retained_function')
+                ? ['retained_accountability_strength', 'retained_function_strength', 'retained_bargaining_power', 'demand_expansion_signal']
+                : (transformationType === 'limited_near_term_change')
+                    ? ['retained_function_strength', 'retained_accountability_strength', 'retained_bargaining_power', 'demand_expansion_signal']
+                    : ['retained_bargaining_power', 'retained_function_strength', 'retained_accountability_strength', 'demand_expansion_signal'];
+        var topDrivers = driverKeys.map(function (key) {
+            return { key: key, value: metricValues[key] };
+        }).sort(function (left, right) {
+            return right.value - left.value;
+        }).slice(0, 2);
+        var topCounterweight = counterweightKeys.map(function (key) {
+            return { key: key, value: metricValues[key] };
+        }).sort(function (left, right) {
+            return right.value - left.value;
+        })[0];
+        var topFunctions = activeFunctionRows.slice().sort(function (left, right) {
+            return toNumber(right.function_weight, 0) - toNumber(left.function_weight, 0);
+        }).slice(0, 2);
+        var functionSummary = topFunctions.map(function (functionRow) {
+            var roleFunction = roleFunctionsById[functionRow.function_id] || {};
+            return (roleFunction.function_category || slugToLabel(functionRow.function_id)) + ' (' + Math.round(toNumber(functionRow.function_weight, 0) * 100) + '%)';
+        }).join('; ');
+        var evidenceProfile = 'direct ' + Math.round(directCoverageRatio * 100) + '% | fallback ' + Math.round((1 - directCoverageRatio) * 100) + '% | active anchors ' + activeFunctionRows.length;
+        var reviewPriority = directCoverageRatio < 0.45 || functionMetrics.confidence_score < 0.50
+            ? 'high'
+            : (directCoverageRatio < 0.62 || functionMetrics.confidence_score < 0.62 ? 'medium' : 'low');
+        var summary = occupation.title + ' currently reads as ' + getRoleTransformationLabel(transformationType) + ' because ' +
+            ROLE_TRANSFORMATION_DRIVER_LABELS[topDrivers[0].key] + ' and ' +
+            ROLE_TRANSFORMATION_DRIVER_LABELS[topDrivers[1].key] + ' are the strongest live pressure signals, while ' +
+            ROLE_TRANSFORMATION_COUNTERWEIGHT_LABELS[topCounterweight.key] + ' is the main counterweight. Function mix: ' +
+            (functionSummary || 'no active function anchors') + '. Evidence mix: ' + evidenceProfile + '.';
+
+        return {
+            role_transformation_type: transformationType,
+            function_anchor_count: activeFunctionRows.length,
+            primary_driver: ROLE_TRANSFORMATION_DRIVER_LABELS[topDrivers[0].key],
+            secondary_driver: ROLE_TRANSFORMATION_DRIVER_LABELS[topDrivers[1].key],
+            primary_counterweight: ROLE_TRANSFORMATION_COUNTERWEIGHT_LABELS[topCounterweight.key],
+            evidence_profile: evidenceProfile,
+            confidence_band: getConfidenceBandKey(functionMetrics.confidence_score),
+            review_priority: reviewPriority,
+            explanation_summary: summary
         };
     }
 
@@ -1797,7 +2316,6 @@
                 return activeTaskLookup[edge.from_task_id] && activeTaskLookup[edge.to_task_id];
             });
             var taskRoleProfile = store.taskRoleProfilesByOcc[occupationId] || null;
-            var occupationExplanation = store.occupationExplanationsByOcc[occupationId] || null;
             var taskInventoryById = indexBy(taskInventoryRows, 'task_id');
             var activeFunctionIds = resolveCompositionSelection(
                 roleComposition.defaults.function_ids,
@@ -1812,9 +2330,15 @@
             var activeFunctionRows = (store.occupationFunctionMapByOcc[occupationId] || []).filter(function (row) {
                 return !!activeFunctionLookup[row.function_id];
             });
-            var taskFunctionLinks = Array.isArray(compositionEdits.task_function_links) ? compositionEdits.task_function_links.filter(function (link) {
+            var customTaskFunctionLinks = Array.isArray(compositionEdits.task_function_links) ? compositionEdits.task_function_links.filter(function (link) {
                 return !!link && !!activeTaskLookup[link.task_id] && !!activeFunctionLookup[link.function_id];
             }) : [];
+            var taskFunctionLinks = mergeRuntimeTaskFunctionLinks(
+                taskInventoryRows,
+                activeFunctionRows,
+                store.taskFunctionEdgesByTaskId,
+                customTaskFunctionLinks
+            );
             taskInventoryRows = applyTaskFunctionLinks(taskInventoryRows, taskFunctionLinks, activeFunctionRows, store.functionAccountabilityByFunctionId);
             var functionSummary = summarizeActiveFunctions(activeFunctionRows, store.functionAccountabilityByFunctionId);
             var dependencyEdits = input.dependencyEdits || {};
@@ -1866,6 +2390,7 @@
             var taskPriorsByCluster = indexBy(store.taskPriorsByOcc[occupationId] || [], 'task_cluster_id');
             var occupationPrior = pickOccupationPrior(store.occupationPriorsByOcc[occupationId] || []);
             var laborContext = store.laborByOcc[occupationId] || null;
+            var adaptationPrior = store.adaptationByOcc[occupationId] || null;
             var unemploymentSeries = laborContext && laborContext.unemployment_group_id
                 ? (store.unemploymentByGroup[laborContext.unemployment_group_id] || [])
                 : [];
@@ -1917,9 +2442,11 @@
                 roleCriticalSet[clusterId] = true;
             });
             var occupationAutomation = occupationPrior ? toNumber(occupationPrior.automation_score, 0.25) : 0.25;
-            var occupationAdaptive = occupationPrior && occupationPrior.adaptive_capacity_score
-                ? toNumber(occupationPrior.adaptive_capacity_score, 0.5)
-                : 0.5;
+            var occupationAdaptive = adaptationPrior && adaptationPrior.adaptive_capacity_score
+                ? toNumber(adaptationPrior.adaptive_capacity_score, 0.5)
+                : (occupationPrior && occupationPrior.adaptive_capacity_score
+                    ? toNumber(occupationPrior.adaptive_capacity_score, 0.5)
+                    : 0.5);
 
             var currentBundle = [];
             var clusterResultsById = {};
@@ -2419,6 +2946,30 @@
                 dependency_penalty: dependencyPenalty,
                 binding_dependencies: bindingDependencies
             });
+            var functionMetrics = buildLiveFunctionMetrics({
+                taskRows: taskBreakdownRows,
+                taskFunctionLinks: taskFunctionLinks,
+                activeFunctionRows: activeFunctionRows,
+                roleFunctionsById: store.roleFunctionsById,
+                functionAccountabilityByFunctionId: store.functionAccountabilityByFunctionId,
+                functionSummary: functionSummary,
+                signals: signals,
+                adaptationPrior: adaptationPrior,
+                laborContext: laborContext,
+                laborStats: store.laborStats,
+                occupationAdaptive: occupationAdaptive,
+                directCoverageRatio: directCoverageRatio,
+                recompositionConfidence: recompositionConfidence
+            });
+            var liveOccupationExplanation = buildLiveOccupationExplanation({
+                occupation: occupation,
+                functionMetrics: functionMetrics,
+                directTaskPressure: taskGraphSummary ? taskGraphSummary.direct_exposure_pressure : exposedTaskShare,
+                indirectDependencyPressure: taskGraphSummary ? taskGraphSummary.indirect_dependency_pressure : dependencyPenalty,
+                directCoverageRatio: directCoverageRatio,
+                activeFunctionRows: activeFunctionRows,
+                roleFunctionsById: store.roleFunctionsById
+            });
 
             var categoryMappings = (store.uiRoleMapByRole[roleCategory] || [])
                 .filter(function (row) { return row.onet_soc_code; })
@@ -2469,7 +3020,8 @@
                     active_task_count: taskInventoryRows.length,
                     active_function_count: activeFunctionRows.length,
                     added_dependency_count: addedDependencyEdges.length,
-                    custom_function_link_count: taskFunctionLinks.length,
+                    custom_function_link_count: customTaskFunctionLinks.length,
+                    active_task_function_link_count: taskFunctionLinks.length,
                     share_override_count: Object.keys(taskShareOverrides).filter(function (taskId) {
                         return !!activeTaskLookup[taskId];
                     }).length,
@@ -2526,7 +3078,7 @@
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
                     'v2.1 wave-based model: automation difficulty per cluster drives wave assignment (current/next/distant).',
                     'Task-family friction scored across exception burden, accountability load, judgment requirement, document intensity, and tacit/context dependence.',
-                    'Task-role graph scoring now adds task-level bargaining weights and dependency spillover between support work and exposed core work.',
+                    'Task-role graph scoring now adds task-level bargaining weights, default task-to-function bindings, custom task-to-function links, and dependency spillover between support work and exposed core work.',
                     'Cluster priors are shrunk toward occupation-level priors using evidence confidence.',
                     'Wave trajectory: current=' + waveResults.current.state + ', next=' + waveResults.next.state + ', distant=' + waveResults.distant.state + '. Primary displacement wave: ' + primaryDisplacementWave + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + ' (wave: ' + roleDefiningWork.wave_assignment + ').') : 'No explicit role-defining task input selected.',
@@ -2537,11 +3089,14 @@
                     laborContext && laborContext.unemployment_group_label ? ('Latest official BLS unemployment for ' + laborContext.unemployment_group_label + ' is ' + laborContext.latest_unemployment_rate + '% (' + laborContext.latest_unemployment_period + ').') : 'No mapped BLS unemployment series for this occupation yet.'
                 ]
             };
-            if (occupationExplanation) {
-                evidenceSummary.explanation_summary = occupationExplanation.explanation_summary || '';
-                evidenceSummary.review_priority = occupationExplanation.review_priority || null;
-                evidenceSummary.evidence_profile = occupationExplanation.evidence_profile || null;
-                evidenceSummary.function_anchor_count = toNumber(occupationExplanation.function_anchor_count, 0);
+            if (functionMetrics) {
+                evidenceSummary.function_metrics = functionMetrics;
+            }
+            if (liveOccupationExplanation) {
+                evidenceSummary.explanation_summary = liveOccupationExplanation.explanation_summary || '';
+                evidenceSummary.review_priority = liveOccupationExplanation.review_priority || null;
+                evidenceSummary.evidence_profile = liveOccupationExplanation.evidence_profile || null;
+                evidenceSummary.function_anchor_count = toNumber(liveOccupationExplanation.function_anchor_count, 0);
             }
 
             var result = {
@@ -2557,17 +3112,7 @@
                 fate_drivers: [],
                 fate_counterweights: [],
                 role_summary: roleSummary,
-                occupation_explanation: occupationExplanation ? {
-                    role_transformation_type: occupationExplanation.role_transformation_type || null,
-                    function_anchor_count: toNumber(occupationExplanation.function_anchor_count, 0),
-                    primary_driver: occupationExplanation.primary_driver || null,
-                    secondary_driver: occupationExplanation.secondary_driver || null,
-                    primary_counterweight: occupationExplanation.primary_counterweight || null,
-                    evidence_profile: occupationExplanation.evidence_profile || null,
-                    confidence_band: occupationExplanation.confidence_band || null,
-                    review_priority: occupationExplanation.review_priority || null,
-                    explanation_summary: occupationExplanation.explanation_summary || null
-                } : null,
+                occupation_explanation: liveOccupationExplanation,
                 questionnaire_profile: evidenceSummary.questionnaire_profile,
                 questionnaire_profile_source: signals.questionnaireProfileSource,
                 occupation_assignment: occupationAssignment,
@@ -2596,6 +3141,7 @@
                 exposed_task_share: Number(exposedTaskShare.toFixed(3)),
                 residual_role_strength: viabilityTier,
                 personalization_fit: personalizationTier,
+                function_metrics: functionMetrics,
                 recomposition_summary: recompositionSummary,
                 transformation_map: {
                     current_bundle: currentBundle,
@@ -2843,9 +3389,10 @@
             taskPriors: loaded.taskPriors,
             taskPriorsByOcc: groupBy(loaded.taskPriors, 'occupation_id'),
             occupationPriorsByOcc: groupBy(loaded.occupationPriors, 'occupation_id'),
+            adaptationByOcc: indexBy(loaded.occupationAdaptationPriors, 'occupation_id'),
             laborByOcc: indexBy(loaded.laborContext, 'occupation_id'),
+            laborStats: computeLaborStats(loaded.laborContext),
             unemploymentByGroup: groupBy(loaded.unemploymentMonthly, 'unemployment_group_id'),
-            occupationExplanationsByOcc: indexBy(loaded.occupationRoleExplanations, 'occupation_id'),
             uiRoleMapByRole: groupRoleMap(loaded.uiRoleMap)
         });
     }

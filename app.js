@@ -2158,8 +2158,8 @@ function renderV2OccupationExplanation(explanation) {
     safeSetText(
         'v2-explanation-copy',
         explanation?.explanation_summary
-            ? `${explanation.explanation_summary} This is the current audit summary generated from the occupation explanation layer.`
-            : 'Choose a mapped occupation to see the plain-English audit summary for the current role readout.'
+            ? `${explanation.explanation_summary} This summary is generated from the current live role run.`
+            : 'Choose a mapped occupation to see the plain-English summary for the current live role readout.'
     );
 }
 

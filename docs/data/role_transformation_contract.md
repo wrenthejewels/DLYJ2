@@ -93,6 +93,7 @@ This is the bridge between flat task exposure and role-level function retention.
 
 Current behavior:
 - tasks can now bind to more than one function anchor where a reviewed split is warranted
+- the live browser scorer now uses the reviewed baseline task-to-function edges directly, then lets user-declared task-to-function links override or add to that graph at runtime
 - the scorer uses both the task-to-function edge weights and the occupation-level function weights when aggregating function pressure
 
 ### `function_accountability_profiles.csv`
@@ -106,7 +107,7 @@ Use it to represent:
 
 ### `occupation_role_transformation.csv`
 
-First-pass role-fate output.
+First-pass occupation-level audit/reference output from the broader transformation pipeline.
 
 Current metrics:
 - `direct_task_pressure`
@@ -122,6 +123,10 @@ Current metrics:
 - `headcount_displacement_risk`
 - `role_transformation_type`
 
+Current live/browser status:
+- the browser scorer now computes the function-pressure and function-retention layer live from the active edited task/function graph
+- this CSV remains useful as an offline audit, comparison, and validation layer, but it is no longer the source of truth for the live browser score
+
 ### `occupation_role_explanations.csv`
 
 Derived explanation layer for each occupation-level transformation output.
@@ -132,6 +137,10 @@ Use it to surface:
 - the current function-anchor mix
 - the current evidence mix
 - which occupations should be reviewed next because proxy dependence is still high
+
+Current live/browser status:
+- the browser now generates explanation summaries from the current run instead of reading this CSV into the live scoring path
+- this file remains an offline occupation-level audit summary for QA, comparison, and reviewed reference text
 
 ### `pilot_role_transformation_calibration.csv`
 
@@ -182,13 +191,14 @@ The current stack now works like this:
 4. Add indirect pressure through dependency edges.
 5. Weight each task by how much it supports the role's function or functions.
 6. Preserve human guardrails through accountability, trust, liability, and authority.
-7. Produce role-transformation outputs instead of stopping at exposure.
-8. Apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
+7. In the live browser scorer, compute function exposure, retained function strength, retained accountability, retained bargaining power, delegation pressure, and displacement pressure from the active edited run.
+8. Produce role-transformation outputs instead of stopping at exposure.
+9. In the offline audit layer, apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
 
 ## Current limitations
 
 - Job-description evidence now covers all `34` modeled occupations.
 - Multi-anchor function coverage exists only for a reviewed subset of occupations.
 - The transformation output is still a first-pass model and still depends on role-family defaults, benchmark floors, and cluster-prior proxies under the reviewed overrides.
-- The occupation explanation layer is now surfaced in the model-details panel, but it is still a compact summary rather than a full task/source drill-down surface.
+- The live explanation layer is now generated from the current run, but it is still a compact summary rather than a full task/source drill-down surface.
 - The live questionnaire layer now writes a native factor-based role-refinement profile in the app, but the engine still retains the legacy-answer fallback for compatibility with external callers and older tests.

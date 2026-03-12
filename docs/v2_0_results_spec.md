@@ -109,6 +109,7 @@ type V2Result = {
   fate_counterweights: string[]
   role_summary: string
   occupation_explanation: {
+    // Live-generated from the current edited run, not read from an offline CSV.
     role_transformation_type: string | null
     function_anchor_count: number
     primary_driver: string | null
@@ -164,6 +165,7 @@ type V2Result = {
       active_function_count: number
       added_dependency_count: number
       custom_function_link_count: number
+      active_task_function_link_count: number
       share_override_count: number
       removed_task_count: number
       added_task_count: number
@@ -207,6 +209,33 @@ type V2Result = {
   exposed_task_share: number
   residual_role_strength: 'weak' | 'moderate' | 'strong'
   personalization_fit: 'weak' | 'moderate' | 'strong'
+  function_metrics: {
+    function_exposure_pressure: number
+    retained_function_strength: number
+    retained_accountability_strength: number
+    retained_bargaining_power: number
+    role_fragmentation_risk: number
+    role_compressibility: number
+    demand_expansion_signal: number
+    delegation_likelihood: number
+    headcount_displacement_risk: number
+    role_transformation_type: string
+    confidence_score: number
+    support_high_pressure_share: number
+    routine_high_pressure_share: number
+    per_function_breakdown: Array<{
+      function_id: string
+      function_category: string | null
+      role_summary: string | null
+      function_statement: string | null
+      function_weight: number
+      exposure_pressure: number
+      retained_strength: number
+      supported_share: number
+      exposed_share: number
+      custom_link_count: number
+    }>
+  } | null
 
   recomposition_summary: RecompositionSummary
   transformation_map: {
@@ -306,6 +335,7 @@ type DependencyEdits = {
 The live model page now usually produces this payload through `getRoleComposition(occupationId)` plus the role graph editor, not through the older five-selector task-input flow.
 
 The engine also exposes an occupation-scoped composition baseline through `getRoleComposition(occupationId)`, with source-bucketed tasks plus function anchors for the editor.
+That baseline now includes the reviewed task-to-function graph for both display and live scoring; custom task-to-function links are additive overrides rather than the only function links the scorer sees.
 
 ## Structural Scores Now Used Publicly
 
@@ -318,6 +348,12 @@ The live page relies on these engine-level structural scores:
 - `retained_core_share`
 - `demand_expansion_modifier`
 - `function_retention`
+- `function_exposure_pressure`
+- `retained_function_strength`
+- `retained_accountability_strength`
+- `retained_bargaining_power`
+- `delegation_likelihood`
+- `headcount_displacement_risk`
 - `augmentation_fit`
 - `substitution_risk_modifier`
 
@@ -342,8 +378,8 @@ Still implemented as transitional compatibility surfaces:
 - legacy-answer questionnaire compatibility fallback
 
 Current explanation surface:
-- the engine now returns an occupation-level explanation summary drawn from the normalized explanation layer
-- the client surfaces that summary in the model-details panel instead of leaving the audit logic only in diagnostics
+- the engine now returns a live explanation summary generated from the current edited run
+- the explanation block is now aligned to the same task/function graph and function metrics that drive the live score
 - the client also surfaces task-to-function links and user-declared support links in the composition flow before scoring
 
 ## Current Acceptance Criteria
