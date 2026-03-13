@@ -262,6 +262,13 @@ function recommendReviewLayer(row) {
       reason: 'Specialization-resilience mismatch points to retained-function weighting, knowledge intensity assumptions, or adaptation priors.',
       review: row.specialization_resilience_review,
       score: row.specialization_resilience_gap * Math.max(row.specialization_resilience_confidence, 0.35) * calibrationStrengthMultiplier('medium')
+    },
+    {
+      layer: 'role_shape_heterogeneity',
+      strength: 'medium',
+      reason: 'Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation.',
+      review: row.role_heterogeneity_review,
+      score: row.role_heterogeneity_gap * Math.max(row.role_heterogeneity_confidence, 0.35) * calibrationStrengthMultiplier('medium')
     }
   ];
 
@@ -278,11 +285,13 @@ async function main() {
   const occupations = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupations.csv'), 'utf8'))
     .filter((row) => String(row.is_active || '').toLowerCase() !== 'false');
   const orsRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_ors_structural_context.csv'), 'utf8'));
+  const heterogeneityRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_heterogeneity_context.csv'), 'utf8'));
   const qualityRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_quality_indicators.csv'), 'utf8'));
   const laborRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_labor_market_context.csv'), 'utf8'));
   const adaptationRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_adaptation_priors.csv'), 'utf8'));
 
   const orsById = Object.fromEntries(orsRows.map((row) => [row.occupation_id, row]));
+  const heterogeneityById = Object.fromEntries(heterogeneityRows.map((row) => [row.occupation_id, row]));
   const qualityById = Object.fromEntries(qualityRows.map((row) => [row.occupation_id, row]));
   const laborById = Object.fromEntries(laborRows.map((row) => [row.occupation_id, row]));
   const adaptationById = Object.fromEntries(adaptationRows.map((row) => [row.occupation_id, row]));
@@ -321,6 +330,7 @@ async function main() {
   occupations.forEach((occupation) => {
     const occupationId = occupation.occupation_id;
     const ors = orsById[occupationId] || {};
+    const heterogeneity = heterogeneityById[occupationId] || {};
     const quality = qualityById[occupationId] || {};
     const labor = laborById[occupationId] || {};
     const adaptation = adaptationById[occupationId] || {};
@@ -370,6 +380,17 @@ async function main() {
       0,
       1
     );
+    const roleHeterogeneitySignal = clamp(
+      (clamp(toNumber(heterogeneity.heterogeneity_index, 0.5), 0, 1) * 0.60) +
+      ((1 - peopleShare) * 0.40),
+      0,
+      1
+    );
+    const roleHeterogeneityTarget = clamp(
+      0.05 + (roleHeterogeneitySignal * 0.40),
+      0,
+      1
+    );
 
     const humanConstraintConfidence = orsHumanConstraintSignal === null
       ? 0
@@ -382,6 +403,12 @@ async function main() {
     const demandContextConfidence = toNumber(labor.labor_market_confidence, 0.5);
     const wageLeverageConfidence = toNumber(labor.labor_market_confidence, 0.5);
     const adaptationConfidence = toNumber(adaptation.confidence, 0.5);
+    const roleHeterogeneityConfidence = clamp(
+      (toNumber(heterogeneity.acs_confidence, 0.45) * 0.65) +
+      (adaptationConfidence * 0.35),
+      0,
+      1
+    );
 
     const modelHumanGuardrail = clamp(
       ((toNumber(result.function_metrics?.retained_accountability_strength, 0.5) * 0.60) +
@@ -404,9 +431,15 @@ async function main() {
       0,
       1
     );
+    const modelRoleFragmentation = clamp(
+      toNumber(result.function_metrics?.role_fragmentation_risk, result.role_fragmentation_risk ?? 0.5),
+      0,
+      1
+    );
     const humanConstraintGap = humanConstraintTarget === null
       ? null
       : Math.abs(modelHumanGuardrail - humanConstraintTarget);
+    const roleHeterogeneityGap = Math.abs(modelRoleFragmentation - roleHeterogeneityTarget);
 
     rows.push({
       occupation_id: occupationId,
@@ -421,23 +454,29 @@ async function main() {
       routine_pressure_confidence: Number(adaptationConfidence.toFixed(3)),
       specialization_resilience_target: Number(specializationResilienceTarget.toFixed(3)),
       specialization_resilience_confidence: Number(adaptationConfidence.toFixed(3)),
+      role_heterogeneity_target: Number(roleHeterogeneityTarget.toFixed(3)),
+      role_heterogeneity_confidence: Number(roleHeterogeneityConfidence.toFixed(3)),
       model_human_guardrail: Number(modelHumanGuardrail.toFixed(3)),
       model_demand_context: Number(modelDemandContext.toFixed(3)),
       model_wage_leverage: Number(modelWageLeverage.toFixed(3)),
       model_routine_pressure: Number(modelRoutinePressure.toFixed(3)),
       model_specialization_resilience: Number(modelSpecializationResilience.toFixed(3)),
+      model_role_fragmentation: Number(modelRoleFragmentation.toFixed(3)),
       human_constraint_gap: humanConstraintGap === null ? null : Number(humanConstraintGap.toFixed(3)),
       demand_context_gap: Number(Math.abs(modelDemandContext - demandContextTarget).toFixed(3)),
       wage_leverage_gap: Number(Math.abs(modelWageLeverage - wageLeverageTarget).toFixed(3)),
       routine_pressure_gap: Number(Math.abs(modelRoutinePressure - routinePressureTarget).toFixed(3)),
       specialization_resilience_gap: Number(Math.abs(modelSpecializationResilience - specializationResilienceTarget).toFixed(3)),
+      role_heterogeneity_gap: Number(roleHeterogeneityGap.toFixed(3)),
       human_constraint_review: humanConstraintGap === null ? 'ok' : gapTier(humanConstraintGap, humanConstraintConfidence),
       demand_context_review: gapTier(Math.abs(modelDemandContext - demandContextTarget), demandContextConfidence),
       wage_leverage_review: gapTier(Math.abs(modelWageLeverage - wageLeverageTarget), wageLeverageConfidence),
       routine_pressure_review: gapTier(Math.abs(modelRoutinePressure - routinePressureTarget), adaptationConfidence),
       specialization_resilience_review: gapTier(Math.abs(modelSpecializationResilience - specializationResilienceTarget), adaptationConfidence),
+      role_heterogeneity_review: gapTier(roleHeterogeneityGap, roleHeterogeneityConfidence),
       quality_source_mix: quality.source_mix || '',
       ors_source_mix: ors.source_mix || '',
+      heterogeneity_source_mix: heterogeneity.source_mix || '',
       adaptation_source_mix: adaptation.source_mix || '',
       labor_release_year: labor.release_year || '',
       notes: [
@@ -456,7 +495,8 @@ async function main() {
         row.demand_context_review === tier ||
         row.wage_leverage_review === tier ||
         row.routine_pressure_review === tier ||
-        row.specialization_resilience_review === tier
+        row.specialization_resilience_review === tier ||
+        row.role_heterogeneity_review === tier
       )) || 'ok';
     row.primary_review_layer = recommendation.layer;
     row.primary_review_strength = recommendation.strength;
@@ -477,23 +517,29 @@ async function main() {
     'routine_pressure_confidence',
     'specialization_resilience_target',
     'specialization_resilience_confidence',
+    'role_heterogeneity_target',
+    'role_heterogeneity_confidence',
     'model_human_guardrail',
     'model_demand_context',
     'model_wage_leverage',
     'model_routine_pressure',
     'model_specialization_resilience',
+    'model_role_fragmentation',
     'human_constraint_gap',
     'demand_context_gap',
     'wage_leverage_gap',
     'routine_pressure_gap',
     'specialization_resilience_gap',
+    'role_heterogeneity_gap',
     'human_constraint_review',
     'demand_context_review',
     'wage_leverage_review',
     'routine_pressure_review',
     'specialization_resilience_review',
+    'role_heterogeneity_review',
     'quality_source_mix',
     'ors_source_mix',
+    'heterogeneity_source_mix',
     'adaptation_source_mix',
     'labor_release_year',
     'highest_review_tier',
@@ -558,6 +604,16 @@ async function main() {
       reviewKey: 'specialization_resilience_review',
       confidenceKey: 'specialization_resilience_confidence',
       description: 'Compares retained function/bargaining signals to adaptation-layer learning intensity, transferability, adaptive capacity, and knowledge intensity.'
+    },
+    {
+      label: 'Role Heterogeneity Plausibility',
+      strength: 'medium',
+      targetKey: 'role_heterogeneity_target',
+      modelKey: 'model_role_fragmentation',
+      gapKey: 'role_heterogeneity_gap',
+      reviewKey: 'role_heterogeneity_review',
+      confidenceKey: 'role_heterogeneity_confidence',
+      description: 'Compares modeled role fragmentation risk to an ACS PUMS heterogeneity signal built from wage dispersion, education dispersion, industry dispersion, and worker-mix spread, then scaled by lower people-intensity from the adaptation layer.'
     }
   ];
 
@@ -571,6 +627,7 @@ async function main() {
   lines.push('');
   lines.push('Generated from:');
   lines.push('- `data/normalized/occupation_ors_structural_context.csv`');
+  lines.push('- `data/normalized/occupation_heterogeneity_context.csv`');
   lines.push('- `data/normalized/occupation_quality_indicators.csv`');
   lines.push('- `data/normalized/occupation_labor_market_context.csv`');
   lines.push('- `data/normalized/occupation_adaptation_priors.csv`');
@@ -579,6 +636,8 @@ async function main() {
   lines.push('Current limitations:');
   lines.push('- `occupation_ors_structural_context.csv` is now the main structural input for the human-guardrail check, using the normalized ORS structural index.');
   lines.push('- occupations without usable ORS structural rows are currently left unscored for that strongest check instead of being silently folded back into a weaker proxy.');
+  lines.push('- `occupation_heterogeneity_context.csv` is calibration-only context. It is useful for checking whether the model is overstating role uniformity, but it is still an external structural proxy rather than a runtime role-definition input.');
+  lines.push('- the heterogeneity check is not raw ACS alone; the target is scaled into a fragmentation-pressure range and conditioned on lower people-intensity so it stays closer to the model’s actual role-splitting claim.');
   lines.push('- labor-market checks are contextual and should not be treated as proof of AI displacement or demand expansion.');
   lines.push('- this report is for calibration and review, not runtime scoring.');
   lines.push('');
@@ -614,18 +673,21 @@ async function main() {
           row.demand_context_review !== 'ok' ||
           row.wage_leverage_review !== 'ok' ||
           row.routine_pressure_review !== 'ok' ||
-          row.specialization_resilience_review !== 'ok',
+          row.specialization_resilience_review !== 'ok' ||
+          row.role_heterogeneity_review !== 'ok',
         anyHigh: row.human_constraint_review === 'high' ||
           row.demand_context_review === 'high' ||
           row.wage_leverage_review === 'high' ||
           row.routine_pressure_review === 'high' ||
-          row.specialization_resilience_review === 'high',
+          row.specialization_resilience_review === 'high' ||
+          row.role_heterogeneity_review === 'high',
         maxGap: Math.max(
           row.human_constraint_gap,
           row.demand_context_gap,
           row.wage_leverage_gap,
           row.routine_pressure_gap,
-          row.specialization_resilience_gap
+          row.specialization_resilience_gap,
+          row.role_heterogeneity_gap
         )
       };
     })
@@ -641,10 +703,10 @@ async function main() {
   if (!priorityRows.length) {
     lines.push('- No structural mismatches rose above `ok` under the current thresholds.');
   } else {
-    lines.push('| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap |');
-    lines.push('| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |');
+    lines.push('| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap | Heterogeneity gap |');
+    lines.push('| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |');
     priorityRows.slice(0, 10).forEach((row) => {
-      lines.push(`| ${row.title} | ${row.highest_review_tier} | ${row.primary_review_layer} | ${row.primary_review_strength} | ${formatMaybe(row.human_constraint_gap)} (${row.human_constraint_review}) | ${formatMaybe(row.demand_context_gap)} (${row.demand_context_review}) | ${formatMaybe(row.wage_leverage_gap)} (${row.wage_leverage_review}) | ${formatMaybe(row.routine_pressure_gap)} (${row.routine_pressure_review}) | ${formatMaybe(row.specialization_resilience_gap)} (${row.specialization_resilience_review}) |`);
+      lines.push(`| ${row.title} | ${row.highest_review_tier} | ${row.primary_review_layer} | ${row.primary_review_strength} | ${formatMaybe(row.human_constraint_gap)} (${row.human_constraint_review}) | ${formatMaybe(row.demand_context_gap)} (${row.demand_context_review}) | ${formatMaybe(row.wage_leverage_gap)} (${row.wage_leverage_review}) | ${formatMaybe(row.routine_pressure_gap)} (${row.routine_pressure_review}) | ${formatMaybe(row.specialization_resilience_gap)} (${row.specialization_resilience_review}) | ${formatMaybe(row.role_heterogeneity_gap)} (${row.role_heterogeneity_review}) |`);
     });
   }
   lines.push('');
@@ -709,14 +771,15 @@ async function main() {
   lines.push('## Interpretation');
   lines.push('');
   lines.push('- Treat `Human Guardrail Plausibility` as the most useful current structural check.');
+  lines.push('- Treat `Role Heterogeneity Plausibility` as the best current check on whether the model is making an occupation look too uniform or too split.');
   lines.push('- Treat `Demand Context Plausibility` and `Wage Leverage Plausibility` as weak calibration layers that can surface suspicious outliers, not as truth labels.');
   lines.push('- Occupations with repeated high-priority gaps should be reviewed at the layer that likely caused the disagreement: function anchors, accountability weights, task evidence coverage, or role-shape assumptions.');
   lines.push('');
   lines.push('## Next Data Upgrades');
   lines.push('');
   lines.push('- Extend ORS coverage or mapping so fewer launch occupations remain unscored on the strongest human-guardrail check.');
-  lines.push('- Add `ACS PUMS` for within-occupation heterogeneity and wage-structure calibration.');
   lines.push('- Add `BTOS` AI adoption context for a stronger non-runtime adoption calibration layer.');
+  lines.push('- Consider whether the ACS heterogeneity layer is strong enough to justify future multi-variant occupation modeling rather than one default role shape per occupation.');
   lines.push('');
 
   fs.writeFileSync(reportPath, `${lines.join('\n')}\n`, 'utf8');
@@ -730,6 +793,7 @@ async function main() {
     wageLeverageCorrelation: spearmanCorrelation(rows, 'wage_leverage_target', 'model_wage_leverage'),
     routinePressureCorrelation: spearmanCorrelation(rows, 'routine_pressure_target', 'model_routine_pressure'),
     specializationResilienceCorrelation: spearmanCorrelation(rows, 'specialization_resilience_target', 'model_specialization_resilience'),
+    roleHeterogeneityCorrelation: spearmanCorrelation(rows, 'role_heterogeneity_target', 'model_role_fragmentation'),
     topReviewLayers: sortedReviewLayers.slice(0, 3).map(([layer, count]) => ({ layer, count }))
   }, null, 2));
 }

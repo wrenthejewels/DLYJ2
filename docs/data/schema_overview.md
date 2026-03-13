@@ -46,7 +46,9 @@ Current role-fate extension:
 24. `occupation_role_transformation.csv` (offline occupation-level audit/reference outputs from the broader transformation pipeline)
 25. `occupation_role_explanations.csv` (offline occupation-level explanation summaries derived from the audit/reference outputs)
 26. `occupation_ors_structural_context.csv` (official BLS ORS-derived structural context used for calibration-only human-retention checks)
-27. `occupation_structural_calibration_targets.csv` (non-runtime structural calibration targets comparing live model metrics to local BLS, quality-context, and adaptation-prior proxies, plus strength-aware review-layer recommendations for mismatch triage)
+27. `occupation_heterogeneity_context.csv` (official Census ACS PUMS-derived heterogeneity context used for calibration-only fragmentation / role-shape checks)
+28. `occupation_industry_mix.csv` (official Census ACS PUMS-derived occupation-by-industry mix used to prepare the BTOS adoption-context join path)
+29. `occupation_structural_calibration_targets.csv` (non-runtime structural calibration targets comparing live model metrics to local BLS, Census, quality-context, and adaptation-prior proxies, plus strength-aware review-layer recommendations for mismatch triage)
 
 ## Purpose of the normalized layer
 
@@ -70,6 +72,8 @@ Current live scoring note:
 - task-derived cluster summaries now drive the public cluster layer and the live wave trajectory
 - `occupation_structural_calibration_targets.csv` is not a runtime input; it exists only for calibration, disagreement reporting, and tuning review
 - `occupation_ors_structural_context.csv` is also not a runtime input; it currently feeds the calibration layer’s human-guardrail target using ORS autonomy, supervision, and pace-control structure
+- `occupation_heterogeneity_context.csv` is also not a runtime input; it currently feeds the calibration layer’s role-heterogeneity target using ACS wage dispersion, education dispersion, industry dispersion, and worker-mix spread
+- `occupation_industry_mix.csv` is also not a runtime input; it currently exists as the preparatory bridge from ACS occupations to future BTOS industry adoption context
 
 See `docs/data/task_role_graph_contract.md` for the first-step contract behind the role-fate redesign.
 See `docs/data/role_transformation_contract.md` for the first-pass function and role-transformation layer.

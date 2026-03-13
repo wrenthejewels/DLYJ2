@@ -120,6 +120,28 @@ sources:
     granularity: occupation_level_structural_context
     status: active_calibration_backstop
     notes: 'Backstop ORS wave used when the 2025 preliminary dataset does not cover a launch occupation cleanly.'
+  - source_id: src_census_acs_2024_1yr_pums_api
+    name: Census ACS 1-Year PUMS API
+    category: structural_calibration
+    version_label: '2024 ACS 1-year PUMS'
+    release_date: '2025-12-04'
+    download_url: 'https://api.census.gov/data/2024/acs/acs1/pums/variables.html'
+    license: public_domain
+    geography: us
+    granularity: respondent_microdata_api
+    status: active_calibration
+    notes: 'Official Census PUMS microdata queried through the Census API and summarized into occupation_heterogeneity_context.csv for calibration-only heterogeneity and fragmentation checks.'
+  - source_id: src_census_btos_2026_03
+    name: Census Business Trends and Outlook Survey
+    category: contextual_calibration
+    version_label: '2026-03 AI/business conditions snapshot'
+    release_date: '2026-03-13'
+    download_url: 'https://www.census.gov/econ/btos/'
+    license: public_domain
+    geography: us
+    granularity: industry_level_context
+    status: planned_calibration
+    notes: 'Planned next calibration-only source for adoption realization context. Intended join path is BTOS industry context to occupation_industry_mix.csv from ACS PUMS.'
   - source_id: src_v2_launch_aggregate_2026_03
     name: V2 launch aggregate prior
     category: occupation_prior

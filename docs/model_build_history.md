@@ -379,6 +379,7 @@ Each iteration solved a concrete failure mode in the prior version:
 15. The calibration queue was then made strength-aware so weak contextual proxies would not dominate tuning decisions over medium-strength structural checks.
 16. That strength-aware queue then surfaced a stronger structural miss in routine/admin-heavy occupations, which led to a routine-context lift for workflow compression and routine task pressure.
 17. The first official external structural source, BLS ORS, was then integrated into the calibration layer so the human-guardrail check relied mainly on observed autonomy, supervisory responsibility, and pace-control structure instead of lighter quality proxies.
+18. The next official external structural source, ACS PUMS, was then integrated into the calibration layer so the repo could compare model fragmentation risk to observed within-occupation heterogeneity rather than only discussing role variety abstractly.
 
 So the model has evolved by repeatedly doing the same thing:
 - identify where the current abstraction is too coarse
@@ -427,6 +428,12 @@ The next concrete example was the ORS integration:
 - official ORS work-requirement data was added as a calibration-only table instead of being pushed straight into runtime
 - the human-guardrail target now leans mainly on ORS autonomy, supervisory responsibility, and pace-control structure, and occupations without usable ORS rows are left unscored for that strongest check until coverage improves
 
+The next concrete example was the ACS PUMS integration:
+- the repo needed a real external read on whether an occupation was actually one stable shape or a heterogeneous bundle
+- official ACS microdata was added as a calibration-only table instead of being pushed into the runtime score
+- the resulting heterogeneity layer summarizes wage dispersion, education dispersion, industry dispersion, and worker-mix spread
+- because heterogeneity is broader than fragmentation, that signal is scaled into a lower fragmentation-pressure target and conditioned on lower people intensity before being compared to the model
+
 ## A Rationalist Summary
 
 The model was built by progressively replacing hidden averages with explicit structure.
@@ -441,6 +448,7 @@ The direction of travel has been:
 - source-resolved task evidence
 - non-runtime structural calibration
 - official structural calibration inputs
+- official heterogeneity calibration inputs
 
 The remaining step is:
 - make task evidence not only an adjustment layer, but the default starting point whenever coverage is strong enough

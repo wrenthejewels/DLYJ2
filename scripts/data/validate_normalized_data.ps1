@@ -106,11 +106,13 @@ $headerMap = @{
     'ability_benchmark_scores.csv' = @('ability_name','aioe_ability_exposure_score','aioe_ability_exposure_percentile','source_id','notes')
     'occupation_quality_indicators.csv' = @('occupation_id','earnings_quality_proxy','labor_market_security_proxy','working_environment_quality_proxy','autonomy_proxy','learning_opportunity_proxy','social_interaction_intensity','time_pressure_proxy','quality_confidence','source_mix','notes')
     'occupation_labor_market_context.csv' = @('occupation_id','employment_us','annual_openings','median_wage_usd','wage_p25_usd','wage_p75_usd','projection_growth_pct','unemployment_group_id','unemployment_group_label','unemployment_series_id','latest_unemployment_rate','latest_unemployment_period','labor_market_confidence','release_year')
+    'occupation_heterogeneity_context.csv' = @('occupation_id','onet_soc_code','acs_reference_year','acs_release_label','acs_socp_code','acs_query_mode','sample_record_count','employed_record_count','weighted_worker_count','wage_record_count','median_wage_usd','wage_p25_usd','wage_p75_usd','wage_dispersion_ratio','wage_dispersion_percentile','education_dispersion','industry_dispersion','class_of_worker_dispersion','age_band_dispersion','sex_mix_balance','worker_mix_dispersion','heterogeneity_index','acs_confidence','source_mix','notes')
+    'occupation_industry_mix.csv' = @('occupation_id','onet_soc_code','acs_reference_year','acs_release_label','acs_socp_code','acs_query_mode','acs_industry_code','industry_rank','industry_weighted_worker_count','industry_share','source_mix','notes')
     'occupation_unemployment_monthly.csv' = @('unemployment_group_id','unemployment_group_label','unemployment_series_id','year','month','period','month_label','unemployment_rate','is_missing','source_id','notes')
     'occupation_task_role_profiles.csv' = @('occupation_id','core_task_share','support_task_share','mean_value_centrality','mean_bargaining_power_weight','dependency_density','coverage_gap_flag','review_status','notes')
     'occupation_role_transformation.csv' = @('occupation_id','direct_task_pressure','indirect_dependency_pressure','function_exposure_pressure','retained_function_strength','retained_accountability_strength','retained_bargaining_power','role_fragmentation_risk','role_compressibility','demand_expansion_signal','delegation_likelihood','headcount_displacement_risk','role_transformation_type','confidence','source_mix','notes')
     'occupation_ors_structural_context.csv' = @('occupation_id','onet_soc_code','bls_occ_code','ors_reference_year','ors_reference_wave','interaction_intensity','external_interaction_intensity','internal_interaction_intensity','people_skill_intensity','speaking_intensity','autonomy_intensity','review_intensity','pause_control_share','self_paced_share','supervisor_present_share','supervising_others_share','pace_constraint_intensity','people_control_share','software_control_share','target_control_share','fast_pace_share','telework_ability_share','work_schedule_variability_share','human_constraint_index','ors_confidence','source_mix','notes')
-    'occupation_structural_calibration_targets.csv' = @('occupation_id','title','human_constraint_target','human_constraint_confidence','demand_context_target','demand_context_confidence','wage_leverage_target','wage_leverage_confidence','routine_pressure_target','routine_pressure_confidence','specialization_resilience_target','specialization_resilience_confidence','model_human_guardrail','model_demand_context','model_wage_leverage','model_routine_pressure','model_specialization_resilience','human_constraint_gap','demand_context_gap','wage_leverage_gap','routine_pressure_gap','specialization_resilience_gap','human_constraint_review','demand_context_review','wage_leverage_review','routine_pressure_review','specialization_resilience_review','quality_source_mix','ors_source_mix','adaptation_source_mix','labor_release_year','highest_review_tier','primary_review_layer','primary_review_strength','primary_review_score','primary_review_reason','notes')
+    'occupation_structural_calibration_targets.csv' = @('occupation_id','title','human_constraint_target','human_constraint_confidence','demand_context_target','demand_context_confidence','wage_leverage_target','wage_leverage_confidence','routine_pressure_target','routine_pressure_confidence','specialization_resilience_target','specialization_resilience_confidence','role_heterogeneity_target','role_heterogeneity_confidence','model_human_guardrail','model_demand_context','model_wage_leverage','model_routine_pressure','model_specialization_resilience','model_role_fragmentation','human_constraint_gap','demand_context_gap','wage_leverage_gap','routine_pressure_gap','specialization_resilience_gap','role_heterogeneity_gap','human_constraint_review','demand_context_review','wage_leverage_review','routine_pressure_review','specialization_resilience_review','role_heterogeneity_review','quality_source_mix','ors_source_mix','heterogeneity_source_mix','adaptation_source_mix','labor_release_year','highest_review_tier','primary_review_layer','primary_review_strength','primary_review_score','primary_review_reason','notes')
     'occupation_transition_adjacency.csv' = @('from_occupation_id','to_occupation_id','adjacency_score','adjacency_type','source','confidence','notes')
     'crosswalk_onet_to_bls.csv' = @('onet_soc_code','bls_occ_code','title_onet','title_bls','match_type','confidence')
     'crosswalk_onet_to_isco.csv' = @('onet_soc_code','isco_code','title_onet','title_isco','match_type','confidence')
@@ -167,6 +169,8 @@ $taskBenchmarks = Import-Csv (Join-Path $normalizedDir 'task_benchmark_gpt4_labe
 $abilityBenchmarks = Import-Csv (Join-Path $normalizedDir 'ability_benchmark_scores.csv')
 $quality = Import-Csv (Join-Path $normalizedDir 'occupation_quality_indicators.csv')
 $labor = Import-Csv (Join-Path $normalizedDir 'occupation_labor_market_context.csv')
+$heterogeneity = Import-Csv (Join-Path $normalizedDir 'occupation_heterogeneity_context.csv')
+$industryMix = Import-Csv (Join-Path $normalizedDir 'occupation_industry_mix.csv')
 $taskRoleProfiles = Import-Csv (Join-Path $normalizedDir 'occupation_task_role_profiles.csv')
 $roleTransformation = Import-Csv (Join-Path $normalizedDir 'occupation_role_transformation.csv')
 $transitions = Import-Csv (Join-Path $normalizedDir 'occupation_transition_adjacency.csv')
@@ -177,6 +181,9 @@ $sourceIds = Select-String -Path (Join-Path $metadataDir 'source_registry.yaml')
     ForEach-Object { $_.Matches[0].Groups[1].Value.Trim() }
 $secondaryFunctionKeys = $secondaryFunctions | ForEach-Object {
     [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.function_key)" }
+}
+$industryMixKeys = $industryMix | ForEach-Object {
+    [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.acs_industry_code)" }
 }
 
 $occupationIds = $occupations | Select-Object -ExpandProperty occupation_id
@@ -191,6 +198,8 @@ Assert-NoDuplicates -Rows $roleFunctions -Key 'function_id' -Label 'role functio
 Assert-NoDuplicates -Rows $functionProfiles -Key 'function_id' -Label 'function profile function_id'
 Assert-NoDuplicates -Rows $roleExplanations -Key 'occupation_id' -Label 'role explanations occupation_id'
 Assert-NoDuplicates -Rows $labor -Key 'occupation_id' -Label 'labor occupation_id'
+Assert-NoDuplicates -Rows $heterogeneity -Key 'occupation_id' -Label 'heterogeneity occupation_id'
+Assert-NoDuplicates -Rows $industryMixKeys -Key 'composite_key' -Label 'occupation industry mix occupation/industry'
 Assert-NoDuplicates -Rows $taskRoleProfiles -Key 'occupation_id' -Label 'task role profile occupation_id'
 Assert-NoDuplicates -Rows $roleTransformation -Key 'occupation_id' -Label 'role transformation occupation_id'
 Assert-NoDuplicates -Rows $launchSeed -Key 'launch_rank' -Label 'launch_rank'
@@ -235,6 +244,8 @@ Assert-ForeignKey -Rows $taskBenchmarks -Column 'source_id' -Allowed $sourceIds 
 Assert-ForeignKey -Rows $abilityBenchmarks -Column 'source_id' -Allowed $sourceIds -Label 'ability benchmark source_id'
 Assert-ForeignKey -Rows $quality -Column 'occupation_id' -Allowed $occupationIds -Label 'quality occupation_id'
 Assert-ForeignKey -Rows $labor -Column 'occupation_id' -Allowed $occupationIds -Label 'labor occupation_id'
+Assert-ForeignKey -Rows $heterogeneity -Column 'occupation_id' -Allowed $occupationIds -Label 'heterogeneity occupation_id'
+Assert-ForeignKey -Rows $industryMix -Column 'occupation_id' -Allowed $occupationIds -Label 'industry mix occupation_id'
 Assert-ForeignKey -Rows $taskRoleProfiles -Column 'occupation_id' -Allowed $occupationIds -Label 'task role profile occupation_id'
 Assert-ForeignKey -Rows $roleTransformation -Column 'occupation_id' -Allowed $occupationIds -Label 'role transformation occupation_id'
 Assert-ForeignKey -Rows $transitions -Column 'from_occupation_id' -Allowed $occupationIds -Label 'transition from_occupation_id'
@@ -245,6 +256,9 @@ Assert-ForeignKey -Rows $reviewedTaskOverrides -Column 'occupation_id' -Allowed 
 Assert-ShareSums -Rows $occTaskClusters -GroupColumn 'occupation_id' -ShareColumn 'share_prior'
 if ($occupationTaskInventory.Count -gt 0) {
     Assert-ShareSums -Rows $occupationTaskInventory -GroupColumn 'occupation_id' -ShareColumn 'time_share_prior'
+}
+if ($industryMix.Count -gt 0) {
+    Assert-ShareSums -Rows $industryMix -GroupColumn 'occupation_id' -ShareColumn 'industry_share'
 }
 
 $taskInventoryIds = $occupationTaskInventory | Select-Object -ExpandProperty task_id

@@ -10,6 +10,8 @@ Current script categories:
 - normalize BLS labor extracts
 - normalize BLS unemployment by occupation group
 - normalize BLS ORS structural context
+- normalize ACS PUMS occupation heterogeneity context
+- derive ACS occupation-industry mix for downstream BTOS joins
 - normalize Anthropic task evidence
 - normalize AIOE benchmark extracts
 - compare Anthropic release outputs before promoting a new release into the live priors
@@ -31,9 +33,9 @@ Current script categories:
 - validate normalized joins
 - generate structural calibration targets and reports from non-runtime BLS / quality-context / adaptation inputs, including strength-aware review-layer recommendations
 - generate ORS-backed structural calibration targets and reports from non-runtime BLS / quality-context / adaptation inputs, including strength-aware review-layer recommendations
+- generate ORS- and ACS-backed structural calibration targets and reports from non-runtime BLS, Census, quality-context, and adaptation inputs, including strength-aware review-layer recommendations
 
 Planned next script families:
-- normalize `ACS PUMS` occupation heterogeneity and dispersion summaries
 - normalize `BTOS` industry AI-adoption context for calibration-only joins
 - perform a controlled `O*NET 30.2` refresh after schema review rather than as an incidental source bump
 
@@ -43,3 +45,8 @@ Current official calibration script:
   - maps launch occupations onto BLS SOC codes
   - writes `data/normalized/occupation_ors_structural_context.csv`
   - this table is calibration-only and currently feeds the human-guardrail check in `run_structural_calibration_report.js`
+- `normalize_acs_pums.py`
+  - queries the official Census `2024 ACS 1-year PUMS` API for the launch occupations
+  - writes `data/normalized/occupation_heterogeneity_context.csv`
+  - writes `data/normalized/occupation_industry_mix.csv`
+  - this table is calibration-only and currently feeds the role-heterogeneity / fragmentation check in `run_structural_calibration_report.js`

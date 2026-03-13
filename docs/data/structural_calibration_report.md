@@ -7,6 +7,7 @@ It checks whether the model’s structural claims line up directionally with the
 
 Generated from:
 - `data/normalized/occupation_ors_structural_context.csv`
+- `data/normalized/occupation_heterogeneity_context.csv`
 - `data/normalized/occupation_quality_indicators.csv`
 - `data/normalized/occupation_labor_market_context.csv`
 - `data/normalized/occupation_adaptation_priors.csv`
@@ -15,6 +16,8 @@ Generated from:
 Current limitations:
 - `occupation_ors_structural_context.csv` is now the main structural input for the human-guardrail check, using the normalized ORS structural index.
 - occupations without usable ORS structural rows are currently left unscored for that strongest check instead of being silently folded back into a weaker proxy.
+- `occupation_heterogeneity_context.csv` is calibration-only context. It is useful for checking whether the model is overstating role uniformity, but it is still an external structural proxy rather than a runtime role-definition input.
+- the heterogeneity check is not raw ACS alone; the target is scaled into a fragmentation-pressure range and conditioned on lower people-intensity so it stays closer to the model’s actual role-splitting claim.
 - labor-market checks are contextual and should not be treated as proof of AI displacement or demand expansion.
 - this report is for calibration and review, not runtime scoring.
 
@@ -65,30 +68,39 @@ Current limitations:
 - medium-priority mismatches: `5`
 - description: Compares retained function/bargaining signals to adaptation-layer learning intensity, transferability, adaptive capacity, and knowledge intensity.
 
+### Role Heterogeneity Plausibility
+- strength: `medium`
+- coverage: `34/34`
+- spearman correlation: `0.438`
+- high-priority mismatches: `0`
+- medium-priority mismatches: `2`
+- description: Compares modeled role fragmentation risk to an ACS PUMS heterogeneity signal built from wage dispersion, education dispersion, industry dispersion, and worker-mix spread, then scaled by lower people-intensity from the adaptation layer.
+
 ## Highest-Priority Mismatches
 
-| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Customer Service Representatives | high | bargaining_power | weak | 0.073 (ok) | 0.088 (ok) | 0.526 (high) | 0.039 (ok) | 0.205 (medium) |
-| Bookkeeping, Accounting, and Auditing Clerks | high | bargaining_power | weak | 0.218 (medium) | 0.075 (ok) | 0.448 (high) | 0.207 (medium) | 0.159 (low) |
-| Statistical Assistants | high | bargaining_power | weak | n/a (ok) | 0.129 (low) | 0.430 (high) | 0.068 (ok) | 0.025 (ok) |
-| Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | high | task_pressure | medium | 0.217 (medium) | 0.046 (ok) | 0.342 (high) | 0.381 (medium) | 0.205 (medium) |
-| Office Clerks, General | high | task_pressure | medium | 0.181 (medium) | 0.047 (ok) | 0.333 (high) | 0.365 (medium) | 0.182 (medium) |
-| Data Scientists | high | bargaining_power | weak | n/a (ok) | 0.194 (medium) | 0.347 (high) | 0.170 (low) | 0.205 (medium) |
-| Software Developers | high | bargaining_power | weak | 0.164 (low) | 0.142 (low) | 0.343 (high) | 0.158 (low) | 0.207 (medium) |
-| Advertising Sales Agents | high | demand_and_adoption | weak | n/a (ok) | 0.311 (high) | 0.226 (high) | 0.074 (ok) | 0.067 (ok) |
-| Paralegals and Legal Assistants | high | accountability_guardrails | strong | 0.306 (high) | 0.122 (low) | 0.265 (high) | 0.081 (ok) | 0.103 (ok) |
-| Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel | high | accountability_guardrails | strong | 0.278 (high) | 0.054 (ok) | 0.218 (medium) | 0.029 (ok) | 0.260 (low) |
+| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap | Heterogeneity gap |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Customer Service Representatives | high | bargaining_power | weak | 0.073 (ok) | 0.088 (ok) | 0.526 (high) | 0.039 (ok) | 0.205 (medium) | 0.039 (ok) |
+| Bookkeeping, Accounting, and Auditing Clerks | high | bargaining_power | weak | 0.218 (medium) | 0.075 (ok) | 0.448 (high) | 0.207 (medium) | 0.159 (low) | 0.175 (low) |
+| Statistical Assistants | high | bargaining_power | weak | n/a (ok) | 0.129 (low) | 0.430 (high) | 0.068 (ok) | 0.025 (ok) | 0.145 (low) |
+| Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | high | task_pressure | medium | 0.217 (medium) | 0.046 (ok) | 0.342 (high) | 0.381 (medium) | 0.205 (medium) | 0.098 (ok) |
+| Office Clerks, General | high | task_pressure | medium | 0.181 (medium) | 0.047 (ok) | 0.333 (high) | 0.365 (medium) | 0.182 (medium) | 0.109 (ok) |
+| Data Scientists | high | bargaining_power | weak | n/a (ok) | 0.194 (medium) | 0.347 (high) | 0.170 (low) | 0.205 (medium) | 0.093 (ok) |
+| Software Developers | high | bargaining_power | weak | 0.164 (low) | 0.142 (low) | 0.343 (high) | 0.158 (low) | 0.207 (medium) | 0.014 (ok) |
+| Advertising Sales Agents | high | demand_and_adoption | weak | n/a (ok) | 0.311 (high) | 0.226 (high) | 0.074 (ok) | 0.067 (ok) | 0.101 (ok) |
+| Paralegals and Legal Assistants | high | accountability_guardrails | strong | 0.306 (high) | 0.122 (low) | 0.265 (high) | 0.081 (ok) | 0.103 (ok) | 0.003 (ok) |
+| Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel | high | accountability_guardrails | strong | 0.278 (high) | 0.054 (ok) | 0.218 (medium) | 0.029 (ok) | 0.260 (low) | 0.071 (ok) |
 
 ## Most Common Review Layers
 
 | Review layer | Occupations flagged |
 | --- | ---: |
 | accountability_guardrails | 14 |
-| bargaining_power | 8 |
-| demand_and_adoption | 5 |
+| role_shape_heterogeneity | 8 |
+| bargaining_power | 6 |
 | task_pressure | 3 |
-| specialization_resilience | 2 |
+| demand_and_adoption | 2 |
+| specialization_resilience | 1 |
 
 ## Review Queue
 
@@ -113,9 +125,14 @@ Current limitations:
 | --- | --- | ---: | --- |
 | Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | task_pressure | 0.202 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
 | Office Clerks, General | task_pressure | 0.186 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
+| Editors | role_shape_heterogeneity | 0.154 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Operations Research Analysts | role_shape_heterogeneity | 0.134 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| News Analysts, Reporters, and Journalists | role_shape_heterogeneity | 0.120 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Management Analysts | role_shape_heterogeneity | 0.118 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Web Developers | role_shape_heterogeneity | 0.113 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Writers and Authors | task_pressure | 0.109 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
-| Market Research Analysts and Marketing Specialists | specialization_resilience | 0.078 | Specialization-resilience mismatch points to retained-function weighting, knowledge intensity assumptions, or adaptation priors. |
-| Project Management Specialists | specialization_resilience | 0.076 | Specialization-resilience mismatch points to retained-function weighting, knowledge intensity assumptions, or adaptation priors. |
+| Market Research Analysts and Marketing Specialists | role_shape_heterogeneity | 0.103 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Technical Writers | role_shape_heterogeneity | 0.102 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 
 ## Largest Gaps By Check
 
@@ -179,15 +196,28 @@ Current limitations:
 | Bookkeeping, Accounting, and Auditing Clerks | 0.590 | 0.432 | 0.159 | 0.590 | low |
 | Accountants and Auditors | 0.638 | 0.480 | 0.158 | 0.500 | low |
 
+### Role Heterogeneity Plausibility
+| Occupation | Model | Target | Gap | Confidence | Review |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Editors | 0.196 | 0.386 | 0.190 | 0.810 | medium |
+| Accountants and Auditors | 0.192 | 0.380 | 0.188 | 0.792 | medium |
+| Bookkeeping, Accounting, and Auditing Clerks | 0.206 | 0.381 | 0.175 | 0.824 | low |
+| Operations Research Analysts | 0.201 | 0.363 | 0.162 | 0.827 | low |
+| Compliance Officers | 0.180 | 0.328 | 0.148 | 0.845 | low |
+| News Analysts, Reporters, and Journalists | 0.206 | 0.351 | 0.145 | 0.831 | low |
+| Statistical Assistants | 0.240 | 0.385 | 0.145 | 0.790 | low |
+| Financial and Investment Analysts | 0.193 | 0.337 | 0.144 | 0.848 | low |
+
 ## Interpretation
 
 - Treat `Human Guardrail Plausibility` as the most useful current structural check.
+- Treat `Role Heterogeneity Plausibility` as the best current check on whether the model is making an occupation look too uniform or too split.
 - Treat `Demand Context Plausibility` and `Wage Leverage Plausibility` as weak calibration layers that can surface suspicious outliers, not as truth labels.
 - Occupations with repeated high-priority gaps should be reviewed at the layer that likely caused the disagreement: function anchors, accountability weights, task evidence coverage, or role-shape assumptions.
 
 ## Next Data Upgrades
 
 - Extend ORS coverage or mapping so fewer launch occupations remain unscored on the strongest human-guardrail check.
-- Add `ACS PUMS` for within-occupation heterogeneity and wage-structure calibration.
 - Add `BTOS` AI adoption context for a stronger non-runtime adoption calibration layer.
+- Consider whether the ACS heterogeneity layer is strong enough to justify future multi-variant occupation modeling rather than one default role shape per occupation.
 

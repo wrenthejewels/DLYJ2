@@ -134,6 +134,12 @@ Implemented on `2026-03-13`:
   - `scripts/data/normalize_ors.py` now derives `occupation_ors_structural_context.csv` from official BLS ORS `2025` preliminary data with `2023` backstop coverage
   - the human-guardrail calibration target is now primarily ORS-driven, using autonomy, supervisory responsibility, and pace-control structure rather than the older quality-only proxy
   - ORS remains calibration-only and is not a direct runtime scoring input
+- phase-11 official ACS PUMS heterogeneity integration:
+  - `scripts/data/normalize_acs_pums.py` now derives `occupation_heterogeneity_context.csv` from official `2024 ACS 1-year PUMS` Census API queries for the launch occupation set
+  - the calibration layer now includes a role-heterogeneity / fragmentation check built from ACS wage dispersion, education dispersion, industry dispersion, and worker-mix spread
+  - that ACS signal is scaled into a lower fragmentation-pressure target and conditioned on lower people intensity before it is compared with `role_fragmentation_risk`
+  - ACS remains calibration-only and is not a direct runtime scoring input
+  - the same ACS pass now also derives `occupation_industry_mix.csv` as the planned bridge into the next BTOS adoption-context layer
 
 Implemented scripts:
 - `build_job_description_evidence.ps1`
@@ -321,7 +327,6 @@ What is not finished yet:
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
 - Expand task-first task-baseline coverage so more occupations can leave the cluster-seeded fallback path without becoming noisy
 - Keep upgrading the calibration layer beyond the current ORS-backed human-guardrail check:
-  - `ACS PUMS`
   - `BTOS`
 - Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
 - Add simple task-weight controls so users can mark selected work as major, medium, or minor rather than only in/out
@@ -346,23 +351,20 @@ Highest-value next research directions:
 
 Best external data directions to evaluate next:
 - `BLS American Time Use Survey (ATUS)` for grounding how broad work categories and time use actually split in practice
-- `Census ACS PUMS` for within-occupation heterogeneity, wage dispersion, and worker-mix analysis
 - `Census Business Trends and Outlook Survey (BTOS)` AI-use modules for organization-level adoption and deployment context
 - `O*NET Technology Skills / Tools and Technology` for task-tool adjacency and more explicit augmentation vs automation routing
 
 Current official-source notes checked during autoresearch on `2026-03-13`:
 - `BLS ORS`: official public-use datasets now span the first wave (`2018`), second wave final (`2023`), and third wave preliminary (`2025`). The repo now uses the `2025` preliminary workbook plus `2023` backstop coverage for the calibration-only ORS structural table.
-- `ACS PUMS`: official Census PUMS now includes `2024 ACS 1-year` microdata. This is the best next source for within-occupation heterogeneity, wage dispersion, and industry-mix calibration.
+- `ACS PUMS`: official Census PUMS `2024 ACS 1-year` microdata is now integrated through the Census API for the launch occupation set and feeds the calibration-only heterogeneity table.
 - `BTOS`: official Census BTOS continues to publish business-condition and AI-use context at the firm/industry layer. This should stay calibration-only first; it is a context signal for adoption realization, not a direct task-automability input.
 - `O*NET`: the official database release line has moved beyond the repo's current `30.1` footing. A controlled `30.2` refresh should be treated as a separate schema/data upgrade, not bundled casually into model tuning.
 
 Ranked next integration order:
-1. `ACS PUMS` heterogeneity layer
-2. `BTOS` adoption-context layer
-3. `O*NET 30.2` refresh and schema audit
+1. `BTOS` adoption-context layer
+2. `O*NET 30.2` refresh and schema audit
 
 Why this order:
-- `ACS PUMS` most directly improves fragmentation / polarization / wage-structure realism.
 - `BTOS` is useful, but it belongs outside runtime first because it says more about adoption context than technical task reachability.
 - `O*NET 30.2` matters, but changing the core occupation/task substrate should be done deliberately after the stronger calibration layers are in place.
 
@@ -372,10 +374,30 @@ Directions that are probably weak unless new evidence appears:
 - treating labor-market demand data as if it directly proves task automability
 
 Concrete next build sequence:
-1. Add `ACS PUMS` normalization and an `occupation_heterogeneity_context.csv` table for wage dispersion, education dispersion, industry dispersion, and worker-mix spread.
-2. Add a `BTOS`-derived industry adoption context table and map occupation exposure to industry-level AI-adoption context through occupation-industry mix, keeping it calibration-only.
-3. Review whether either of those layers is strong enough to be promoted into runtime after at least one full calibration cycle.
+1. Add a `BTOS`-derived industry adoption context table and map occupation exposure to industry-level AI-adoption context through occupation-industry mix, keeping it calibration-only.
+2. Review whether the ORS and ACS layers together are strong enough to justify future multi-variant occupation modeling rather than one default role shape per occupation.
+3. Review whether any of those calibration layers are strong enough to be promoted into runtime after at least one full calibration cycle.
 4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers have stabilized.
+
+### Immediate ACS Review
+
+Initial review conclusion from the ACS heterogeneity queue:
+- strongest current multi-variant role-shape candidates:
+  - `Editors`
+  - `News Analysts, Reporters, and Journalists`
+  - `Management Analysts`
+  - `Technical Writers`
+  - `Market Research Analysts and Marketing Specialists`
+- watchlist rather than immediate split candidates:
+  - `Web Developers`
+  - `Operations Research Analysts`
+
+Why this matters:
+- these occupations look structurally diverse enough that one default occupation bundle may be hiding materially different stable role shapes
+- the admin-heavy occupations still show more urgent misses in task pressure and bargaining-power calibration than in role-shape heterogeneity
+
+Immediate prep for the next step:
+- `occupation_industry_mix.csv` now exists specifically so the BTOS adoption-context layer can join industry AI-use context back to occupations through observed ACS industry mix rather than a loose occupation-level proxy
 
 ## Purpose
 
