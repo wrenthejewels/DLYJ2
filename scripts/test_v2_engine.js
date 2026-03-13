@@ -121,8 +121,14 @@ async function main() {
   if (manualVariantComposition.variant_support.selection_mode !== 'manual') {
     throw new Error('Expected explicit roleVariantId to force manual variant selection mode.');
   }
+  if (!manualVariantComposition.defaults?.function_ids?.includes('fn_occ_13_1111_00_change_enablement')) {
+    throw new Error('Expected change_enablement_advisor defaults to include the reviewed change-enablement function anchor.');
+  }
   if (!manualVariantComposition.defaults?.task_ids?.includes('task_occ_13_1111_00_jd_ma_03')) {
     throw new Error('Expected manual change_enablement_advisor variant defaults to include change-enablement tasks.');
+  }
+  if (!manualVariantComposition.defaults?.task_ids?.includes('task_occ_13_1111_00_7283')) {
+    throw new Error('Expected manual change_enablement_advisor variant defaults to include the reviewed training-and-rollout task 7283.');
   }
   const manualMarketingOpsComposition = engine.getRoleComposition('occ_13_1161_00', {
     roleVariantId: 'marketing_ops_analyst'
@@ -138,6 +144,82 @@ async function main() {
   });
   if (!manualAnchorProducerComposition.defaults?.function_ids?.includes('fn_occ_27_3023_00_broadcast_orchestration')) {
     throw new Error('Expected anchor_producer defaults to include the reviewed broadcast-orchestration function anchor.');
+  }
+  const manualReleaseEnablementComposition = engine.getRoleComposition('occ_27_3042_00', {
+    roleVariantId: 'release_enablement_writer'
+  });
+  if (!manualReleaseEnablementComposition.defaults?.function_ids?.includes('fn_occ_27_3042_00_release_enablement')) {
+    throw new Error('Expected release_enablement_writer defaults to include the reviewed release-enablement function anchor.');
+  }
+  if (!manualReleaseEnablementComposition.defaults?.task_ids?.includes('task_occ_27_3042_00_manual_tw_02')) {
+    throw new Error('Expected release_enablement_writer defaults to include the reviewed release-planning task manual_tw_02.');
+  }
+  const manualManagingEditorComposition = engine.getRoleComposition('occ_27_3041_00', {
+    roleVariantId: 'managing_editor'
+  });
+  if (!manualManagingEditorComposition.defaults?.function_ids?.includes('fn_occ_27_3041_00_publication_orchestration')) {
+    throw new Error('Expected managing_editor defaults to include the reviewed publication-orchestration function anchor.');
+  }
+  if (!manualManagingEditorComposition.defaults?.task_ids?.includes('task_occ_27_3041_00_jd_ed_03')) {
+    throw new Error('Expected managing_editor defaults to include the reviewed editorial-calendar task jd_ed_03.');
+  }
+  const webDeveloperExecutionProfile = {
+    function_centrality: 0.46,
+    human_signoff_requirement: 0.28,
+    liability_and_regulatory_burden: 0.26,
+    relationship_ownership: 0.20,
+    exception_and_context_load: 0.36,
+    workflow_decomposability: 0.82,
+    organizational_adoption_readiness: 0.71,
+    ai_observability_of_work: 0.84,
+    dependency_bottleneck_strength: 0.34,
+    handoff_and_coordination_complexity: 0.42,
+    external_trust_requirement: 0.18,
+    stakeholder_alignment_burden: 0.48,
+    execution_vs_judgment_mix: 0.78,
+    augmentation_fit: 0.62,
+    substitution_risk_modifier: 0.68
+  };
+  const webDeveloperPlatformProfile = {
+    function_centrality: 0.62,
+    human_signoff_requirement: 0.52,
+    liability_and_regulatory_burden: 0.46,
+    relationship_ownership: 0.20,
+    exception_and_context_load: 0.52,
+    workflow_decomposability: 0.56,
+    organizational_adoption_readiness: 0.82,
+    ai_observability_of_work: 0.72,
+    dependency_bottleneck_strength: 0.54,
+    handoff_and_coordination_complexity: 0.56,
+    external_trust_requirement: 0.20,
+    stakeholder_alignment_burden: 0.46,
+    execution_vs_judgment_mix: 0.48,
+    augmentation_fit: 0.65,
+    substitution_risk_modifier: 0.54
+  };
+  const webDeveloperVariantsExecution = engine.getRoleComposition('occ_15_1254_00', {
+    questionnaireProfile: webDeveloperExecutionProfile
+  });
+  const webDeveloperVariantsPlatform = engine.getRoleComposition('occ_15_1254_00', {
+    questionnaireProfile: webDeveloperPlatformProfile
+  });
+  if (!webDeveloperVariantsExecution.variant_support?.enabled || !webDeveloperVariantsExecution.variants?.length) {
+    throw new Error('Expected Web Developers to expose reviewed role variants.');
+  }
+  if (webDeveloperVariantsExecution.variant_support.selected_variant_id !== 'experience_builder') {
+    throw new Error(`Expected execution-heavy web-developer profile to recommend experience_builder, received ${webDeveloperVariantsExecution.variant_support.selected_variant_id}.`);
+  }
+  if (webDeveloperVariantsPlatform.variant_support.selected_variant_id !== 'web_platform_maintainer') {
+    throw new Error(`Expected platform-heavy web-developer profile to recommend web_platform_maintainer, received ${webDeveloperVariantsPlatform.variant_support.selected_variant_id}.`);
+  }
+  const manualWebPlatformComposition = engine.getRoleComposition('occ_15_1254_00', {
+    roleVariantId: 'web_platform_maintainer'
+  });
+  if (!manualWebPlatformComposition.defaults?.function_ids?.includes('fn_occ_15_1254_00_web_platform_enablement')) {
+    throw new Error('Expected web_platform_maintainer defaults to include the reviewed web-platform-enablement function anchor.');
+  }
+  if (!manualWebPlatformComposition.defaults?.task_ids?.includes('task_occ_15_1254_00_jd_wd_03')) {
+    throw new Error('Expected web_platform_maintainer defaults to include the reviewed platform-architecture task jd_wd_03.');
   }
 
   if (!result.recomposition_summary) {
@@ -529,8 +611,43 @@ async function main() {
   if (Number(officeClerkResult.function_metrics?.retained_bargaining_power || 1) >= 0.50) {
     throw new Error('Expected Office Clerks, General to stay below the bargaining-power overstatement threshold.');
   }
-  if (Number(officeClerkResult.recomposition_summary?.workflow_compression || 0) <= 0.18) {
+  if (Number(officeClerkResult.recomposition_summary?.workflow_compression || 0) <= 0.22) {
     throw new Error('Expected Office Clerks, General to retain the stronger routine-compression signal in the live scoring path.');
+  }
+  const secretaryResult = engine.computeResult({
+    occupationId: 'occ_43_6014_00',
+    seniorityLevel: 3
+  });
+  const bookkeepingClerkResult = engine.computeResult({
+    occupationId: 'occ_43_3031_00',
+    seniorityLevel: 3
+  });
+  if (Number(secretaryResult.diagnostics?.direct_exposure_pressure || 0) <= 0.45) {
+    throw new Error('Expected Secretaries and Administrative Assistants to retain the stronger routine/admin direct-pressure signal in the live scoring path.');
+  }
+  if (Number(bookkeepingClerkResult.diagnostics?.direct_exposure_pressure || 0) <= 0.49) {
+    throw new Error('Expected Bookkeeping, Accounting, and Auditing Clerks to retain the stronger routine/admin direct-pressure signal in the live scoring path.');
+  }
+  const customerServiceResult = engine.computeResult({
+    occupationId: 'occ_43_4051_00',
+    seniorityLevel: 3
+  });
+  const dataScientistResult = engine.computeResult({
+    occupationId: 'occ_15_2051_00',
+    seniorityLevel: 3
+  });
+  const softwareDeveloperResult = engine.computeResult({
+    occupationId: 'occ_15_1252_00',
+    seniorityLevel: 3
+  });
+  if (Number(customerServiceResult.function_metrics?.retained_bargaining_power || 1) >= 0.50) {
+    throw new Error('Expected Customer Service Representatives to stay below the bargaining-power overstatement threshold.');
+  }
+  if (Number(dataScientistResult.function_metrics?.retained_bargaining_power || 0) <= Number(customerServiceResult.function_metrics?.retained_bargaining_power || 0)) {
+    throw new Error('Expected Data Scientists to retain more bargaining power than Customer Service Representatives in the live scoring path.');
+  }
+  if (Number(softwareDeveloperResult.function_metrics?.retained_bargaining_power || 0) <= Number(customerServiceResult.function_metrics?.retained_bargaining_power || 0)) {
+    throw new Error('Expected Software Developers to retain more bargaining power than Customer Service Representatives in the live scoring path.');
   }
 
   const structuredProfileResult = engine.computeResult({
@@ -592,6 +709,9 @@ async function main() {
   if (managementAnalystResult.occupation_assignment?.selected_composition?.variant_mode !== 'manual') {
     throw new Error('Expected computeResult selected_composition.variant_mode to report manual role variant selection.');
   }
+  if ((managementAnalystResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
+    throw new Error('Expected change_enablement_advisor baseline to activate both reviewed function anchors.');
+  }
   const marketingOpsResult = engine.computeResult({
     roleCategory: 'business',
     occupationId: 'occ_13_1161_00',
@@ -615,6 +735,42 @@ async function main() {
   }
   if ((anchorProducerResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
     throw new Error('Expected anchor_producer baseline to activate both reviewed function anchors.');
+  }
+  const releaseEnablementResult = engine.computeResult({
+    roleCategory: 'creative',
+    occupationId: 'occ_27_3042_00',
+    roleVariantId: 'release_enablement_writer',
+    seniorityLevel: 3
+  });
+  if (releaseEnablementResult.occupation_assignment?.selected_variant?.variant_id !== 'release_enablement_writer') {
+    throw new Error('Expected computeResult to expose the manual release_enablement_writer reviewed role variant.');
+  }
+  if ((releaseEnablementResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
+    throw new Error('Expected release_enablement_writer baseline to activate both reviewed function anchors.');
+  }
+  const managingEditorResult = engine.computeResult({
+    roleCategory: 'creative',
+    occupationId: 'occ_27_3041_00',
+    roleVariantId: 'managing_editor',
+    seniorityLevel: 3
+  });
+  if (managingEditorResult.occupation_assignment?.selected_variant?.variant_id !== 'managing_editor') {
+    throw new Error('Expected computeResult to expose the manual managing_editor reviewed role variant.');
+  }
+  if ((managingEditorResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
+    throw new Error('Expected managing_editor baseline to activate both reviewed function anchors.');
+  }
+  const webPlatformResult = engine.computeResult({
+    roleCategory: 'software',
+    occupationId: 'occ_15_1254_00',
+    roleVariantId: 'web_platform_maintainer',
+    seniorityLevel: 3
+  });
+  if (webPlatformResult.occupation_assignment?.selected_variant?.variant_id !== 'web_platform_maintainer') {
+    throw new Error('Expected computeResult to expose the manual web_platform_maintainer reviewed role variant.');
+  }
+  if ((webPlatformResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
+    throw new Error('Expected web_platform_maintainer baseline to activate both reviewed function anchors.');
   }
 
   console.log(JSON.stringify({

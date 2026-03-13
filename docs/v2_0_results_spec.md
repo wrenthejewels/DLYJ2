@@ -146,6 +146,14 @@ This means the runtime is no longer always starting from one occupation-wide def
 
 For the stronger reviewed split occupations, the selected variant can now also change the starting function-anchor mix rather than only swapping tasks under one shared function baseline.
 
+Current reviewed-variant occupations:
+- `Market Research Analysts and Marketing Specialists`
+- `Editors`
+- `Technical Writers`
+- `News Analysts, Reporters, and Journalists`
+- `Management Analysts`
+- `Web Developers`
+
 ## Current Narrative Contract
 
 The narrative panel now uses four structured cards:
@@ -523,6 +531,11 @@ The live page relies on these engine-level structural scores:
 - `augmentation_fit`
 - `substitution_risk_modifier`
 
+Current live derivation notes:
+- `retained_accountability_strength` now leans primarily on delegability guardrails, human authority, and judgment, with smaller trust and liability terms
+- `retained_bargaining_power` now leans primarily on pressure-adjusted retained task leverage, then blends in function-level bargaining retention, guardrails, retained accountability, and a centered specialization signal from the adaptation layer
+- reviewed function priors can now distinguish expert judgment from formal sign-off ownership more explicitly for some occupations, which can lower `retained_accountability_strength` without collapsing `retained_bargaining_power`
+
 Public wording rule:
 - keep `residual_role_integrity`
 - do not expose `coherence` as the primary public label
@@ -530,8 +543,10 @@ Public wording rule:
 
 Current metric note:
 - `retained_bargaining_power` in the live engine now leans more on pressure-adjusted retained task leverage and less on raw task bargaining-weight averages alone
+- the same metric now also reads adaptation-layer knowledge share, learning intensity, and adaptive capacity as a centered specialization lift
 - routine-heavy or support-heavy work that is already under high pressure now drags this metric down more than it did in earlier builds
 - `workflow_compression` and the routine-pressure path now also incorporate an adaptation-derived routine-context lift for structurally routine, low-people-intensity occupations, concentrated in execution/admin/documentation-heavy task bundles
+- for core workflow-admin and documentation tasks, that same structural routine context now also dampens how much direct task evidence can pull direct pressure below the routine/admin baseline
 
 ## Current Gaps Between Spec And Implementation
 

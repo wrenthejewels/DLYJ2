@@ -47,6 +47,14 @@ Current editable elements:
 
 The live app starts from an occupation default bundle, or from the selected/recommended reviewed role variant when one exists, then lets the user add/remove tasks and functions, connect nodes, and optionally rebalance task shares before scoring.
 
+Current reviewed-variant occupations:
+- `Market Research Analysts and Marketing Specialists`
+- `Editors`
+- `Technical Writers`
+- `News Analysts, Reporters, and Journalists`
+- `Management Analysts`
+- `Web Developers`
+
 ## Current Runtime Mapping
 
 The client translates composition edits into this runtime contract:

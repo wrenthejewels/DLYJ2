@@ -156,6 +156,10 @@ Current live scoring status:
 - a small reviewed subset of heterogeneous occupations can now start from more than one reviewed role-variant baseline before users edit the task graph
 - `Market Research Analysts and Marketing Specialists` now uses a reviewed secondary marketing-operations function anchor, so its ops-heavy variant starts from a distinct function mix rather than a task-only split
 - `News Analysts, Reporters, and Journalists` now uses a reviewed broadcast-orchestration function anchor, so its anchor/producer baseline no longer inherits the field-reporter source-development function mix
+- `Technical Writers` now uses a sharper release-enablement weighting for release-planning, review, and workflow tasks, so its release variant is more distinctly program-oriented at the function layer
+- `Editors` now uses a sharper publication-orchestration weighting for planning, assignment, package, and contributor-management tasks, so the managing-editor variant is less like a line-editor baseline with a small management bonus
+- `Management Analysts` now uses a sharper change-enablement weighting for rollout, governance, training, and stakeholder-alignment tasks, so the implementation-heavy variant is less like a diagnostic baseline with a small delivery bonus
+- `Web Developers` now uses a reviewed web-platform-enablement weighting for deployment, reliability, accessibility, testing, and platform-maintenance tasks, so the platform-heavy variant is less like an experience-builder baseline with a small ops bonus
 - task difficulty now starts from a hybrid baseline stack: cluster priors still seed the fallback baseline, clusters with strong enough resolved task-evidence coverage can shift toward a task-first cluster evidence estimate, and high-reliability task rows can promote into a task-first task baseline before residual task-evidence blending
 - `task_source_evidence.csv` now resolves task rows through explicit source precedence before scoring
 - reliable resolved task evidence can now blend into both task-level `automation_difficulty` and task-level `direct_exposure_pressure`

@@ -79,6 +79,10 @@ Current first pass:
 - occupation-specific overrides for function-sensitive roles
 - `Market Research Analysts and Marketing Specialists` now includes a reviewed supplemental marketing-operations anchor so its execution-heavy variant is function-distinct as well as task-distinct
 - `News Analysts, Reporters, and Journalists` now includes a reviewed broadcast-orchestration anchor so its anchor/producer variant is function-distinct from the field-reporter source-development path
+- `Technical Writers` now keeps a stronger release-enablement split by assigning the release-planning task and related workflow/review tasks more clearly to the release-enablement anchor
+- `Editors` now keeps a stronger managing-editor split by assigning planning, contributor-management, and packaging tasks more clearly to the publication-orchestration anchor
+- `Management Analysts` now keeps a stronger change-enablement split by assigning rollout, governance, training, and stakeholder-alignment tasks more clearly to the change-enablement anchor
+- `Web Developers` now includes a reviewed web-platform-enablement anchor so its platform-heavy variant is function-distinct from the experience-building software-delivery path
 
 ### `occupation_function_map.csv`
 
@@ -237,13 +241,22 @@ The current stack now works like this:
 
 Current bargaining-power rule:
 - `retained_bargaining_power` is no longer driven mainly by static task bargaining weights
-- the live scorer now leans primarily on pressure-adjusted retained task leverage, then blends in function-level bargaining retention and guardrails
+- the live scorer now leans primarily on pressure-adjusted retained task leverage, then blends in function-level bargaining retention, guardrails, retained accountability, and a centered specialization signal from the adaptation layer
 - support-heavy and routine-heavy work that is already under high pressure now pulls retained bargaining power down instead of being over-credited by raw task weights alone
+- high-knowledge, high-learning occupations can now retain more bargaining power even when direct pressure is nontrivial, because the live scorer treats specialization as a separate leverage signal rather than collapsing it into static task bargaining weights
+
+Current accountability rule:
+- `retained_accountability_strength` is no longer driven mainly by low exposure plus trust and liability
+- the live scorer now leans more on `delegability_guardrail`, `human_authority_requirement`, and `judgment_requirement`, then blends in smaller trust and liability terms
+- that means the score is now trying harder to capture durable human sign-off and decision ownership instead of over-crediting any role that merely operates in a trusted or regulated context
+- occupation-specific reviewed overrides can still shift that layer further when the calibration queue shows a clear miss; for example, managerial people-leadership anchors can carry higher guardrail and authority priors than the generic occupation baseline, while support or advisory occupations can have those guardrails reduced when the reviewed function layer is overstating real sign-off ownership
+- the same reviewed override path can also separate expert or technically scarce work from formal sign-off ownership; some occupations now keep higher bargaining retention and judgment while carrying lower authority or guardrail priors than earlier builds
 
 Current routine-pressure rule:
 - the live scorer now reads the adaptation layer's structural routine context more directly when estimating routine-task pressure and workflow compression
 - occupations with high derived `routine_share`, low `people_share`, and lower job-zone complexity now get an extra routine-reachability lift, concentrated in `cluster_execution_routine`, `cluster_workflow_admin`, `cluster_documentation`, and secondarily `cluster_drafting`
 - this does not replace task scoring with occupation-level priors; it only lifts the pressure/compression path for task bundles that are already structurally routine-like
+- in the current runtime, that structural routine context also carries more weight for core workflow-admin and documentation tasks, and it dampens how much direct task evidence can pull those task rows down
 
 Current live direct-evidence rule:
 - `direct_evidence_reliability` must exceed `0.20` before resolved task evidence changes task difficulty or task pressure

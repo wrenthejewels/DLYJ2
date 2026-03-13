@@ -92,16 +92,8 @@ function formatMaybe(value) {
     : 'n/a';
 }
 
-const IMPLEMENTED_ROLE_VARIANTS = new Set([
-  'occ_13_1161_00',
-  'occ_27_3041_00',
-  'occ_27_3042_00',
-  'occ_27_3023_00',
-  'occ_13_1111_00'
-]);
-
-function roleShapeStatus(row) {
-  if (IMPLEMENTED_ROLE_VARIANTS.has(row.occupation_id)) {
+function roleShapeStatus(row, implementedRoleVariants) {
+  if (implementedRoleVariants.has(row.occupation_id)) {
     return 'implemented_first_pass';
   }
   const strongCandidate = row.primary_review_layer === 'role_shape_heterogeneity' && (
@@ -143,7 +135,9 @@ function main() {
   const docsDir = path.join(repoRoot, 'docs', 'data');
   const targets = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_structural_calibration_targets.csv'), 'utf8'));
   const explanations = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_role_explanations.csv'), 'utf8'));
+  const roleVariants = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_role_variants.csv'), 'utf8'));
   const explanationById = Object.fromEntries(explanations.map((row) => [row.occupation_id, row]));
+  const implementedRoleVariants = new Set(roleVariants.map((row) => row.occupation_id).filter(Boolean));
 
   const rows = targets.map((target) => {
     const explanation = explanationById[target.occupation_id] || {};
@@ -187,7 +181,7 @@ function main() {
       source_mix: [target.heterogeneity_source_mix, target.adaptation_source_mix].filter(Boolean).join('|'),
       notes: target.notes || ''
     };
-    row.role_shape_status = roleShapeStatus(row);
+    row.role_shape_status = roleShapeStatus(row, implementedRoleVariants);
     row.role_shape_reason = roleShapeReason(row);
     return row;
   }).sort((left, right) => right.role_shape_candidate_score - left.role_shape_candidate_score);
@@ -226,6 +220,7 @@ function main() {
   lines.push('Generated from:');
   lines.push('- `data/normalized/occupation_structural_calibration_targets.csv`');
   lines.push('- `data/normalized/occupation_role_explanations.csv`');
+  lines.push('- `data/normalized/occupation_role_variants.csv`');
   lines.push('');
   lines.push('## Summary');
   lines.push('');

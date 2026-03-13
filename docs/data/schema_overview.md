@@ -77,6 +77,10 @@ Current live scoring note:
 - `occupation_role_variants.csv` is now a runtime input for a small reviewed subset of heterogeneous occupations; it does not score anything by itself, but it changes which default task/function baseline the model starts from before user edits
 - the stronger reviewed split occupations can now differ at the function-anchor layer too, not only by task bundle
 - journalism now follows that stronger split pattern as well: the anchor/producer baseline activates a reviewed broadcast-orchestration anchor instead of reusing the reporter-side source-development anchor
+- technical writing now follows it more closely too: the release-enablement baseline carries the release-planning task and more clearly weighted workflow/review edges into the release-enablement anchor
+- editing now follows it more closely too: the managing-editor baseline carries a more orchestration-heavy task bundle and more clearly weighted planning/packaging edges into the publication-orchestration anchor
+- management-analyst consulting now follows it more closely too: the change-enablement baseline carries the worker-training rollout task and more clearly weighted rollout/governance edges into the change-enablement anchor
+- web-development now follows it too: the platform-maintainer baseline carries deployment, reliability, accessibility, and performance work into a reviewed web-platform-enablement anchor instead of staying inside one flat software-delivery baseline
 - `occupation_structural_calibration_targets.csv` is not a runtime input; it exists only for calibration, disagreement reporting, and tuning review
 - `occupation_ors_structural_context.csv` is also not a runtime input; it currently feeds the calibration layer’s human-guardrail target using ORS autonomy, supervision, and pace-control structure
 - `occupation_heterogeneity_context.csv` is also not a runtime input; it currently feeds the calibration layer’s role-heterogeneity target using ACS wage dispersion, education dispersion, industry dispersion, and worker-mix spread

@@ -297,6 +297,182 @@ Why it mattered:
 
 This moved the model from a narrow evidence path to a real task-source resolver.
 
+## Data Sources Along The Way
+
+The model did not come from one dataset.
+
+It was built by layering different kinds of sources for different jobs:
+- structural sources to describe what the work is
+- task-evidence sources to estimate what AI is already touching
+- labor-market sources to add context
+- benchmark sources to compare against existing literature
+- reviewed internal layers to close gaps that public datasets did not cover cleanly
+- calibration-only sources to pressure-test the model without turning every external dataset into a runtime score input
+
+The cleanest way to understand the stack is by role, not by chronology.
+
+### 1. Structural Backbone Sources
+
+These sources define what the occupation and task graph actually are.
+
+- `O*NET Database`:
+  chosen because it is the strongest standard U.S. occupation-and-task backbone available for public work modeling.
+  It provided the starting occupation taxonomy, task lists, work context, and the base structure for the role graph.
+  It was necessary, but not sufficient, because many modern role shapes were too thin or too generic when taken from O*NET alone.
+
+- `Manual job description review seed`:
+  chosen because O*NET underdescribed some launch occupations and often missed workflow-specific modern tasks.
+  This layer filled task gaps from reviewed job-description evidence so the model could represent what people in those roles are actually doing now.
+
+- `Manual task-cluster review overrides`:
+  chosen because purely heuristic task-to-cluster inference was too coarse in disagreement-heavy occupations.
+  This layer let the repo correct cluster assignments where keyword-based inference was producing weak bundles.
+
+- `V2 task role-graph seed`:
+  chosen because once the model moved below occupation scores, it needed a first-pass task graph with bargaining-power and dependency assumptions.
+  This was a derived internal layer that converted the structural sources into a usable role-graph seed for the redesign.
+
+- `Manual role-graph review expansions`:
+  chosen because the seed graph was still too thin or too brittle in some occupations.
+  This layer added reviewed tasks and dependency edges where the generated graph was clearly missing real support structure.
+
+### 2. Runtime Task-Evidence Sources
+
+These sources feed the live evidence path that estimates how reachable individual tasks are.
+
+- `Anthropic Economic Index 2026-01-15`:
+  chosen because it is the strongest live task-level empirical source in the repo.
+  It provided real task-usage evidence from Claude.ai and first-party API activity, which made the model much less dependent on abstract occupation priors.
+
+- `Anthropic Economic Index 2025-03-27 legacy extract`:
+  retained because coverage in the newer path is not perfect.
+  This older release remains as fallback support for rows that are not yet cleanly resolved by the January 2026 pipeline.
+
+- `V2 cluster prior proxy`:
+  chosen because task evidence is still sparse or uneven in parts of the launch set.
+  This is not direct empirical evidence; it is a fallback proxy that attaches cluster-level priors to task rows when better task evidence is missing.
+
+- `task_source_evidence.csv` resolver contract:
+  this is not an external raw source by itself, but it is an important part of how the source stack works.
+  It was introduced so the runtime could prefer live task evidence, then reviewed estimates, then benchmark task labels, before falling back to proxy logic.
+
+### 3. Role-Transformation Structure Sources
+
+These sources were added because exposure alone could not explain what happens to the role as an organizational unit.
+
+- `Role function seed layer`:
+  chosen because the model needed explicit function anchors and accountability surfaces, not just exposed tasks.
+  This was the first layer that let the model ask whether a coherent human-owned function remains after exposed work gets cheaper.
+
+- `Role function expansion layer`:
+  chosen because some occupations were clearly too heterogeneous for a single function anchor.
+  This reviewed layer added secondary anchors for occupations where one “main function” was too reductive.
+
+- `occupation_role_variants.csv` reviewed role variants:
+  chosen because some occupations were structurally split enough that one default baseline role shape was misleading.
+  This live layer now gives the browser a small set of reviewed baseline variants for the strongest heterogeneous occupations.
+
+### 4. Labor-Market Context Sources
+
+These sources add outer context. They are important, but they are not the same thing as task automability.
+
+- `BLS Occupational Projections 2024-2034`:
+  chosen to give the model a simple forward demand context.
+  This is where the demand modifier comes from. It lightly informs the fate-classification layer, not the core task evidence layer.
+
+- `BLS Occupational Employment and Wage Statistics (OEWS)`:
+  chosen to provide employment and wage context for occupation selection and broader labor-market framing.
+  It helps situate occupations in the economy, but it is not a direct task-exposure source.
+
+- `BLS CPS unemployment by occupation group`:
+  chosen to provide the current labor-market chart on the product side.
+  It is context only. It is not used to infer that AI is already causing job loss in any direct way.
+
+- `V2 launch aggregate prior`:
+  chosen as an internal derived occupation prior for launch stability.
+  It combines structure, task evidence, and labor-market context into a launch-ready occupation-level prior, but the model has been moving away from relying on this as the main story.
+
+### 5. Benchmark And Comparison Sources
+
+These sources were chosen so the model could be compared against existing AI-exposure literature without letting those benchmarks directly dictate the public result.
+
+- `AI Occupational Exposure (AIOE)`:
+  chosen as an occupation-level benchmark comparison.
+  Useful for checking whether the live model’s directional rankings are broadly plausible.
+
+- `Webb AI exposure paper`:
+  chosen because it is one of the best-known earlier occupation-level AI exposure references.
+  Useful as a historical comparison layer, not as a live runtime driver.
+
+- `Suitability for Machine Learning (Brynjolfsson, Mitchell, Rock)`:
+  chosen because it captures a different but related benchmark view of machine-learnability at the occupation level.
+  Useful for triangulation, not direct scoring.
+
+- `GPTs are GPTs`:
+  chosen because it includes task and occupation benchmark material close to the current problem space.
+  Useful for benchmark comparison and task-label inspection, not for live runtime scoring.
+
+- `Benchmark bundle aggregate`:
+  chosen as a convenience layer so those benchmark signals could be compared together inside the repo.
+  It exists for audit and comparison, not for headline outputs.
+
+### 6. Calibration-Only External Sources
+
+These sources were chosen because they are excellent for checking the model’s structural assumptions, but weaker as direct runtime inputs.
+
+- `BLS Occupational Requirements Survey (ORS), 2025 preliminary plus 2023 backstop`:
+  chosen because it gives the strongest official structural read on autonomy, supervision, pace control, and related work requirements.
+  It is now the main external calibration source for the human-retention and accountability side of the model.
+
+- `Census ACS 2024 1-year PUMS API`:
+  chosen because it gives an observable external read on within-occupation heterogeneity.
+  It is used to derive wage dispersion, education dispersion, industry dispersion, worker-mix spread, and occupation-by-industry mix, which helps test whether some occupations are too heterogeneous for a single baseline role shape.
+
+- `Census BTOS AI supplement`:
+  chosen because it gives an official external read on sector-level AI use and workflow change.
+  It is used only as an adoption-context calibration layer, joined back to occupations through ACS-based sector mix, so the model can pressure-test organizational conversion assumptions without confusing business AI use with task automability.
+
+### 7. Historical, Conceptual, And Not-Yet-Live Sources
+
+These sources still matter in the repo, but they should not be described as active live model inputs.
+
+- `Manning and Aguirre adaptive capacity paper`:
+  historically relevant because the project explored adaptive-capacity-style occupation priors early on.
+  It is now archived and not used in the active runtime.
+
+- `OECD Job Quality Framework`:
+  chosen as a conceptual frame for quality and work-structure thinking.
+  It influenced how some quality-style indicators were thought about, but it is not a direct runtime dataset.
+
+- `OECD PIAAC public use files`:
+  kept as a planned optional future empirical layer for broader quality-style calibration.
+  Not active in the current live model.
+
+- `ILO refined global GenAI exposure index`:
+  mirrored because it is relevant benchmark material.
+  Not yet mapped cleanly enough into the repo’s U.S.-first O*NET path to be treated as an active model source.
+
+- `Acemoglu online vacancies paper materials`:
+  mirrored for completeness and future review.
+  Not yet normalized into an active model dataset.
+
+- `Internal v2 stub generator`:
+  chosen as temporary scaffolding so the product could continue moving while raw-source normalization was incomplete.
+  This is development scaffolding, not a source anyone should cite as the basis of the model itself.
+
+### 8. The Practical Source Hierarchy
+
+If someone asks what the current model is really built on, the short answer is:
+
+- structure comes mainly from O*NET plus reviewed task/graph expansions
+- live task evidence comes mainly from the Anthropic Economic Index stack plus explicit fallback proxies
+- role-transformation logic comes from the reviewed function and accountability layers
+- labor-market context comes mainly from BLS projections, OEWS, and CPS context tables
+- benchmark comparison comes from AIOE, Webb, SML, and GPTs-are-GPTs
+- structural calibration comes mainly from BLS ORS, Census ACS PUMS, and Census BTOS
+
+That is the mechanically honest summary.
+
 ## Where The Model Stands Now
 
 The model is now a hybrid upward-aggregating system:
@@ -421,10 +597,28 @@ The first concrete example in this repo was the bargaining-power layer:
 - instead of piping wage context directly into runtime scoring, the model was adjusted by changing the bargaining-power formula itself
 - the live scorer now leans more on pressure-adjusted retained leverage and less on static bargaining-weight averages
 
+The next concrete example was a second bargaining-power refinement:
+- after the accountability queue narrowed, the remaining bargaining mismatches split in two directions rather than one
+- support-heavy roles like customer service were still too high, while high-knowledge technical roles like data scientists and software developers were too low
+- the fix was not another occupation-by-occupation override; it was adding a centered specialization lift from adaptation-layer knowledge share, learning intensity, and adaptive capacity
+- that let the live scorer represent a role's retained scarcity and technical leverage more directly instead of pretending all bargaining power should flow through the same support-vs-pressure logic
+
 The next concrete example was the routine-pressure layer:
 - once the queue became strength-aware, admin-heavy occupations like office clerks and secretaries moved to the top of the structural review list
 - the model was not changed by feeding the calibration target directly into scoring
 - instead, the live scorer was updated to read existing adaptation-layer routine context more directly when estimating routine reachability and workflow compression
+
+The next concrete example was a narrower routine-admin correction:
+- even after the earlier routine-context lift, the admin-heavy queue still showed that secretaries, office clerks, and bookkeeping clerks were too low on modeled routine pressure
+- the underlying issue was not missing routine context; it was that direct task evidence could still pull core workflow-admin and documentation tasks down too far after the structural routine baseline was set
+- the fix was to give structural routine context more weight in that baseline and damp the direct-evidence pull-down for those admin-heavy task rows
+- that was still a task-level change, not a return to occupation-only scoring, because it only affected task bundles that were already structurally routine-like
+
+The next concrete example was the expert-versus-signoff cleanup:
+- after the support-role accountability over-calls were corrected, several expert occupations still looked too high on retained accountability even though the issue was not really "this work is easy to delegate"
+- the real problem was that the reviewed function layer was still conflating expert judgment and trusted context with formal sign-off ownership
+- `Mechanical Engineers`, `Financial and Investment Analysts`, `Accountants and Auditors`, and `Software Developers` were then revised so they kept strong judgment and bargaining retention but lower authority and guardrail priors where final sign-off often sits elsewhere
+- that was an important structural clarification: expert work can stay scarce and high-leverage without the model claiming the occupation always owns the final human sign-off
 
 The next concrete example was the ORS integration:
 - the earlier human-guardrail check depended too much on an internal quality proxy layer
@@ -442,6 +636,24 @@ The next concrete example was the BTOS integration:
 - official Census BTOS AI supplement data was added as a calibration-only table instead of being pushed into the runtime score
 - the resulting sector layer summarizes current AI use, planned AI use, task-substitution intensity, workflow-change intensity, and LLM use
 - because those are business-use prevalence signals rather than model-native adoption scores, the BTOS signal is mapped into the model’s organizational-conversion range before being compared to the live adoption surface
+
+The next concrete example was the accountability tuning pass:
+- once the ORS-backed human-guardrail check was strong enough, the repo could finally review that queue without pretending weak proxies were good enough
+- the review showed the runtime was still leaning too much on trust and liability alone when estimating retained accountability
+- the live scorer was then adjusted to lean more on delegability guardrails, human authority, and judgment, while keeping trust and liability as smaller supporting terms
+- that made the accountability layer more about durable human sign-off and decision ownership, and less about any role that happens to sit in a trusted or regulated setting
+
+The next concrete example was an occupation-specific accountability correction:
+- after the global accountability formula improved, the remaining high-confidence under-call was `General and Operations Managers`
+- instead of changing the formula again, the reviewed function layer for that occupation was strengthened at the people-resource leadership anchor
+- the occupation's function weights, guardrails, and authority priors were raised to better reflect real managerial sign-off and staffing ownership
+- this was the more disciplined move because the remaining queue no longer looked like one global error; it looked like a smaller set of occupation-specific function-map misses
+
+The next concrete example was the mirror-image accountability correction:
+- once the managerial under-call was fixed, the remaining strongest misses were occupation-level over-calls rather than under-calls
+- `Paralegals and Legal Assistants`, `Sales Representatives of Services`, and `Computer Systems Analysts` were still carrying more modeled guardrail and authority than their external structural targets supported
+- the fix was again in the reviewed function layer rather than another formula rewrite: guardrails and human-authority priors were reduced for those occupations' function anchors
+- that made the accountability layer more disciplined by separating "important work in a trusted context" from "work that still carries durable human sign-off ownership"
 
 The next concrete example was the role-shape review scaffold:
 - the ACS heterogeneity queue was useful, but it still lived mostly as a report and a memory of which occupations looked split
@@ -463,6 +675,26 @@ The next concrete example repeated that pattern for journalism:
 - `News Analysts, Reporters, and Journalists` already had a meaningful task split between field reporting and anchor/producer work
 - but the anchor/producer side was still borrowing the reporter-side source-development anchor
 - a reviewed broadcast-orchestration anchor was added so the anchor/producer variant could start from a distinct function baseline that better matches program shaping, segment coordination, and live delivery
+
+The next concrete example was tightening an already-existing split instead of adding a new anchor:
+- `Technical Writers` already had a reviewed release-enablement anchor, but the release variant was still underusing it
+- the release-planning task was promoted into the variant baseline and several workflow/review tasks were reweighted more clearly toward the release-enablement function
+- that made the release-side variant less like “documentation author plus a small release bonus” and more like an actual documentation-program workflow role
+
+The next concrete example repeated that same tightening move for editors:
+- `Editors` already had a reviewed publication-orchestration anchor, but the managing-editor variant was still carrying too much line-editing residue
+- the managing-editor baseline was shifted toward planning, contributor supervision, packaging, and calendar-orchestration tasks
+- those tasks were also reweighted more clearly toward the publication-orchestration anchor, so the split became more managerial at the function layer rather than just managerial in the variant label
+
+The next concrete example repeated that tightening move for management-analyst consulting:
+- `Management Analysts` already had a reviewed change-enablement anchor, but the implementation-heavy variant was still leaning too much on the diagnostic consulting baseline
+- the change-enablement variant was then shifted toward rollout, governance, stakeholder-alignment, and worker-training tasks
+- those tasks were also reweighted more clearly toward the change-enablement anchor, so the split became more implementation-heavy at the function layer rather than just implementation-heavy in the variant label
+
+The next concrete example expanded the reviewed role-variant layer beyond the original first-pass set:
+- `Web Developers` had remained on the heterogeneity watchlist because one default software-delivery baseline was still “good enough” for launch
+- once the first five reviewed split occupations had stabilized, the repo promoted web development into a reviewed two-variant path: experience-building work versus platform-heavy web delivery maintenance
+- a reviewed web-platform-enablement anchor was added so deployment, reliability, accessibility, testing, and performance tasks could start from a distinct function baseline rather than being treated as just another flavor of generic software delivery
 
 ## A Rationalist Summary
 

@@ -126,10 +126,18 @@ Implemented on `2026-03-13`:
   - the structural calibration queue surfaced a repeated overstatement in retained bargaining power for routine and support-heavy roles
   - the live scorer now derives `retained_bargaining_power` more from pressure-adjusted retained task leverage and less from raw bargaining-weight averages
   - support-heavy and routine-heavy work under high pressure now explicitly drags that metric down
+- phase-15 specialization-aware bargaining-power tuning:
+  - after the accountability queue was narrowed, the remaining bargaining queue showed a second pattern: support-heavy roles still sat too high while knowledge-heavy technical roles sat too low
+  - the live scorer now adds a centered specialization lift from adaptation-layer knowledge share, learning intensity, and adaptive capacity
+  - this lets high-knowledge, high-learning roles keep more bargaining power without restoring the earlier overstatement for routine support work
 - phase-9 calibration-informed routine-pressure tuning:
   - the strength-aware calibration queue surfaced a stronger structural miss in routine/admin-heavy occupations
   - the live scorer now uses adaptation-derived routine context to lift routine-task reachability and workflow compression for structurally routine, low-people-intensity roles
   - that lift is concentrated in execution, workflow-admin, documentation, and secondarily drafting-heavy bundles rather than applied uniformly across all work
+- phase-16 routine-admin task-pressure tuning:
+  - the remaining routine-pressure misses were concentrated in admin-heavy occupations whose core workflow-admin and documentation tasks were still being pulled down too far by direct task evidence
+  - the live scorer now gives structural routine context more weight in the direct-pressure baseline for workflow-admin and documentation work, especially when that work is core to the role
+  - the same structural routine context now also dampens how much direct task evidence can pull those admin-heavy task rows down, which improved the routine-pressure calibration layer without changing the task-first evidence architecture
 - phase-10 official ORS calibration integration:
   - `scripts/data/normalize_ors.py` now derives `occupation_ors_structural_context.csv` from official BLS ORS `2025` preliminary data with `2023` backstop coverage
   - the human-guardrail calibration target is now primarily ORS-driven, using autonomy, supervisory responsibility, and pace-control structure rather than the older quality-only proxy
@@ -149,11 +157,11 @@ Implemented on `2026-03-13`:
   - `scripts/data/run_role_shape_review.js` now derives `occupation_role_shape_review.csv` and `docs/data/role_shape_review.md` from the structural calibration layer
   - this pass turns the heterogeneity queue into a stable candidate list for future multi-variant occupation modeling
   - the current strong candidates match the earlier manual review: `Market Research Analysts and Marketing Specialists`, `Editors`, `Technical Writers`, `News Analysts, Reporters, and Journalists`, and `Management Analysts`
-  - the current watchlist is `Web Developers` and `Operations Research Analysts`
+  - the original watchlist was `Web Developers` and `Operations Research Analysts`
 - phase-14 reviewed role-variant runtime support:
   - `occupation_role_variants.csv` now defines reviewed baseline role variants for the first heterogeneous launch occupations
   - the live browser scorer can now recommend a reviewed variant from the questionnaire profile plus the current role mix, while still allowing explicit user override
-  - the first reviewed occupations using this path are `Market Research Analysts and Marketing Specialists`, `Editors`, `Technical Writers`, `News Analysts, Reporters, and Journalists`, and `Management Analysts`
+  - the reviewed occupations using this path are `Market Research Analysts and Marketing Specialists`, `Editors`, `Technical Writers`, `News Analysts, Reporters, and Journalists`, `Management Analysts`, and `Web Developers`
   - task and function editing still remain the final runtime authority after the reviewed variant baseline is chosen
 
 Implemented scripts:
@@ -390,10 +398,23 @@ Directions that are probably weak unless new evidence appears:
 - treating labor-market demand data as if it directly proves task automability
 
 Concrete next build sequence:
-1. Continue reviewing the first reviewed role-variant occupations and add missing secondary function anchors where a split occupation still shares one thin function baseline, next `Editors` or a tighter pass on `Technical Writers`.
+1. Hold the reviewed role-variant layer at the current six-occupation subset unless stronger evidence appears for `Operations Research Analysts` or another occupation clears the role-shape bar.
 2. Decide whether the BTOS adoption-context queue points to a contained adoption-realization tuning pass or simply confirms that the outer layer should stay observational for now.
 3. Review whether any of those calibration layers are strong enough to be promoted into runtime after at least one full calibration cycle.
-4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers and the first reviewed variant layer have stabilized.
+4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers, the accountability tuning pass, and the reviewed variant layer have stabilized.
+
+### Immediate Accountability Review
+
+The `accountability_guardrails` queue was reviewed and a contained runtime tuning pass was justified.
+
+Outcome:
+- the live scorer now leans less on trust and liability alone when estimating `retained_accountability_strength`
+- it leans more on `delegability_guardrail`, `human_authority_requirement`, and `judgment_requirement`
+- this produced a cleaner separation between roles that merely operate in trusted contexts and roles that still carry real human sign-off, delegation, and decision ownership
+- after the tuning pass, the structural calibration report's `humanGuardrailCorrelation` improved from roughly `0.494` to `0.544`
+- a follow-up occupation-specific review then strengthened the `General and Operations Managers` people-resource leadership anchor and managerial authority priors, lifting the correlation again to roughly `0.606` without another global formula change
+- a second occupation-specific review then reduced overstated guardrails for `Paralegals and Legal Assistants`, `Sales Representatives of Services`, and `Computer Systems Analysts`, lifting the correlation again to roughly `0.696`
+- a third occupation-specific review then separated expert judgment from formal sign-off more explicitly for `Mechanical Engineers`, `Financial and Investment Analysts`, `Accountants and Auditors`, and `Software Developers`, lifting the correlation again to roughly `0.792`
 
 ### Immediate ACS Review
 
@@ -405,7 +426,6 @@ Initial review conclusion from the ACS heterogeneity queue:
   - `Technical Writers`
   - `Market Research Analysts and Marketing Specialists`
 - watchlist rather than immediate split candidates:
-  - `Web Developers`
   - `Operations Research Analysts`
 
 Why this matters:
@@ -413,10 +433,15 @@ Why this matters:
 - the admin-heavy occupations still show more urgent misses in task pressure and bargaining-power calibration than in role-shape heterogeneity
 
 Current status:
-- the first five strong candidates are now implemented as reviewed runtime role variants
+- the first five strong candidates plus `Web Developers` are now implemented as reviewed runtime role variants
 - `Market Research Analysts and Marketing Specialists` now also has a reviewed secondary marketing-operations function anchor, so its marketing-ops variant no longer shares one thin market-sensing-only function baseline
 - `News Analysts, Reporters, and Journalists` now also has a reviewed broadcast-orchestration function anchor, so its anchor/producer variant no longer borrows the field-reporter source-development function baseline
-- the remaining role-shape work is no longer “whether to do variants at all”; it is whether to deepen the function layer for the rest of this first set and expand reviewed variant coverage beyond it
+- `Technical Writers` now has a sharper release-enablement split: the release variant includes the reviewed release-planning task and more strongly weights workflow/review tasks toward the release-enablement anchor
+- `Editors` now has a sharper managing-editor split: the managing-editor variant starts from a more orchestration-heavy task bundle and more strongly weights planning, contributor-management, and packaging tasks toward the publication-orchestration anchor
+- `Management Analysts` now has a sharper change-enablement split: the implementation-heavy variant includes the worker-training rollout task and more strongly weights rollout, governance, and stakeholder-alignment tasks toward the change-enablement anchor
+- `Web Developers` now has a reviewed web-platform-enablement anchor, so the platform-heavy variant can start from deployment, performance, accessibility, and reliability work instead of borrowing the same software-delivery-only function baseline as the experience-building variant
+- the contained follow-up review on `Operations Research Analysts` did not justify promotion into runtime variants yet: the occupation still looks more like one coherent decision-intelligence role with varied application contexts than two clearly stable baseline role shapes
+- the remaining role-shape work is no longer “whether to do variants at all”; it is whether to hold the current six-occupation reviewed set and only expand again if stronger evidence appears
 
 Immediate prep result:
 - the ACS bridge now includes `occupation_btos_sector_mix.csv`, and the BTOS adoption-context layer is live as a calibration-only check rather than still being a planned join path

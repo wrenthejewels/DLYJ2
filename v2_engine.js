@@ -2156,6 +2156,22 @@
             0,
             1
         );
+        var adaptationNotes = adaptationPrior && adaptationPrior.notes ? adaptationPrior.notes : '';
+        var knowledgeShare = clamp(
+            parseNoteMetric(adaptationNotes, 'knowledge_share') !== null
+                ? parseNoteMetric(adaptationNotes, 'knowledge_share')
+                : 0.35,
+            0,
+            1
+        );
+        var learningIntensity = clamp(toNumber(adaptationPrior && adaptationPrior.learning_intensity_score, occupationAdaptive), 0, 1);
+        var specializationContext = clamp(
+            (knowledgeShare * 0.42) +
+            (learningIntensity * 0.33) +
+            (occupationAdaptive * 0.25),
+            0,
+            1
+        );
         var guardrail = clamp(toNumber(functionSummary.delegability_guardrail, 0.55), 0, 1);
         var retainedFunctionStrength = clamp(
             ((1 - functionExposurePressure) * 0.42) +
@@ -2165,20 +2181,24 @@
             1
         );
         var retainedAccountabilityStrength = clamp(
-            ((1 - functionExposurePressure) * 0.28) +
-            (clamp(toNumber(functionSummary.trust_requirement, 0.6), 0, 1) * 0.24) +
-            (clamp(toNumber(functionSummary.regulatory_liability_weight, 0.6), 0, 1) * 0.24) +
-            (clamp(toNumber(functionSummary.human_authority_requirement, 0.6), 0, 1) * 0.24),
+            ((1 - functionExposurePressure) * 0.18) +
+            (guardrail * 0.20) +
+            (clamp(toNumber(functionSummary.human_authority_requirement, 0.6), 0, 1) * 0.22) +
+            (clamp(toNumber(functionSummary.judgment_requirement, 0.6), 0, 1) * 0.18) +
+            (clamp(toNumber(functionSummary.trust_requirement, 0.6), 0, 1) * 0.12) +
+            (clamp(toNumber(functionSummary.regulatory_liability_weight, 0.6), 0, 1) * 0.10),
             0,
             1
         );
         var functionBargainingRetention = clamp(toNumber(functionSummary.bargaining_power_retention, guardrail), 0, 1);
         var retainedBargainingPower = clamp(
-            (weightedRetainedLeverage * 0.42) +
+            (weightedRetainedLeverage * 0.40) +
             (functionBargainingRetention * 0.22) +
-            (guardrail * 0.18) +
+            (guardrail * 0.14) +
             (weightedBargaining * 0.10) +
-            ((1 - weightedDirectPressure) * 0.08) -
+            (retainedAccountabilityStrength * 0.06) +
+            ((1 - weightedDirectPressure) * 0.08) +
+            ((specializationContext - 0.50) * 0.16) -
             (supportHighPressureShare * 0.10) -
             (routineHighPressureShare * 0.08),
             0,
@@ -2538,19 +2558,38 @@
                 : null;
             var directTaskEvidenceWeight = toNumber(sourceResolution.evidence_blend_weight, 0);
             var routineReachabilityWeight = toNumber(ROUTINE_REACHABILITY_CLUSTERS[task.task_family_id], 0);
+            var routineCoreMultiplier = task.role_criticality === 'core'
+                ? (
+                    task.task_family_id === 'cluster_workflow_admin' || task.task_family_id === 'cluster_documentation'
+                        ? 0.95
+                        : 0.72
+                )
+                : 1.00;
             var routineReachabilityLift = routineReachabilityWeight > 0
-                ? routineExecutionContext * routineReachabilityWeight * (task.role_criticality === 'core' ? 0.55 : 1.00)
+                ? routineExecutionContext * routineReachabilityWeight * routineCoreMultiplier
                 : 0;
+            var structuralRoutineDamp = routineReachabilityWeight > 0
+                ? clamp(
+                    routineExecutionContext * routineReachabilityWeight * (task.role_criticality === 'core' ? 0.35 : 0.20),
+                    0,
+                    0.28
+                )
+                : 0;
+            var effectiveDirectTaskEvidenceWeight = clamp(
+                directTaskEvidenceWeight * (1 - structuralRoutineDamp),
+                0,
+                1
+            );
             var baselineDirectPressure = clamp(
                 ((1 - taskAutomationDifficulty) * 0.68) +
                 (clusterResult.absorption_rate * 0.20) +
                 (aiSupportObservability * 0.12) +
-                (routineReachabilityLift * 0.12),
+                (routineReachabilityLift * 0.18),
                 0, 1
             );
             var directPressure = clamp(
-                ((1 - directTaskEvidenceWeight) * baselineDirectPressure) +
-                (directTaskEvidenceWeight * (directTaskEvidenceSignal === null ? baselineDirectPressure : directTaskEvidenceSignal)) -
+                ((1 - effectiveDirectTaskEvidenceWeight) * baselineDirectPressure) +
+                (effectiveDirectTaskEvidenceWeight * (directTaskEvidenceSignal === null ? baselineDirectPressure : directTaskEvidenceSignal)) -
                 (isUserSelectedAiSupport ? 0.14 : 0) +
                 (isUserSelectedSupportTask ? 0.03 : 0),
                 0, 1
@@ -2566,7 +2605,7 @@
             if (taskFirstTaskWeight > 0) {
                 taskFirstTaskCount += 1;
             }
-            if (directTaskEvidenceWeight > 0) {
+            if (effectiveDirectTaskEvidenceWeight > 0) {
                 taskEvidenceAdjustedCount += 1;
             }
 
@@ -2593,8 +2632,8 @@
                 direct_exposure_pressure: Number(directPressure.toFixed(3)),
                 direct_pressure_baseline: Number(baselineDirectPressure.toFixed(3)),
                 direct_pressure_evidence_signal: directTaskEvidenceSignal === null ? null : Number(directTaskEvidenceSignal.toFixed(3)),
-                direct_pressure_evidence_weight: Number(directTaskEvidenceWeight.toFixed(3)),
-                direct_pressure_source: directTaskEvidenceWeight > 0 ? 'resolved_task_evidence' : 'cluster_model',
+                direct_pressure_evidence_weight: Number(effectiveDirectTaskEvidenceWeight.toFixed(3)),
+                direct_pressure_source: effectiveDirectTaskEvidenceWeight > 0 ? 'resolved_task_evidence' : 'cluster_model',
                 indirect_dependency_pressure: 0,
                 value_centrality: valueCentrality,
                 bargaining_power_weight: bargainingPowerWeight,
