@@ -620,6 +620,12 @@ The next concrete example was the expert-versus-signoff cleanup:
 - `Mechanical Engineers`, `Financial and Investment Analysts`, `Accountants and Auditors`, and `Software Developers` were then revised so they kept strong judgment and bargaining retention but lower authority and guardrail priors where final sign-off often sits elsewhere
 - that was an important structural clarification: expert work can stay scarce and high-leverage without the model claiming the occupation always owns the final human sign-off
 
+The next concrete example was the low-scarcity bargaining cleanup:
+- even after the specialization-aware bargaining pass, some support occupations still held too much modeled bargaining power because the reviewed function layer was giving them more scarce leverage than they really carry
+- `Customer Service Representatives`, `Bookkeeping, Accounting, and Auditing Clerks`, and `Statistical Assistants` were then revised at the function layer rather than through another formula rewrite
+- their reviewed anchors now describe support, reconciliation, and analysis-assistance work more explicitly, with lower bargaining retention, authority, and guardrails
+- that mattered because the model should be able to say "this work still matters" without inflating it into the kind of leverage signal associated with technically scarce or decision-owning roles
+
 The next concrete example was the ORS integration:
 - the earlier human-guardrail check depended too much on an internal quality proxy layer
 - official ORS work-requirement data was added as a calibration-only table instead of being pushed straight into runtime
@@ -696,6 +702,24 @@ The next concrete example expanded the reviewed role-variant layer beyond the or
 - once the first five reviewed split occupations had stabilized, the repo promoted web development into a reviewed two-variant path: experience-building work versus platform-heavy web delivery maintenance
 - a reviewed web-platform-enablement anchor was added so deployment, reliability, accessibility, testing, and performance tasks could start from a distinct function baseline rather than being treated as just another flavor of generic software delivery
 
+The next concrete example made the function layer richer without forcing a full role split:
+- after the accountability queue narrowed, `Financial and Investment Analysts` still looked too coarse under one flat investment-analysis anchor
+- but the evidence still did not justify explicit runtime role variants the way it did for journalism, editing, management consulting, or web development
+- the repo therefore added a reviewed stakeholder-translation anchor and redistributed presentation, recommendation, and stakeholder-facing tasks into it
+- that was a useful intermediate move because it let the baseline function graph become more realistic without pretending the occupation already had two clearly stable default role shapes
+
+The next concrete example showed why the role-shape review artifact still matters even after the first variant set is live:
+- once the accountability queue and supplemental-anchor coverage improved, the generated review artifact shifted again
+- `Operations Research Analysts` still looked like a watchlist case rather than a clean runtime split
+- `Accountants and Auditors` emerged as the strongest remaining candidate for a future reviewed split
+- that was useful because it showed the repo could now distinguish three states instead of only two: one-flat-baseline occupations, multi-anchor-but-not-yet-split occupations, and explicit reviewed runtime-variant occupations
+
+The next concrete example promoted that strongest remaining candidate into the live variant layer:
+- `Accountants and Auditors` had already picked up a finance-advisory supplemental anchor, but the review queue kept showing that one baseline was still hiding two stable shapes
+- the repo added a reviewed audit-assurance anchor and then promoted the occupation into two live baselines: financial-reporting accounting work versus audit-and-controls work
+- that was the right move because the split was not only about different task lists; it also changed the purpose layer from close/reporting integrity to assurance/testing and remediation
+- after that promotion, the generated role-shape review artifact no longer showed any strong unimplemented split candidates, leaving `Operations Research Analysts` as the lone watchlist case
+
 ## A Rationalist Summary
 
 The model was built by progressively replacing hidden averages with explicit structure.
@@ -714,6 +738,7 @@ The direction of travel has been:
 - official adoption-context calibration inputs
 - generated role-shape review artifacts
 - reviewed runtime role variants for occupations that are structurally too split for one baseline bundle
+- reviewed supplemental default anchors for occupations that need a richer function graph before they justify explicit runtime variants
 
 The remaining steps are:
 - keep improving task-first scoring until strong task evidence is the default starting point whenever coverage is high enough

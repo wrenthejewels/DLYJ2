@@ -130,6 +130,10 @@ Implemented on `2026-03-13`:
   - after the accountability queue was narrowed, the remaining bargaining queue showed a second pattern: support-heavy roles still sat too high while knowledge-heavy technical roles sat too low
   - the live scorer now adds a centered specialization lift from adaptation-layer knowledge share, learning intensity, and adaptive capacity
   - this lets high-knowledge, high-learning roles keep more bargaining power without restoring the earlier overstatement for routine support work
+- phase-17 occupation-specific bargaining cleanup:
+  - the remaining weak bargaining queue still showed a low-scarcity overstatement in `Customer Service Representatives`, `Bookkeeping Clerks`, and `Statistical Assistants`
+  - instead of changing the runtime formula again, the reviewed function layer was corrected so those occupations no longer inherit too much bargaining retention, authority, or guardrail from generic function defaults
+  - this improved the wage-leverage and specialization-resilience calibration layers while preserving the stronger technical-role lift added in the prior bargaining pass
 - phase-9 calibration-informed routine-pressure tuning:
   - the strength-aware calibration queue surfaced a stronger structural miss in routine/admin-heavy occupations
   - the live scorer now uses adaptation-derived routine context to lift routine-task reachability and workflow compression for structurally routine, low-people-intensity roles
@@ -398,7 +402,7 @@ Directions that are probably weak unless new evidence appears:
 - treating labor-market demand data as if it directly proves task automability
 
 Concrete next build sequence:
-1. Hold the reviewed role-variant layer at the current six-occupation subset unless stronger evidence appears for `Operations Research Analysts` or another occupation clears the role-shape bar.
+1. Hold the reviewed role-variant layer at the current seven-occupation subset unless stronger evidence appears for `Operations Research Analysts` or another occupation clears the role-shape bar.
 2. Decide whether the BTOS adoption-context queue points to a contained adoption-realization tuning pass or simply confirms that the outer layer should stay observational for now.
 3. Review whether any of those calibration layers are strong enough to be promoted into runtime after at least one full calibration cycle.
 4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers, the accountability tuning pass, and the reviewed variant layer have stabilized.
@@ -415,6 +419,14 @@ Outcome:
 - a follow-up occupation-specific review then strengthened the `General and Operations Managers` people-resource leadership anchor and managerial authority priors, lifting the correlation again to roughly `0.606` without another global formula change
 - a second occupation-specific review then reduced overstated guardrails for `Paralegals and Legal Assistants`, `Sales Representatives of Services`, and `Computer Systems Analysts`, lifting the correlation again to roughly `0.696`
 - a third occupation-specific review then separated expert judgment from formal sign-off more explicitly for `Mechanical Engineers`, `Financial and Investment Analysts`, `Accountants and Auditors`, and `Software Developers`, lifting the correlation again to roughly `0.792`
+- a fourth narrow reviewed-function pass then reduced overstated guardrails further for `Paralegals and Legal Assistants`, `Sales Representatives of Services`, and `Computer Systems Analysts`, while structural anchor coverage was expanded for `Financial and Investment Analysts` through a reviewed stakeholder-translation anchor; after that pass, `humanGuardrailCorrelation` improved again to roughly `0.828`
+
+Current review conclusion:
+- the remaining accountability queue is narrower and more mixed than before
+- `Lawyers` still look like a legitimate high-guardrail occupation rather than a tuning mistake
+- the earlier over-calls for `Paralegals and Legal Assistants`, `Sales Representatives of Services`, and `Computer Systems Analysts` were narrow enough to justify one more reviewed-function pass, but they no longer define the whole queue after that pass
+- `Financial and Investment Analysts` now sits in a structurally cleaner middle state: not a reviewed role-variant occupation, but also no longer forced through one flat finance-analysis anchor
+- several medium-strength outliers now look more like calibration-target limits or mixed-signal cases than clean model errors, so further broad formula tuning is not justified right now
 
 ### Immediate ACS Review
 
@@ -428,6 +440,11 @@ Initial review conclusion from the ACS heterogeneity queue:
 - watchlist rather than immediate split candidates:
   - `Operations Research Analysts`
 
+Current role-shape review conclusion:
+- `Operations Research Analysts` remains a watchlist case, not a reviewed runtime variant candidate
+- the occupation still presents as one coherent `decision_intelligence` baseline with some heterogeneity around application context, not as two clearly stable role shapes that justify separate reviewed defaults
+- unless new reviewed function anchors or clearer split-task evidence appears, the repo should keep monitoring this occupation rather than promoting it into the role-variant layer
+
 Why this matters:
 - these occupations look structurally diverse enough that one default occupation bundle may be hiding materially different stable role shapes
 - the admin-heavy occupations still show more urgent misses in task pressure and bargaining-power calibration than in role-shape heterogeneity
@@ -440,8 +457,11 @@ Current status:
 - `Editors` now has a sharper managing-editor split: the managing-editor variant starts from a more orchestration-heavy task bundle and more strongly weights planning, contributor-management, and packaging tasks toward the publication-orchestration anchor
 - `Management Analysts` now has a sharper change-enablement split: the implementation-heavy variant includes the worker-training rollout task and more strongly weights rollout, governance, and stakeholder-alignment tasks toward the change-enablement anchor
 - `Web Developers` now has a reviewed web-platform-enablement anchor, so the platform-heavy variant can start from deployment, performance, accessibility, and reliability work instead of borrowing the same software-delivery-only function baseline as the experience-building variant
+- `Accountants and Auditors` now also exposes reviewed runtime role variants: a financial-reporting baseline and an audit-and-controls baseline, supported by a new audit-assurance function anchor so the split now differs at the function layer as well as the task bundle
+- `Financial and Investment Analysts` now also uses a reviewed stakeholder-translation supplemental anchor in the default function graph, so presentation, recommendation, and stakeholder-translation work no longer has to live inside one flat investment-analysis-only anchor even though the occupation has not yet been promoted into explicit runtime role variants
 - the contained follow-up review on `Operations Research Analysts` did not justify promotion into runtime variants yet: the occupation still looks more like one coherent decision-intelligence role with varied application contexts than two clearly stable baseline role shapes
-- the remaining role-shape work is no longer “whether to do variants at all”; it is whether to hold the current six-occupation reviewed set and only expand again if stronger evidence appears
+- the latest generated role-shape review no longer shows any strong unimplemented split candidates; `Operations Research Analysts` remains the only watchlist case
+- the remaining role-shape work is no longer “whether to do variants at all”; it is whether to hold the current seven-occupation reviewed set, keep expanding supplemental anchor coverage where one flat baseline is too coarse, and only add new reviewed variants again if stronger evidence appears
 
 Immediate prep result:
 - the ACS bridge now includes `occupation_btos_sector_mix.csv`, and the BTOS adoption-context layer is live as a calibration-only check rather than still being a planned join path

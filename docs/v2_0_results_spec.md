@@ -148,6 +148,7 @@ For the stronger reviewed split occupations, the selected variant can now also c
 
 Current reviewed-variant occupations:
 - `Market Research Analysts and Marketing Specialists`
+- `Accountants and Auditors`
 - `Editors`
 - `Technical Writers`
 - `News Analysts, Reporters, and Journalists`
@@ -494,6 +495,7 @@ The live model page now usually produces this payload through `getRoleCompositio
 
 The engine also exposes an occupation-scoped composition baseline through `getRoleComposition(occupationId)`, with source-bucketed tasks plus function anchors for the editor.
 That baseline now includes the reviewed task-to-function graph for both display and live scoring; custom task-to-function links are additive overrides rather than the only function links the scorer sees.
+For some occupations, that baseline can now also include more than one reviewed default function anchor even when the occupation does not expose explicit runtime role variants. `Financial and Investment Analysts` is the current example: its default baseline now includes both the primary analysis anchor and a reviewed stakeholder-translation anchor.
 
 Current counter meaning:
 - `task_breakdown.direct_evidence_tasks` now means active tasks resolved to a task-level evidence tier (`live_task_evidence`, `reviewed_task_estimate`, or `benchmark_task_label`), not only Anthropic-backed rows.
@@ -535,6 +537,7 @@ Current live derivation notes:
 - `retained_accountability_strength` now leans primarily on delegability guardrails, human authority, and judgment, with smaller trust and liability terms
 - `retained_bargaining_power` now leans primarily on pressure-adjusted retained task leverage, then blends in function-level bargaining retention, guardrails, retained accountability, and a centered specialization signal from the adaptation layer
 - reviewed function priors can now distinguish expert judgment from formal sign-off ownership more explicitly for some occupations, which can lower `retained_accountability_strength` without collapsing `retained_bargaining_power`
+- the same reviewed function layer can now also lower `retained_bargaining_power` for support occupations whose earlier function defaults overstated scarce leverage
 
 Public wording rule:
 - keep `residual_role_integrity`

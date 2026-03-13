@@ -258,6 +258,7 @@ The live UI now enforces these behaviors:
 - the reviewed role-variant selector only appears for occupations that currently support more than one stable baseline role shape
 - the default role bundle is loaded from `getRoleComposition(...)`
 - when role variants exist, the default role bundle can come from the selected or recommended reviewed variant
+- the current reviewed role-variant subset now includes `Accountants and Auditors`, so the selector can now appear for accounting users as well as the earlier heterogeneous reviewed occupations
 - add/remove controls only show tasks and functions not currently active
 - custom support links only connect currently selected tasks
 - task-to-function links only persist when both the task and function stay selected

@@ -221,6 +221,71 @@ async function main() {
   if (!manualWebPlatformComposition.defaults?.task_ids?.includes('task_occ_15_1254_00_jd_wd_03')) {
     throw new Error('Expected web_platform_maintainer defaults to include the reviewed platform-architecture task jd_wd_03.');
   }
+  const financialAnalystComposition = engine.getRoleComposition('occ_13_2051_00');
+  if (!financialAnalystComposition.defaults?.function_ids?.includes('fn_occ_13_2051_00_stakeholder_translation')) {
+    throw new Error('Expected Financial and Investment Analysts defaults to include the reviewed stakeholder-translation function anchor.');
+  }
+  if (!Array.isArray(financialAnalystComposition.functions) || financialAnalystComposition.functions.length < 2) {
+    throw new Error('Expected Financial and Investment Analysts to expose at least two reviewed function anchors.');
+  }
+  const accountantReportingProfile = {
+    function_centrality: 0.48,
+    human_signoff_requirement: 0.34,
+    liability_and_regulatory_burden: 0.42,
+    relationship_ownership: 0.18,
+    exception_and_context_load: 0.36,
+    workflow_decomposability: 0.82,
+    organizational_adoption_readiness: 0.74,
+    ai_observability_of_work: 0.84,
+    dependency_bottleneck_strength: 0.39,
+    handoff_and_coordination_complexity: 0.42,
+    external_trust_requirement: 0.24,
+    stakeholder_alignment_burden: 0.52,
+    execution_vs_judgment_mix: 0.78,
+    augmentation_fit: 0.63,
+    substitution_risk_modifier: 0.67
+  };
+  const accountantAuditProfile = {
+    function_centrality: 0.66,
+    human_signoff_requirement: 0.58,
+    liability_and_regulatory_burden: 0.82,
+    relationship_ownership: 0.20,
+    exception_and_context_load: 0.56,
+    workflow_decomposability: 0.48,
+    organizational_adoption_readiness: 0.55,
+    ai_observability_of_work: 0.58,
+    dependency_bottleneck_strength: 0.52,
+    handoff_and_coordination_complexity: 0.50,
+    external_trust_requirement: 0.46,
+    stakeholder_alignment_burden: 0.44,
+    execution_vs_judgment_mix: 0.52,
+    augmentation_fit: 0.61,
+    substitution_risk_modifier: 0.44
+  };
+  const accountantVariantsReporting = engine.getRoleComposition('occ_13_2011_00', {
+    questionnaireProfile: accountantReportingProfile
+  });
+  const accountantVariantsAudit = engine.getRoleComposition('occ_13_2011_00', {
+    questionnaireProfile: accountantAuditProfile
+  });
+  if (!accountantVariantsReporting.variant_support?.enabled || !accountantVariantsReporting.variants?.length) {
+    throw new Error('Expected Accountants and Auditors to expose reviewed role variants.');
+  }
+  if (accountantVariantsReporting.variant_support.selected_variant_id !== 'financial_reporting_accountant') {
+    throw new Error(`Expected reporting-heavy accountant profile to recommend financial_reporting_accountant, received ${accountantVariantsReporting.variant_support.selected_variant_id}.`);
+  }
+  if (accountantVariantsAudit.variant_support.selected_variant_id !== 'audit_controls_specialist') {
+    throw new Error(`Expected audit-heavy accountant profile to recommend audit_controls_specialist, received ${accountantVariantsAudit.variant_support.selected_variant_id}.`);
+  }
+  const manualAuditAccountantComposition = engine.getRoleComposition('occ_13_2011_00', {
+    roleVariantId: 'audit_controls_specialist'
+  });
+  if (!manualAuditAccountantComposition.defaults?.function_ids?.includes('fn_occ_13_2011_00_audit_assurance')) {
+    throw new Error('Expected audit_controls_specialist defaults to include the reviewed audit-assurance function anchor.');
+  }
+  if (!manualAuditAccountantComposition.defaults?.task_ids?.includes('task_occ_13_2011_00_jd_acc_03')) {
+    throw new Error('Expected audit_controls_specialist defaults to include the reviewed audit-support task jd_acc_03.');
+  }
 
   if (!result.recomposition_summary) {
     throw new Error('Expected recomposition_summary in result payload.');
@@ -618,18 +683,26 @@ async function main() {
     occupationId: 'occ_43_6014_00',
     seniorityLevel: 3
   });
-  const bookkeepingClerkResult = engine.computeResult({
+  const bookkeepingClerkRoutineResult = engine.computeResult({
     occupationId: 'occ_43_3031_00',
     seniorityLevel: 3
   });
   if (Number(secretaryResult.diagnostics?.direct_exposure_pressure || 0) <= 0.45) {
     throw new Error('Expected Secretaries and Administrative Assistants to retain the stronger routine/admin direct-pressure signal in the live scoring path.');
   }
-  if (Number(bookkeepingClerkResult.diagnostics?.direct_exposure_pressure || 0) <= 0.49) {
+  if (Number(bookkeepingClerkRoutineResult.diagnostics?.direct_exposure_pressure || 0) <= 0.49) {
     throw new Error('Expected Bookkeeping, Accounting, and Auditing Clerks to retain the stronger routine/admin direct-pressure signal in the live scoring path.');
   }
   const customerServiceResult = engine.computeResult({
     occupationId: 'occ_43_4051_00',
+    seniorityLevel: 3
+  });
+  const bookkeepingClerkResult = engine.computeResult({
+    occupationId: 'occ_43_3031_00',
+    seniorityLevel: 3
+  });
+  const statisticalAssistantResult = engine.computeResult({
+    occupationId: 'occ_43_9111_00',
     seniorityLevel: 3
   });
   const dataScientistResult = engine.computeResult({
@@ -643,8 +716,20 @@ async function main() {
   if (Number(customerServiceResult.function_metrics?.retained_bargaining_power || 1) >= 0.50) {
     throw new Error('Expected Customer Service Representatives to stay below the bargaining-power overstatement threshold.');
   }
+  if (Number(bookkeepingClerkResult.function_metrics?.retained_bargaining_power || 1) >= 0.48) {
+    throw new Error('Expected Bookkeeping, Accounting, and Auditing Clerks to stay below the bargaining-power overstatement threshold.');
+  }
+  if (Number(statisticalAssistantResult.function_metrics?.retained_bargaining_power || 1) >= 0.48) {
+    throw new Error('Expected Statistical Assistants to stay below the bargaining-power overstatement threshold.');
+  }
   if (Number(dataScientistResult.function_metrics?.retained_bargaining_power || 0) <= Number(customerServiceResult.function_metrics?.retained_bargaining_power || 0)) {
     throw new Error('Expected Data Scientists to retain more bargaining power than Customer Service Representatives in the live scoring path.');
+  }
+  if (Number(dataScientistResult.function_metrics?.retained_bargaining_power || 0) <= Number(bookkeepingClerkResult.function_metrics?.retained_bargaining_power || 0)) {
+    throw new Error('Expected Data Scientists to retain more bargaining power than Bookkeeping, Accounting, and Auditing Clerks in the live scoring path.');
+  }
+  if (Number(dataScientistResult.function_metrics?.retained_bargaining_power || 0) <= Number(statisticalAssistantResult.function_metrics?.retained_bargaining_power || 0)) {
+    throw new Error('Expected Data Scientists to retain more bargaining power than Statistical Assistants in the live scoring path.');
   }
   if (Number(softwareDeveloperResult.function_metrics?.retained_bargaining_power || 0) <= Number(customerServiceResult.function_metrics?.retained_bargaining_power || 0)) {
     throw new Error('Expected Software Developers to retain more bargaining power than Customer Service Representatives in the live scoring path.');

@@ -109,6 +109,7 @@ Current live/browser status:
 - it changes which default task/function baseline the role studio starts from before user edits
 - the browser can now recommend a reviewed variant from the current questionnaire profile and current role mix, while still allowing the user to override it explicitly
 - for the stronger reviewed split occupations, variants can now differ at both the task-bundle layer and the function-anchor layer
+- reviewed supplemental anchors now also extend slightly beyond the explicit role-variant subset, so some occupations can carry more than one reviewed default function anchor without exposing a separate variant selector
 
 ### `task_function_edges.csv`
 
@@ -244,6 +245,7 @@ Current bargaining-power rule:
 - the live scorer now leans primarily on pressure-adjusted retained task leverage, then blends in function-level bargaining retention, guardrails, retained accountability, and a centered specialization signal from the adaptation layer
 - support-heavy and routine-heavy work that is already under high pressure now pulls retained bargaining power down instead of being over-credited by raw task weights alone
 - high-knowledge, high-learning occupations can now retain more bargaining power even when direct pressure is nontrivial, because the live scorer treats specialization as a separate leverage signal rather than collapsing it into static task bargaining weights
+- occupation-specific reviewed overrides can also lower bargaining retention where the function layer was overstating scarcity or commercial leverage for support occupations
 
 Current accountability rule:
 - `retained_accountability_strength` is no longer driven mainly by low exposure plus trust and liability
@@ -285,6 +287,8 @@ Current live role-variant rule:
 - the browser recommends the closest reviewed variant from the current questionnaire profile plus the current task/function mix
 - an explicit user variant choice overrides the recommendation until the user returns to auto mode
 - once the baseline is chosen, the normal editable composition flow still has final authority because users can continue adding/removing tasks and functions and changing workflow links
+- the current reviewed runtime-variant subset now includes `Accountants and Auditors` alongside market research, editors, technical writing, journalism, management consulting, and web development
+- a nearby structural pattern now exists too: some occupations can carry reviewed supplemental anchors in the default function graph without being promoted into explicit role variants when the evidence supports a richer purpose layer but not yet multiple stable baseline role shapes
 
 ## Current limitations
 
