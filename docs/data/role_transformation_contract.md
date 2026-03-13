@@ -83,6 +83,12 @@ Current first pass:
 - `Editors` now keeps a stronger managing-editor split by assigning planning, contributor-management, and packaging tasks more clearly to the publication-orchestration anchor
 - `Management Analysts` now keeps a stronger change-enablement split by assigning rollout, governance, training, and stakeholder-alignment tasks more clearly to the change-enablement anchor
 - `Web Developers` now includes a reviewed web-platform-enablement anchor so its platform-heavy variant is function-distinct from the experience-building software-delivery path
+- `Software Developers` now includes a reviewed technical-stewardship supplemental anchor so architecture, standards, and technical-direction work can carry more judgment than routine delivery or reliability work without pretending the occupation has a separate explicit runtime variant
+- `Graphic Designers` now includes a reviewed production-execution supplemental anchor so asset/layout/file production can carry lower retained ownership than higher-level visual direction without forcing the occupation into explicit runtime variants
+- `Paralegals and Legal Assistants` now includes a reviewed procedural-execution supplemental anchor so filing, drafting, and procedural support work can sit below matter-coordination and legal-support work in the accountability layer
+- `Compliance Officers` now includes a reviewed issue-remediation supplemental anchor so remediation follow-through, evidence readiness, and issue closure can sit below higher-level compliance interpretation and control ownership in the accountability layer
+- `Training and Development Specialists` now includes a reviewed learning-content-enablement supplemental anchor so curriculum and learning-asset production can sit below higher-level learning-program ownership in the accountability layer
+- `Mechanical Engineers` now includes a reviewed validation-integration supplemental anchor so prototyping, test execution, integration, and production-readiness work can sit below higher-level system-design ownership in the accountability layer
 
 ### `occupation_function_map.csv`
 
@@ -289,6 +295,7 @@ Current live role-variant rule:
 - once the baseline is chosen, the normal editable composition flow still has final authority because users can continue adding/removing tasks and functions and changing workflow links
 - the current reviewed runtime-variant subset now includes `Accountants and Auditors` alongside market research, editors, technical writing, journalism, management consulting, and web development
 - a nearby structural pattern now exists too: some occupations can carry reviewed supplemental anchors in the default function graph without being promoted into explicit role variants when the evidence supports a richer purpose layer but not yet multiple stable baseline role shapes
+- current examples of that structural-anchor path now include `Financial and Investment Analysts`, `Software Developers`, `Graphic Designers`, `Paralegals and Legal Assistants`, `Compliance Officers`, `Training and Development Specialists`, and `Mechanical Engineers`
 
 ## Current limitations
 

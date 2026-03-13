@@ -619,6 +619,14 @@ The next concrete example was the expert-versus-signoff cleanup:
 - the real problem was that the reviewed function layer was still conflating expert judgment and trusted context with formal sign-off ownership
 - `Mechanical Engineers`, `Financial and Investment Analysts`, `Accountants and Auditors`, and `Software Developers` were then revised so they kept strong judgment and bargaining retention but lower authority and guardrail priors where final sign-off often sits elsewhere
 - that was an important structural clarification: expert work can stay scarce and high-leverage without the model claiming the occupation always owns the final human sign-off
+- that same logic then pushed the model into richer structural anchor work instead of more global reweighting:
+  - `Software Developers` gained a reviewed `technical_stewardship` anchor so standards, architecture, and technical-direction work no longer had to read like generic delivery or reliability work
+  - `Graphic Designers` gained a reviewed `production_execution` anchor so asset/layout/file production no longer carried the same retained-ownership assumptions as higher-level visual direction
+  - `Paralegals and Legal Assistants` gained a reviewed `procedural_execution` anchor so filing, drafting, and procedural follow-through no longer inherited the same authority assumptions as higher-value legal-support and matter-coordination work
+  - `Compliance Officers` gained a reviewed `issue_remediation` anchor so complaints, evidence readiness, and issue-closure work no longer inherited the same sign-off assumptions as higher-level compliance interpretation and control ownership
+  - `Training and Development Specialists` gained a reviewed `learning_content_enablement` anchor so curriculum and courseware production no longer inherited the same ownership assumptions as learning-program priorities and program effectiveness
+  - `Mechanical Engineers` gained a reviewed `validation_integration` anchor so prototyping, testing, integration, and readiness work no longer inherited the same sign-off assumptions as higher-level system-design ownership
+- this was the key structural lesson: some occupations did not need full runtime role variants, but they still needed richer default function graphs because one flat purpose layer was too reductive
 
 The next concrete example was the low-scarcity bargaining cleanup:
 - even after the specialization-aware bargaining pass, some support occupations still held too much modeled bargaining power because the reviewed function layer was giving them more scarce leverage than they really carry
@@ -719,6 +727,18 @@ The next concrete example promoted that strongest remaining candidate into the l
 - the repo added a reviewed audit-assurance anchor and then promoted the occupation into two live baselines: financial-reporting accounting work versus audit-and-controls work
 - that was the right move because the split was not only about different task lists; it also changed the purpose layer from close/reporting integrity to assurance/testing and remediation
 - after that promotion, the generated role-shape review artifact no longer showed any strong unimplemented split candidates, leaving `Operations Research Analysts` as the lone watchlist case
+
+The next concrete example was a non-variant structural cleanup for software development:
+- the role-shape artifact did not justify splitting software developers into explicit reviewed variants
+- but the accountability queue still suggested that one delivery-heavy function readout was too coarse
+- the repo added a reviewed technical-stewardship anchor so standards, architecture, cross-functional scope, and technical-direction work could stand apart from pure delivery and system reliability
+- the important part was not inflating sign-off ownership; it was representing a high-judgment technical layer without pretending it carries the same formal authority as executive or policy sign-off
+
+The next concrete example repeated that structural-anchor move for graphic design:
+- the accountability queue suggested the role was still too flattened, but a full variant split was not the right answer
+- the repo split the function graph into higher-level creative direction and lower-level production execution
+- this let layout prep, asset assembly, and production-ready output carry lower human-retained ownership than brand coherence, audience fit, and final visual direction
+- after that change, graphic design no longer surfaced as an accountability-guardrail case in the structural queue
 
 ## A Rationalist Summary
 

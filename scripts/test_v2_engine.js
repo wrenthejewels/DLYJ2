@@ -54,6 +54,47 @@ async function main() {
   if (!roleComposition.defaults?.function_ids?.length) {
     throw new Error('Expected default selected function ids in role composition.');
   }
+  if (!roleComposition.defaults?.function_ids?.includes('fn_occ_15_1252_00_technical_stewardship')) {
+    throw new Error('Expected Software Developers defaults to include the reviewed technical-stewardship function anchor.');
+  }
+  if (!Array.isArray(roleComposition.functions) || roleComposition.functions.length < 3) {
+    throw new Error('Expected Software Developers to expose at least three reviewed function anchors after structural expansion.');
+  }
+  const graphicDesignerComposition = engine.getRoleComposition('occ_27_1024_00');
+  if (!graphicDesignerComposition.defaults?.function_ids?.includes('fn_occ_27_1024_00_production_execution')) {
+    throw new Error('Expected Graphic Designers defaults to include the reviewed production-execution function anchor.');
+  }
+  if (!Array.isArray(graphicDesignerComposition.functions) || graphicDesignerComposition.functions.length < 2) {
+    throw new Error('Expected Graphic Designers to expose at least two reviewed function anchors after structural expansion.');
+  }
+  const paralegalComposition = engine.getRoleComposition('occ_23_2011_00');
+  if (!paralegalComposition.defaults?.function_ids?.includes('fn_occ_23_2011_00_procedural_execution')) {
+    throw new Error('Expected Paralegals defaults to include the reviewed procedural-execution function anchor.');
+  }
+  if (!Array.isArray(paralegalComposition.functions) || paralegalComposition.functions.length < 3) {
+    throw new Error('Expected Paralegals to expose at least three reviewed function anchors after structural expansion.');
+  }
+  const complianceOfficerComposition = engine.getRoleComposition('occ_13_1041_00');
+  if (!complianceOfficerComposition.defaults?.function_ids?.includes('fn_occ_13_1041_00_issue_remediation')) {
+    throw new Error('Expected Compliance Officers defaults to include the reviewed issue-remediation function anchor.');
+  }
+  if (!Array.isArray(complianceOfficerComposition.functions) || complianceOfficerComposition.functions.length < 3) {
+    throw new Error('Expected Compliance Officers to expose at least three reviewed function anchors after structural expansion.');
+  }
+  const trainingDevelopmentComposition = engine.getRoleComposition('occ_13_1151_00');
+  if (!trainingDevelopmentComposition.defaults?.function_ids?.includes('fn_occ_13_1151_00_learning_content_enablement')) {
+    throw new Error('Expected Training and Development Specialists defaults to include the reviewed learning-content-enablement function anchor.');
+  }
+  if (!Array.isArray(trainingDevelopmentComposition.functions) || trainingDevelopmentComposition.functions.length < 2) {
+    throw new Error('Expected Training and Development Specialists to expose at least two reviewed function anchors after structural expansion.');
+  }
+  const mechanicalEngineerComposition = engine.getRoleComposition('occ_17_2141_00');
+  if (!mechanicalEngineerComposition.defaults?.function_ids?.includes('fn_occ_17_2141_00_validation_integration')) {
+    throw new Error('Expected Mechanical Engineers defaults to include the reviewed validation-integration function anchor.');
+  }
+  if (!Array.isArray(mechanicalEngineerComposition.functions) || mechanicalEngineerComposition.functions.length < 2) {
+    throw new Error('Expected Mechanical Engineers to expose at least two reviewed function anchors after structural expansion.');
+  }
   const sampleLinkedTask = roleComposition.onet_tasks.find((task) => Array.isArray(task.linked_functions) && task.linked_functions.length);
   if (!sampleLinkedTask) {
     throw new Error('Expected at least one editable task to expose linked function explanations.');
