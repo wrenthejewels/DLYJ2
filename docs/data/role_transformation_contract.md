@@ -48,6 +48,14 @@ Current source roles:
 
 Current rule:
 - cluster and fallback proxies remain visible, but they are now down-weighted when stronger task-level evidence already exists for the same task
+- in the live browser scorer, `task_source_evidence.csv` is now the actual task-level resolver:
+  - `live_task_evidence` has highest task-level priority
+  - `reviewed_task_estimate` is next
+  - `benchmark_task_label` is the last task-level promotion tier
+  - `cluster_prior_proxy` and `fallback_task_proxy` remain fallback only
+- once the resolved task-level evidence reliability clears the runtime threshold, the resolved task evidence can alter both task-level `automation_difficulty` and task-level `direct_exposure_pressure`
+- clusters with strong enough resolved task-evidence coverage can also shift their baseline difficulty path toward task evidence before that baseline is projected onto task rows
+- tasks with strong enough resolved task-level reliability can now promote into a task-first task baseline before any residual task-evidence blend is applied
 
 ### `occupation_source_priors.csv`
 
@@ -187,18 +195,46 @@ The current stack now works like this:
 
 1. Start with the richer task inventory.
 2. Attach all available source-specific task evidence.
-3. Aggregate direct task pressure per task.
-4. Add indirect pressure through dependency edges.
-5. Weight each task by how much it supports the role's function or functions.
-6. Preserve human guardrails through accountability, trust, liability, and authority.
-7. In the live browser scorer, compute function exposure, retained function strength, retained accountability, retained bargaining power, delegation pressure, and displacement pressure from the active edited run.
-8. Produce role-transformation outputs instead of stopping at exposure.
-9. In the offline audit layer, apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
+3. Compute baseline cluster automation difficulty from cluster priors shrunk toward the occupation exposure prior.
+4. For clusters with strong enough resolved task-evidence coverage, shift that cluster baseline toward a task-first cluster evidence estimate.
+5. Project the resulting cluster read onto active tasks as the fallback task-difficulty model.
+6. Resolve each task's best available task-level evidence from `task_source_evidence.csv` using explicit source precedence.
+7. For tasks with sufficiently reliable resolved task evidence, promote the task baseline itself toward task evidence.
+8. For tasks with remaining reliable resolved task evidence, blend the resolved task evidence signal into final `automation_difficulty`.
+9. Compute baseline task `direct_exposure_pressure` from that task-level difficulty and then blend the resolved task-pressure signal into final `direct_exposure_pressure` when reliability clears the same threshold.
+10. Add indirect pressure through dependency edges.
+11. Compute retained task share and retained leverage per task.
+12. Aggregate the scored task rows back into task-derived cluster summaries.
+13. Recompute cluster absorption, wave assignment, and the public wave engine from those task-derived cluster summaries.
+14. Weight each task by how much it supports the role's function or functions.
+15. Preserve human guardrails through accountability, trust, liability, and authority.
+16. In the live browser scorer, compute function exposure, retained function strength, retained accountability, retained bargaining power, delegation pressure, and displacement pressure from the active edited run.
+17. Produce role-transformation outputs instead of stopping at exposure.
+18. In the offline audit layer, apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
+
+Current live direct-evidence rule:
+- `direct_evidence_reliability` must exceed `0.20` before resolved task evidence changes task difficulty or task pressure
+- `direct_evidence_reliability` must exceed `0.45` before a task row can promote into the `task_first_resolved_evidence` baseline path
+- blend weight is capped at `0.85`
+- when a task row promotes into the task-first baseline path, the remaining task-evidence blend weight is reduced by the portion already consumed by that baseline promotion
+- when multiple promoted task-level sources exist for the same task, the runtime resolves a weighted task-level consensus using source reliability, `evidence_weight`, and source-role multipliers before blending
+- the task-ease signal used for `automation_difficulty` is `0.65 * automation_score + 0.25 * exposure_score + 0.10 * augmentation_score`
+- the direct-pressure task signal is `0.50 * automation_score + 0.35 * exposure_score + 0.15 * augmentation_score`
+- task-level source precedence is `live_task_evidence` -> `reviewed_task_estimate` -> `benchmark_task_label` -> `cluster_prior_proxy` -> `fallback_task_proxy`
+- `cluster_prior_proxy` and `fallback_task_proxy` remain fallback-only tiers in the blend logic; they identify unresolved tasks but do not themselves receive a positive task-evidence blend weight
+- cluster priors still provide the fallback difficulty anchor in the current live engine, but clusters with strong enough resolved task coverage can now take a task-first baseline blend before task-row scoring and tasks with strong enough direct reliability can now take a task-first task baseline as well
+
+Current live cluster and wave rule:
+- `transformation_map`, `top_exposed_work`, and `wave_trajectory` now come from cluster summaries aggregated from the scored task rows
+- those task-derived cluster summaries carry task-level difficulty, wave assignment, absorption rate, direct pressure, spillover, retained share, and retained leverage
+- those cluster summaries also expose whether the underlying cluster baseline came from `cluster_priors` or `task_first_cluster_evidence`, plus the task-first blend weight, evidence coverage diagnostics, and task-first task counts
+- the live engine now recomputes the public wave engine from the task-derived cluster bundle rather than preserving a separate pre-task wave bundle
 
 ## Current limitations
 
 - Job-description evidence now covers all `34` modeled occupations.
 - Multi-anchor function coverage exists only for a reviewed subset of occupations.
 - The transformation output is still a first-pass model and still depends on role-family defaults, benchmark floors, and cluster-prior proxies under the reviewed overrides.
+- Resolved task evidence now affects task-level pressure and task-level difficulty in the live browser scorer, and high-reliability tasks can now use a task-first task baseline, but low-coverage tasks still fall back to the cluster-seeded path.
 - The live explanation layer is now generated from the current run, but it is still a compact summary rather than a full task/source drill-down surface.
 - The live questionnaire layer now writes a native factor-based role-refinement profile in the app, but the engine still retains the legacy-answer fallback for compatibility with external callers and older tests.

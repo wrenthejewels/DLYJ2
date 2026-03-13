@@ -80,7 +80,7 @@
 
                     <h3>Primary task evidence</h3>
                     <ul>
-                        <li><strong><a href="https://huggingface.co/datasets/Anthropic/EconomicIndex/tree/main/release_2026_01_15" target="_blank" rel="noopener noreferrer">Anthropic Economic Index</a></strong> (2026-01-15 release) &mdash; the primary runtime source. Normalized from Claude.ai and first-party API task telemetry with O*NET task classification, collaboration patterns, human-only ability flags, task success rates, and human/AI time estimates. The checked-in normalized layer currently contains 530 task evidence rows across all 34 modeled occupations.</li>
+                        <li><strong><a href="https://huggingface.co/datasets/Anthropic/EconomicIndex/tree/main/release_2026_01_15" target="_blank" rel="noopener noreferrer">Anthropic Economic Index</a></strong> (2026-01-15 release) &mdash; the main live-task empirical source feeding the stack. Normalized from Claude.ai and first-party API task telemetry with O*NET task classification, collaboration patterns, human-only ability flags, task success rates, and human/AI time estimates. In the current browser scorer, these rows feed the top-priority <code>live_task_evidence</code> tier inside the task-source resolver, preserve Anthropic-specific observation metadata like usage share, and also feed the reviewed cluster priors that still seed the baseline difficulty model. The checked-in normalized layer currently contains 530 task evidence rows across all 34 modeled occupations.</li>
                     </ul>
 
                     <h3>Structural backbone</h3>
@@ -98,7 +98,7 @@
                     </ul>
 
                     <h3>Benchmark validation layers</h3>
-                    <p>These academic benchmarks are used to validate directional rankings, not to drive runtime scoring. Each is normalized to a common occupation key and compared against the live Anthropic-driven exposure stack:</p>
+                    <p>Most of these academic benchmarks are used to validate directional rankings rather than to drive the public runtime directly. The main exception is task-level GPT benchmark labels, which now participate as a supporting task-evidence tier in the live task-source resolver. Each source is normalized to a common occupation or task key and compared against the live exposure stack:</p>
                     <ul>
                         <li><strong><a href="https://github.com/AIOE-Data/AIOE" target="_blank" rel="noopener noreferrer">AIOE</a></strong> (AI Occupational Exposure, 2023) &mdash; occupation-level AI exposure measure including language-modeling-specific and ability-level exposure values.</li>
                         <li><strong><a href="https://www.michaelwebb.co/webb_ai.pdf" target="_blank" rel="noopener noreferrer">Webb AI Exposure</a></strong> (2020, NBER WP 24762) &mdash; patent-based occupation-level AI, robotics, and software exposure measures.</li>
@@ -117,18 +117,18 @@
                 <!-- 3. Evidence hierarchy -->
                 <section id="evidence-hierarchy" class="r-method-section">
                     <h2>How task evidence becomes exposure scores</h2>
-                    <p>The data sources above do not all carry equal weight. The model uses a layered evidence hierarchy: it prefers direct task observations when available, falls back to cluster-level priors when not, and uses occupation-level priors as a last resort. A shrinkage function controls how much weight each layer gets based on evidence quality.</p>
+                    <p>The data sources above do not all carry equal weight. The live browser scorer is currently hybrid. It still starts from reviewed task-family priors for the fallback difficulty layer and shrinks those priors toward an occupation-level exposure prior. But that is no longer the whole baseline path: when a task family has enough strong resolved task-level evidence, the runtime first shifts that cluster baseline toward a task-first evidence estimate before projecting it onto the active task graph. Then, when an individual task itself has high enough direct reliability, that task can promote again into its own task-first baseline rather than only inheriting the cluster seed. A runtime task-source resolver chooses among live Anthropic task evidence, reviewed task estimates, benchmark task labels, and only then proxy fallback. Any remaining resolved task-level evidence can still blend into both a task&rsquo;s final automation difficulty and its final direct-pressure score. After the task table is scored, the public wave engine is recomputed from the task-derived cluster bundle rather than preserved from the older pre-task cluster bundle.</p>
 
                     <h3>Evidence layers</h3>
                     <ol class="r-numbered-list">
-                        <li><strong>Direct task evidence</strong> &mdash; individual task rows from the <a href="https://huggingface.co/datasets/Anthropic/EconomicIndex/tree/main/release_2026_01_15" target="_blank" rel="noopener noreferrer">Anthropic Economic Index</a>, each carrying an exposure score, automation score, observed usage share, and confidence value. This is the highest-priority layer.</li>
-                        <li><strong>Cluster-level priors</strong> &mdash; aggregated from task evidence into task families (clusters), carrying <code>partial_automation_likelihood</code> and <code>high_automation_likelihood</code> estimates with an evidence confidence score and primary source tags.</li>
-                        <li><strong>Occupation-level priors</strong> &mdash; a derived aggregate from O*NET structure, Anthropic task evidence, and BLS labor context, carrying an <code>automation_score</code> and <code>adaptive_capacity_score</code>. Used as the broadest fallback when cluster evidence is weak.</li>
+                        <li><strong>Task-level evidence tiers</strong> &mdash; the runtime first resolves the best available task-level evidence from <code>task_source_evidence.csv</code>. The live precedence is <code>live_task_evidence</code>, then <code>reviewed_task_estimate</code>, then <code>benchmark_task_label</code>. Those tiers can all affect the live task score when reliability is high enough, and the strongest task rows can now become their own baseline source rather than only adjusting a cluster baseline after the fact.</li>
+                        <li><strong>Cluster-level priors</strong> &mdash; task-family priors carrying <code>partial_automation_likelihood</code> and <code>high_automation_likelihood</code> estimates with an evidence confidence score and primary source tags. This is still the fallback live scoring layer for automation difficulty when cluster-level task evidence is too thin to support the task-first baseline path.</li>
+                        <li><strong>Occupation-level priors</strong> &mdash; broader occupation exposure priors carrying an <code>automation_score</code>. A separate occupation adaptation prior feeds personalization and function-layer demand signals later in the run. The occupation exposure prior is the broadest fallback when cluster evidence is weak.</li>
                     </ol>
-                    <p>The broader pipeline also keeps reviewed task scoring overrides and benchmark task labels in separate comparison contracts, but the live browser scorer currently uses the three layers above: direct Anthropic task evidence, cluster priors, and occupation priors.</p>
+                    <p>The broader pipeline still keeps many comparison layers separate, but <code>task_source_evidence.csv</code> is now a real runtime input rather than a comparison-only artifact. The live browser scorer now has both a coverage-aware task-first cluster-baseline path and a task-first task-baseline path layered on top of the older cluster-prior stack. Low-coverage tasks still inherit a cluster-seeded fallback, so this is still a hybrid model rather than a universal task-first prior system.</p>
 
                     <h3>Shrinkage toward prior</h3>
-                    <p>The core mechanism is a simple Bayesian-inspired shrinkage function. When a task family has strong direct evidence, its observed score is used. When evidence is sparse, the score is pulled toward the broader prior:</p>
+                    <p>The core shrinkage step in the live scorer still begins at the cluster level. When a task family has strong prior evidence but weak task-level coverage, its own automation estimate dominates. When task-level coverage and reliability are strong enough, the runtime first shifts that cluster baseline toward the resolved task-evidence estimate. Then, for especially strong task rows, the task-level baseline itself can shift again toward the resolved task evidence. When evidence is sparse, the cluster estimate is pulled toward the broader occupation prior:</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Shrinkage function</div>
                         <div class="equation-display">$$\hat\theta = \lambda\,\theta_{\text{observed}} + (1-\lambda)\,\theta_{\text{prior}}$$</div>
@@ -136,13 +136,36 @@
                     <p>where <code>&lambda;</code> is the evidence reliability score. High reliability means the observation stands on its own; low reliability means it defers to the prior.</p>
 
                     <h3>Evidence reliability</h3>
-                    <p>The model calculates reliability differently depending on the evidence layer.</p>
-                    <p><strong>Task-level evidence reliability</strong> weights the stated confidence by observation volume. Internal stub sources (placeholder rows with no real observation) receive zero reliability:</p>
+                    <p>The model calculates reliability differently depending on the evidence layer. In the current browser scorer, cluster-prior reliability directly affects the fallback baseline difficulty estimate, while task-level evidence reliability both feeds diagnostics and gates whether resolved task evidence is allowed to alter cluster baselines, task baselines, task difficulty, and task pressure.</p>
+                    <p><strong>Task-level evidence reliability</strong> now depends on source role. For live Anthropic task evidence, the runtime weights stated confidence by observation volume. Internal stub sources (placeholder rows with no real observation) receive zero reliability:</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Task evidence reliability</div>
                         <div class="equation-display">$$\lambda_{\text{task}} = \operatorname{clamp}\!\left(\text{confidence} \cdot \frac{n_{\text{tasks}}}{n_{\text{tasks}} + 40},\,0.05,\,0.98\right)$$</div>
                     </div>
-                    <p>So a task with 40 observations gets roughly half-weight from its own evidence; a task with 400 observations gets roughly 91% weight. This prevents small-sample task observations from overriding broader patterns.</p>
+                    <p>So a task with 40 observations gets roughly half-weight from its own evidence; a task with 400 observations gets roughly 91% weight. For reviewed task estimates, benchmark task labels, and proxy rows, the runtime instead uses stated confidence, normalized evidence weight, and source-role / promotion multipliers. In the current runtime this resolved reliability informs evidence confidence and coverage reporting, can promote high-reliability tasks into a task-first baseline once reliability clears <code>0.45</code>, and once it clears the runtime threshold of <code>0.20</code> it can also blend resolved task evidence into the task&rsquo;s final automation-difficulty and direct-pressure scores.</p>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Task evidence blend gate</div>
+                        <div class="equation-display">$$w_t^{\text{evidence}} =
+\begin{cases}
+0, & \lambda_{\text{task}} \le 0.20 \\
+\operatorname{clamp}\!\left(0.85\cdot\frac{\lambda_{\text{task}}-0.20}{1-0.20},\,0,\,0.85\right), & \lambda_{\text{task}} > 0.20
+\end{cases}$$</div>
+                    </div>
+                    <p>If a task already clears the stronger task-first baseline gate, the runtime reduces the remaining blend weight by the amount already consumed in that baseline promotion instead of applying the same evidence twice.</p>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Task ease signal</div>
+                        <div class="equation-display">$$q_t^{\text{ease}} = 0.65\,\text{automationScore}_t + 0.25\,\text{exposureScore}_t + 0.10\,\text{augmentationScore}_t$$</div>
+                    </div>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Task evidence signal</div>
+                        <div class="equation-display">$$q_t^{\text{direct}} = 0.50\,\text{automationScore}_t + 0.35\,\text{exposureScore}_t + 0.15\,\text{augmentationScore}_t$$</div>
+                    </div>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Resolved task evidence</div>
+                        <div class="equation-display">$$\omega_{t,s} = \lambda_{t,s}\cdot \text{evidenceWeight}_{t,s}\cdot m(\text{sourceRole}_s)$$</div>
+                        <div class="equation-display">$$\tilde a_t = \frac{\sum_{s \in \mathcal{S}^{\text{task}}_t} \omega_{t,s}\,a_{t,s}}{\sum_{s \in \mathcal{S}^{\text{task}}_t} \omega_{t,s}}, \qquad \tilde e_t = \frac{\sum_{s \in \mathcal{S}^{\text{task}}_t} \omega_{t,s}\,e_{t,s}}{\sum_{s \in \mathcal{S}^{\text{task}}_t} \omega_{t,s}}$$</div>
+                    </div>
+                    <p>Here the resolver only averages over the promoted task-level tiers for the task: live Anthropic evidence first, then reviewed task estimates, then benchmark task labels. Cluster proxies and fallback proxies remain visible as fallback metadata, but they do not become part of the task-evidence blend itself.</p>
 
                     <p><strong>Cluster prior reliability</strong> starts from stated evidence confidence but penalizes sources that rely on internal stubs rather than real observations:</p>
                     <div class="r-equation">
@@ -157,7 +180,7 @@
                     </div>
 
                     <h3>From evidence to empirical resistance</h3>
-                    <p>The evidence hierarchy produces the empirical resistance term <code>R<sub>i</sub></code> used in the automation difficulty formula. For each task family, the model computes an empirical ease score by shrinking observed automation likelihood toward the occupation-level automation prior, then inverts it:</p>
+                    <p>The live difficulty engine produces the empirical resistance term <code>R<sub>i</sub></code> from the cluster prior layer. For each task family, the model computes an empirical ease score by shrinking the cluster's automation likelihood toward the occupation-level automation prior, then inverts it:</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Empirical resistance</div>
                         <div class="equation-display">$$e_i = \operatorname{shrink}\!\left(\operatorname{avg}(p_i^{\text{partial}},\, p_i^{\text{high}}),\;\theta_{\text{occ}}^{\text{auto}},\;\lambda_{\text{prior}},\;0.25\right)$$</div>
@@ -166,7 +189,7 @@
                     <p>where <code>p<sub>i</sub><sup>partial</sup></code> and <code>p<sub>i</sub><sup>high</sup></code> are the cluster&rsquo;s partial and high automation likelihoods, <code>&theta;<sub>occ</sub><sup>auto</sup></code> is the occupation-level automation score, and <code>&lambda;<sub>prior</sub></code> is the cluster&rsquo;s evidence reliability. When cluster evidence is strong, <code>R<sub>i</sub></code> reflects the cluster&rsquo;s own resistance. When evidence is weak, it falls back toward the occupation average.</p>
 
                     <h3>Human advantage</h3>
-                    <p>Each task family also carries a static human advantage score <code>h<sub>i</sub></code> that reflects how much the work type inherently depends on human presence, relationships, or embodied judgment. These are set per cluster type, ranging from 1.0 for client interaction and relationship management down to 0.05 for routine execution. The human advantage score enters the difficulty formula as <code>0.35h<sub>i</sub></code> and also interacts with function retention in the task-graph adjustment step.</p>
+                    <p>Each task family also carries a static human advantage score <code>h<sub>i</sub></code> that reflects how much the work type inherently depends on human presence, relationships, or embodied judgment. These are set per cluster type, ranging from 1.0 for client interaction and relationship management down to 0.05 for routine execution. The engine first scales this to <code>0.35h<sub>i</sub></code>, then applies the human-advantage weight inside the difficulty formula. Human advantage also interacts with function retention in the task-graph adjustment step.</p>
 
                     <h3>Cluster friction profiles</h3>
                     <p>Each task family has a baseline friction profile across five dimensions: exception burden, accountability load, judgment requirement, document intensity, and tacit context dependence. These baselines are then adjusted by the user&rsquo;s questionnaire responses using a delta-from-neutral blend:</p>
@@ -180,7 +203,7 @@
                     <p>The task inventory also contributes four signals per task family: <strong>bargaining power weight</strong> <code>B<sub>i</sub></code> (how much the task explains why the role exists), <strong>core share</strong> <code>C<sub>i</sub></code> (proportion of core-criticality tasks), <strong>value centrality</strong> <code>V<sub>i</sub></code> (how central the task is to the role&rsquo;s value delivery), and <strong>AI support observability</strong> <code>A<sub>i</sub></code> (how visible and measurable the task&rsquo;s output is to AI systems). These are averaged from the individual tasks within each family and feed into the difficulty and pressure formulas documented in subsequent sections.</p>
 
                     <h3>Evidence confidence at the task level</h3>
-                    <p>Each individual task in the role breakdown carries a composite evidence confidence that averages four signals: the cluster&rsquo;s evidence confidence, the task&rsquo;s source confidence from the inventory, the direct evidence confidence (if any), and the task-to-cluster mapping confidence. The model also tracks a binary <code>has_direct_evidence</code> flag and a <code>direct_coverage_ratio</code> at the role level, so the UI can communicate how much of the role has strong observational backing versus fallback estimates.</p>
+                    <p>Each individual task in the role breakdown carries a composite evidence confidence that averages four signals: the cluster&rsquo;s evidence confidence, the task&rsquo;s source confidence from the inventory, the direct evidence confidence (if any), and the task-to-cluster mapping confidence. The model also tracks a binary <code>has_direct_evidence</code> flag and a <code>direct_coverage_ratio</code> at the role level, so the UI can communicate how much of the role resolved to task-level evidence rather than proxy fallback. In the current engine, that same task-level reliability also decides whether the task gets a live difficulty and direct-pressure blend.</p>
                 </section>
 
                 <!-- 4. How it builds your role -->
@@ -243,7 +266,7 @@
                 <!-- 6. Absorption -->
                 <section id="absorption" class="r-method-section">
                     <h2>How the model decides which work is easier to absorb</h2>
-                    <p>Each task family gets an automation-difficulty score. This is not just "AI can do the task" versus "AI cannot." It is the model's estimate of how hard it is for organizations to actually absorb that work into workflows at scale, after accounting for retained function, evidence strength, and workflow friction.</p>
+                    <p>Each task family gets an automation-difficulty score. This is not just "AI can do the task" versus "AI cannot." It is the model's estimate of how hard it is for organizations to actually absorb that work into workflows at scale, after accounting for retained function, cluster-level evidence strength, and workflow friction.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Task-family friction</div>
                         <div class="equation-display">$$F_i = 0.25f^{\text{accountability}}_i + 0.22f^{\text{judgment}}_i + 0.22f^{\text{tacit}}_i + 0.18f^{\text{exception}}_i + 0.13(1-f^{\text{document}}_i)$$</div>
@@ -261,8 +284,12 @@
                         <div class="equation-display">$$D_i \leftarrow \operatorname{clamp}\!\left(D_i + 0.08,\,0.02,\,0.98\right) \quad \text{if task family is role-critical}$$</div>
                     </div>
                     <p><code>h_i</code> is human advantage, <code>R_i</code> is empirical resistance, <code>B_i</code> is bargaining-power weight, <code>C_i</code> is core-task share, <code>V_i</code> is value centrality, <code>A_i</code> is AI-support observability. The base step combines friction, human advantage, empirical resistance, and coupling protection. The second step adjusts for task-graph signals: tasks with high bargaining power or value centrality resist automation, while high AI-support observability and substitution risk lower difficulty. The criticality boost applies only to task families flagged as role-critical. Lower difficulty means the task family is easier to absorb sooner.</p>
-                    <p>The evidence underneath those estimates is layered. In the live browser scorer, the model prefers direct task evidence when it has it, then cluster priors, and only then the broader occupation prior. That is why some occupations are better supported than others.</p>
-                    <p>After that, each task family is placed into an approximate timing bucket: current wave, next wave, or distant wave.</p>
+                    <p>That cluster-family difficulty is still the baseline. The live scorer then projects it onto each active task row and lets reliable resolved task evidence alter the task&rsquo;s own difficulty before wave timing is recomputed at the cluster-summary level.</p>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Task difficulty blend</div>
+                        <div class="equation-display">$$D_t = \operatorname{clamp}\!\left((1-w_t^{\text{evidence}})\,D_{c(t)} + w_t^{\text{evidence}}(1-q_t^{\text{ease}}),\,0.02,\,0.98\right)$$</div>
+                    </div>
+                    <p>After that, each task row is placed into an approximate timing bucket: current wave, next wave, or distant wave. The public cluster wave timing is then recomputed from the task-derived cluster summaries rather than copied from the original cluster bundle.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Wave assignment</div>
                         <div class="equation-display">$$\text{wave}_i =
@@ -281,7 +308,7 @@
                         <div class="r-equation-label">Absorption rate</div>
                         <div class="equation-display">$$a_i = \operatorname{clamp}\!\left(\text{adoptionRealization}\,(1 - 0.3D_i)\,(0.92 + 0.10A_i - 0.06C_i)\,(1 - 0.10\,\text{dependencyBottlenecks})\,(1 - 0.08\,\text{signoff}),\,0.45,\,0.95\right)$$</div>
                     </div>
-                    <p>The absorbed share for each task family is then <code>share_of_role × absorption_rate</code> for current-wave families. This feeds directly into the recomposition layer's workflow compression estimate.</p>
+                    <p>The task rows use the same basic absorption logic after the task-level difficulty blend, and the cluster-level wave engine then recomputes retained share and elevation from the task-derived cluster bundle. The absorbed share in the current wave feeds directly into the recomposition layer's workflow compression estimate.</p>
                 </section>
 
                 <!-- 7. Risk & spillover -->
@@ -301,13 +328,20 @@
                     <p>If you manually edit a task's share in the role graph, the model substitutes your edited share before this normalization step. The live UI does not currently expose separate dominant-task, critical-task, or AI-support toggles, so the browser path does not apply extra task multipliers beyond the edited share itself.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Task pressure</div>
-                        <div class="equation-display">$$p_t^{\text{direct}} = \operatorname{clamp}\!\left(0.68(1-D_{c(t)}) + 0.20\alpha_{c(t)} + 0.12A_t,\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$p_{t,\text{base}}^{\text{direct}} = \operatorname{clamp}\!\left(0.68(1-D_t) + 0.20\alpha_{c(t)} + 0.12A_t,\,0,\,1\right)$$</div>
+                        <div class="equation-display">$$p_t^{\text{direct}} = (1-w_t^{\text{evidence}})\,p_{t,\text{base}}^{\text{direct}} + w_t^{\text{evidence}}\,q_t^{\text{direct}}$$</div>
                         <div class="equation-display">$$p_t^{\text{spill}} = \sum_{(t,u)\in \mathcal{D}^{*}} d_{tu}\, p_u^{\text{direct}} \max(V_u,B_u)$$</div>
                     </div>
                     <p>The flow is: current task mix &rarr; direct pressure on exposed tasks &rarr; spillover into support tasks &rarr; surviving leverage among the tasks still tied to core functions. That is why the model is more useful than a simple "can AI do this function?" thought exercise. Looking only at functions is too coarse; looking only at tasks overstates replacement. The model uses both layers to ask whether a coherent human-owned role remains after pressure moves through the task map.</p>
                     <div class="r-equation">
                         <div class="r-equation-label">Retained leverage</div>
                         <div class="equation-display">$$L_t = \operatorname{clamp}\!\left(B_t(1-p_t^{\text{direct}})(1-p_t^{\text{spill}}) + 0.10\mathbf{1}[t\in \text{core}] + 0.60\,\text{elevationBoost}_t,\,0,\,1\right)$$</div>
+                    </div>
+                    <p>After the task table is scored, the live app now aggregates those task rows back into cluster summaries for the public cluster layer and recomputes the wave engine from that task-derived bundle. So the visible top exposed cluster, exposed-cluster list, retained-cluster list, elevated-cluster list, and wave cards are now task-derived rather than untouched copies of the pre-task cluster bundle.</p>
+                    <div class="r-equation">
+                        <div class="r-equation-label">Task-derived cluster summary</div>
+                        <div class="equation-display">$$\bar p_i^{\text{direct}} = \frac{\sum_{t \in i} s_t\,p_t^{\text{direct}}}{\sum_{t \in i} s_t}, \qquad \bar p_i^{\text{spill}} = \frac{\sum_{t \in i} s_t\,p_t^{\text{spill}}}{\sum_{t \in i} s_t}$$</div>
+                        <div class="equation-display">$$\text{exposedShare}_i = \sum_{t \in i} \text{exposedShare}_t, \qquad \text{retainedShare}_i = \sum_{t \in i} \text{retainedShare}_t$$</div>
                     </div>
                     <p>The task graph also produces role-level summary scores:</p>
                     <ul>
@@ -316,7 +350,7 @@
                         <li><code>retained_leverage_score</code></li>
                         <li><code>residual_role_integrity</code></li>
                         <li><code>exposed_core_share</code> and <code>retained_core_share</code></li>
-                        <li><code>direct_coverage_ratio</code>, which shows how much of the task graph has direct task evidence rather than fallback estimates</li>
+                        <li><code>direct_coverage_ratio</code>, which shows how much of the task graph resolved to task-level evidence rather than proxy fallback</li>
                     </ul>
                     <p>Those task-graph signals do most of the real explanatory work on the page. The explanation panel is now generated from the current live run, so when you edit tasks, functions, support links, or task-to-function links, the explanation updates with the same pressure and counterweight logic used by the scorer. The composition editor exposes part of that logic earlier by showing the top function links for each selected task and by letting you add a few support links or task-to-function links when the default graph misses an obvious connection.</p>
                 </section>

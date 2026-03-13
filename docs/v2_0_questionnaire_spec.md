@@ -5,6 +5,7 @@
 This is a supporting reference doc, not the main planning doc.
 
 For current model status, roadmap, and next steps, read:
+- `docs/README.md`
 - `docs/role_transformation_overhaul_plan.md`
 
 ## Purpose

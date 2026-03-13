@@ -126,17 +126,122 @@ async function main() {
   }
 
   result.task_breakdown.tasks.slice(0, 10).forEach((task, index) => {
+    assertBounded(`task_breakdown.tasks[${index}].automation_difficulty`, task.automation_difficulty);
+    assertBounded(`task_breakdown.tasks[${index}].automation_difficulty_baseline`, task.automation_difficulty_baseline);
+    assertBounded(`task_breakdown.tasks[${index}].automation_difficulty_task_first_weight`, task.automation_difficulty_task_first_weight);
+    assertBounded(`task_breakdown.tasks[${index}].automation_difficulty_evidence_weight`, task.automation_difficulty_evidence_weight);
+    if (!['cluster_priors', 'task_first_cluster_evidence', 'task_first_resolved_evidence'].includes(task.automation_difficulty_baseline_source)) {
+      throw new Error(`Expected task_breakdown.tasks[${index}].automation_difficulty_baseline_source to expose the live baseline path.`);
+    }
     assertBounded(`task_breakdown.tasks[${index}].direct_exposure_pressure`, task.direct_exposure_pressure);
+    assertBounded(`task_breakdown.tasks[${index}].direct_pressure_baseline`, task.direct_pressure_baseline);
     assertBounded(`task_breakdown.tasks[${index}].indirect_dependency_pressure`, task.indirect_dependency_pressure);
     assertBounded(`task_breakdown.tasks[${index}].retained_leverage`, task.retained_leverage);
+    assertBounded(`task_breakdown.tasks[${index}].direct_pressure_evidence_weight`, task.direct_pressure_evidence_weight);
+    if (task.direct_pressure_evidence_signal !== null) {
+      assertBounded(`task_breakdown.tasks[${index}].direct_pressure_evidence_signal`, task.direct_pressure_evidence_signal);
+    }
   });
+
+  const evidenceAdjustedTasks = result.task_breakdown.tasks.filter((task) => Number(task.direct_pressure_evidence_weight) > 0);
+  if (!evidenceAdjustedTasks.length) {
+    throw new Error('Expected at least one task to receive direct task-evidence pressure blending.');
+  }
+  evidenceAdjustedTasks.forEach((task, index) => {
+    if (task.direct_pressure_source !== 'resolved_task_evidence') {
+      throw new Error(`Expected evidence-adjusted task ${index} to be labeled as resolved_task_evidence.`);
+    }
+  });
+  const materiallyShiftedTask = evidenceAdjustedTasks.find((task) => {
+    return Math.abs(Number(task.direct_exposure_pressure) - Number(task.direct_pressure_baseline)) >= 0.01;
+  });
+  if (!materiallyShiftedTask) {
+    throw new Error('Expected direct task evidence blending to materially shift at least one task direct pressure.');
+  }
+  const automationAdjustedTasks = result.task_breakdown.tasks.filter((task) => Number(task.automation_difficulty_evidence_weight) > 0);
+  if (!automationAdjustedTasks.length) {
+    throw new Error('Expected at least one task to receive direct task-evidence difficulty blending.');
+  }
+  automationAdjustedTasks.forEach((task, index) => {
+    if (!['resolved_task_evidence', 'task_first_resolved_evidence'].includes(task.automation_difficulty_source)) {
+      throw new Error(`Expected automation-adjusted task ${index} to be labeled as a task-evidence-driven source.`);
+    }
+  });
+  const materiallyShiftedDifficultyTask = automationAdjustedTasks.find((task) => {
+    return Math.abs(Number(task.automation_difficulty) - Number(task.automation_difficulty_baseline)) >= 0.01;
+  });
+  if (!materiallyShiftedDifficultyTask) {
+    throw new Error('Expected direct task evidence blending to materially shift at least one task automation difficulty.');
+  }
+  const benchmarkResolvedTask = result.task_breakdown.tasks.find((task) => {
+    return task.resolved_evidence_source_role === 'benchmark_task_label' &&
+      Number(task.automation_difficulty_evidence_weight) > 0;
+  });
+  if (!benchmarkResolvedTask) {
+    throw new Error('Expected benchmark task labels to participate in the task-evidence resolver for at least one active task.');
+  }
+  if ((result.diagnostics.task_first_task_count || 0) < 1) {
+    throw new Error('Expected diagnostics.task_first_task_count to report at least one task-first task baseline.');
+  }
+  if ((result.evidence_summary?.source_coverage?.task_first_task_rows || 0) < 1) {
+    throw new Error('Expected source_coverage.task_first_task_rows to report task-first task baseline usage.');
+  }
+  if (!result.task_breakdown.tasks.some((task) => task.automation_difficulty_baseline_source === 'task_first_resolved_evidence')) {
+    throw new Error('Expected at least one task row to use task_first_resolved_evidence as its baseline source.');
+  }
 
   assertBounded('diagnostics.direct_exposure_pressure', result.diagnostics.direct_exposure_pressure);
   assertBounded('diagnostics.indirect_dependency_pressure', result.diagnostics.indirect_dependency_pressure);
   assertBounded('diagnostics.residual_role_integrity', result.diagnostics.residual_role_integrity);
+  if ((result.diagnostics.task_evidence_adjusted_tasks || 0) < 1) {
+    throw new Error('Expected diagnostics.task_evidence_adjusted_tasks to report at least one adjusted task.');
+  }
 
   if (!result.role_fate_label) {
     throw new Error('Expected role_fate_label in result payload.');
+  }
+
+  if (!result.transformation_map?.current_bundle?.length) {
+    throw new Error('Expected transformation_map.current_bundle in result payload.');
+  }
+  const sampleCluster = result.transformation_map.current_bundle[0];
+  [
+    'share_of_role',
+    'automation_difficulty',
+    'absorption_rate',
+    'direct_exposure_pressure',
+    'indirect_dependency_pressure',
+    'retained_leverage',
+    'exposed_share',
+    'retained_share'
+  ].forEach((key) => {
+    assertBounded(`transformation_map.current_bundle[0].${key}`, sampleCluster[key]);
+  });
+  if (sampleCluster.summary_source !== 'task_aggregated') {
+    throw new Error('Expected transformation_map cluster summaries to be task_aggregated.');
+  }
+  if (!['cluster_priors', 'task_first_cluster_evidence'].includes(sampleCluster.baseline_difficulty_source)) {
+    throw new Error('Expected transformation_map cluster summaries to expose the baseline difficulty source.');
+  }
+  assertBounded('transformation_map.current_bundle[0].task_first_weight', sampleCluster.task_first_weight);
+  if (typeof sampleCluster.task_first_task_count !== 'number' || sampleCluster.task_first_task_count < 0) {
+    throw new Error('Expected transformation_map cluster summaries to expose task_first_task_count.');
+  }
+  if (sampleCluster.wave_assignment_source !== 'task_aggregated') {
+    throw new Error('Expected transformation_map cluster wave assignments to be task_aggregated.');
+  }
+  if (!String(sampleCluster.automation_difficulty_source || '').startsWith('task_aggregated')) {
+    throw new Error('Expected transformation_map cluster automation difficulty to be task-aggregated.');
+  }
+  if (![
+    'task_aggregated_cluster_model',
+    'task_aggregated_resolved_task_evidence',
+    'task_aggregated_task_first_resolved_evidence'
+  ].includes(sampleCluster.automation_difficulty_source)) {
+    throw new Error('Expected transformation_map cluster automation difficulty source to expose the live task-derived source path.');
+  }
+  if (result.top_exposed_work && !result.transformation_map.exposed_clusters.some((cluster) => cluster.task_cluster_id === result.top_exposed_work.task_cluster_id)) {
+    throw new Error('Expected top_exposed_work to come from the task-derived exposed cluster summaries.');
   }
 
   if (!result.occupation_explanation) {
@@ -190,6 +295,43 @@ async function main() {
   assertBounded('taskDrivenResult.role_fate_confidence', taskDrivenResult.role_fate_confidence);
   if ((taskDrivenResult.occupation_explanation?.function_anchor_count || 0) !== activeFunctionCount) {
     throw new Error('Expected live occupation explanation to reflect the edited active function count.');
+  }
+
+  const reviewedEvidenceResult = engine.computeResult({
+    occupationId: 'occ_13_1199_00',
+    seniorityLevel: 3
+  });
+  const reviewedResolvedTask = reviewedEvidenceResult.task_breakdown.tasks.find((task) => {
+    return task.resolved_evidence_source_role === 'reviewed_task_estimate' &&
+      Number(task.automation_difficulty_evidence_weight) > 0 &&
+      ['resolved_task_evidence', 'task_first_resolved_evidence'].includes(task.automation_difficulty_source);
+  });
+  if (!reviewedResolvedTask) {
+    throw new Error('Expected reviewed task estimates to participate in the task-evidence resolver for reviewed-gap occupations.');
+  }
+  if ((reviewedEvidenceResult.evidence_summary?.source_coverage?.reviewed_task_estimate_rows || 0) < 1) {
+    throw new Error('Expected source_coverage.reviewed_task_estimate_rows to report reviewed task evidence usage.');
+  }
+  if ((reviewedEvidenceResult.diagnostics?.task_first_cluster_count || 0) < 1) {
+    throw new Error('Expected diagnostics.task_first_cluster_count to report at least one task-first cluster baseline.');
+  }
+  if ((reviewedEvidenceResult.evidence_summary?.source_coverage?.task_first_cluster_rows || 0) < 1) {
+    throw new Error('Expected source_coverage.task_first_cluster_rows to report task-first cluster baseline usage.');
+  }
+  if (!reviewedEvidenceResult.transformation_map.current_bundle.some((cluster) => cluster.baseline_difficulty_source === 'task_first_cluster_evidence')) {
+    throw new Error('Expected reviewed evidence scenario to expose at least one task_first_cluster_evidence cluster baseline.');
+  }
+  if (!reviewedEvidenceResult.task_breakdown.tasks.some((task) => ['task_first_cluster_evidence', 'task_first_resolved_evidence'].includes(task.automation_difficulty_baseline_source))) {
+    throw new Error('Expected reviewed evidence scenario to project a task-first baseline onto at least one task row.');
+  }
+  if ((reviewedEvidenceResult.diagnostics?.task_first_task_count || 0) < 1) {
+    throw new Error('Expected diagnostics.task_first_task_count to report at least one task-first task baseline in the reviewed evidence scenario.');
+  }
+  if (!reviewedEvidenceResult.task_breakdown.tasks.some((task) => task.automation_difficulty_baseline_source === 'task_first_resolved_evidence')) {
+    throw new Error('Expected reviewed evidence scenario to promote at least one task into the task-first task baseline path.');
+  }
+  if (!reviewedEvidenceResult.transformation_map.current_bundle.some((cluster) => cluster.automation_difficulty_source === 'task_aggregated_task_first_resolved_evidence')) {
+    throw new Error('Expected reviewed evidence scenario to expose task_aggregated_task_first_resolved_evidence at the cluster summary layer.');
   }
 
   const shareOverrideTaskId = roleComposition.defaults.task_ids[0];

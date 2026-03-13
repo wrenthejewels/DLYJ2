@@ -58,5 +58,14 @@ This layer is designed so the live v2.x model can answer:
 - how viable the residual role remains
 - how adaptable the worker is relative to transformed role states
 
+Current live scoring note:
+- `task_augmentation_automation_priors.csv` and `occupation_exposure_priors.csv` still provide the fallback baseline difficulty anchor in the browser scorer
+- `task_source_evidence.csv` is now the runtime task-evidence resolver layer: it promotes live task evidence, reviewed task estimates, and benchmark task labels ahead of proxy fallback
+- clusters with strong enough resolved task-evidence coverage can now shift their baseline difficulty toward task evidence before that baseline is projected onto task rows
+- high-reliability task rows can now promote further into a task-first task baseline before residual evidence blending
+- `task_exposure_evidence.csv` now primarily feeds the `live_task_evidence` tier inside that resolver and preserves Anthropic-specific observation metadata such as usage share
+- task-level evidence rows continue to feed evidence confidence and `direct_coverage_ratio` even when they do not clear that threshold
+- task-derived cluster summaries now drive the public cluster layer and the live wave trajectory
+
 See `docs/data/task_role_graph_contract.md` for the first-step contract behind the role-fate redesign.
 See `docs/data/role_transformation_contract.md` for the first-pass function and role-transformation layer.

@@ -5,6 +5,7 @@
 This is a supporting contract doc, not the main planning doc.
 
 For current model status, roadmap, and next steps, read:
+- `docs/README.md`
 - `docs/role_transformation_overhaul_plan.md`
 
 ## Purpose
@@ -59,6 +60,63 @@ Current columns:
 - `Retained leverage`
 
 These columns are derived from task-level signals, not directly returned as a first-class `role_fate_map` object from the engine.
+
+## Current Task-Evidence Behavior
+
+The live engine is now hybrid rather than a pure cluster-only path:
+
+1. a prior-based cluster baseline is still computed from cluster priors shrunk toward the occupation exposure prior
+2. before task rows are scored, clusters with strong enough resolved task-evidence coverage can shift that baseline toward a task-first cluster evidence estimate
+3. that resulting cluster baseline is projected onto active task rows as the fallback starting task-difficulty model
+4. `task_source_evidence.csv` resolves each task's best available task-level evidence using source precedence
+5. tasks with high enough task-level evidence reliability can now promote into a task-first task baseline before any residual task-evidence blending is applied
+6. any remaining reliable resolved task evidence can still blend into task `automation_difficulty`
+7. task-level direct pressure is then computed from that task-level difficulty
+8. reliable resolved task evidence can also blend into the task's final `direct_exposure_pressure`
+
+Current blend rule:
+- resolved task evidence only affects task difficulty or task pressure when `direct_evidence_reliability > 0.20`
+- the evidence blend weight is capped at `0.85`
+- the cluster-baseline task-first path only activates when cluster-level task evidence clears the runtime coverage and reliability thresholds
+- the task-baseline task-first path only activates when task-level evidence reliability exceeds `0.45`
+- the task-level source precedence is:
+  - `live_task_evidence`
+  - `reviewed_task_estimate`
+  - `benchmark_task_label`
+  - `cluster_prior_proxy`
+  - `fallback_task_proxy`
+- when more than one promoted task-level source is available, the runtime resolves a weighted task-level consensus using source reliability, `evidence_weight`, and source-role multipliers before applying the blend
+- `cluster_prior_proxy` and `fallback_task_proxy` remain fallback metadata and do not themselves receive a task-evidence blend weight in the current runtime
+- the task-ease signal used for `automation_difficulty` is:
+  - `0.65 * automation_score`
+  - `0.25 * exposure_score`
+  - `0.10 * augmentation_score`
+- the direct-pressure signal used for `direct_exposure_pressure` is:
+  - `0.50 * automation_score`
+  - `0.35 * exposure_score`
+  - `0.15 * augmentation_score`
+
+This means the live browser scorer is no longer purely Anthropic-or-cluster at the task layer. It now resolves multiple task-level evidence tiers, can promote them into both a coverage-aware task-first cluster baseline and a task-first task baseline, and then still falls back to cluster priors where task evidence is thin. It still is not a universal pure per-task prior model, because low-coverage tasks remain cluster-seeded.
+
+## Current Cluster-Summary Behavior
+
+The live engine now derives public cluster summaries from the scored task rows when `task_breakdown` is available.
+
+Current flow:
+1. score task rows
+2. aggregate task rows back into task-derived cluster summaries
+3. recompute public wave timing from that task-derived cluster bundle
+4. use those summaries for:
+   - `top_exposed_work`
+   - `role_defining_work` retained-share updates
+   - `transformation_map.current_bundle`
+   - `transformation_map.exposed_clusters`
+   - `transformation_map.retained_clusters`
+   - `transformation_map.elevated_clusters`
+   - `wave_trajectory`
+   - `primary_displacement_wave`
+
+This means the public cluster layer and public wave engine now reflect task-level difficulty blending, task-level direct-evidence pressure blending, and task-level spillover instead of relying only on the pre-task cluster bundle.
 
 ## Current Narrative Contract
 
@@ -279,8 +337,17 @@ type RoleTaskRow = {
   share_of_role: number
   selection_multiplier: number
   automation_difficulty: number
+  automation_difficulty_baseline: number
+  automation_difficulty_baseline_source: 'cluster_priors' | 'task_first_cluster_evidence' | 'task_first_resolved_evidence'
+  automation_difficulty_task_first_weight: number
+  automation_difficulty_evidence_weight: number
+  automation_difficulty_source: 'cluster_model' | 'resolved_task_evidence' | 'task_first_resolved_evidence'
   wave_assignment: 'current' | 'next' | 'distant'
   direct_exposure_pressure: number
+  direct_pressure_baseline: number
+  direct_pressure_evidence_signal: number | null
+  direct_pressure_evidence_weight: number
+  direct_pressure_source: 'cluster_model' | 'resolved_task_evidence'
   indirect_dependency_pressure: number
   value_centrality: number
   bargaining_power_weight: number
@@ -294,6 +361,13 @@ type RoleTaskRow = {
   evidence_source: string | null
   observed_usage_share: number
   has_direct_evidence: boolean
+  has_live_task_evidence: boolean
+  resolved_evidence_source_role: string | null
+  resolved_evidence_promotion_status: string | null
+  resolved_evidence_source_count: number
+  resolved_evidence_task_source_count: number
+  resolved_evidence_supporting_source_ids: string[]
+  resolved_evidence_supporting_roles: string[]
   is_role_critical: boolean
   is_user_selected_dominant: boolean
   is_user_selected_critical: boolean
@@ -306,6 +380,42 @@ type RoleTaskRow = {
   exposure_score: number
   exposure_level: 'low' | 'moderate' | 'high'
   likely_mode: 'automation' | 'augmentation' | 'mixed'
+}
+```
+
+`ClusterRow` in the current live result is now effectively a task-derived cluster summary with fields including:
+
+```ts
+type ClusterRow = {
+  task_cluster_id: string
+  label: string
+  share_of_role: number
+  automation_difficulty: number
+  automation_difficulty_source: 'task_aggregated_cluster_model' | 'task_aggregated_resolved_task_evidence' | 'task_aggregated_task_first_resolved_evidence'
+  baseline_difficulty_source: 'cluster_priors' | 'task_first_cluster_evidence'
+  task_first_weight: number
+  task_evidence_coverage_ratio: number
+  task_evidence_mean_reliability: number
+  resolved_task_evidence_count: number
+  wave_assignment: 'current' | 'next' | 'distant'
+  wave_assignment_source: 'task_aggregated'
+  absorption_rate: number
+  direct_exposure_pressure: number
+  indirect_dependency_pressure: number
+  retained_leverage: number
+  evidence_confidence: number
+  exposure_score: number
+  exposure_level: 'low' | 'moderate' | 'high'
+  exposed_share: number
+  retained_share: number
+  residual_relevance: number
+  elevation_boost: number
+  absorbed_share: number
+  is_role_critical: boolean
+  direct_evidence_task_count: number
+  task_first_task_count: number
+  task_evidence_adjusted_tasks: number
+  summary_source: 'task_aggregated'
 }
 ```
 
@@ -336,6 +446,22 @@ The live model page now usually produces this payload through `getRoleCompositio
 
 The engine also exposes an occupation-scoped composition baseline through `getRoleComposition(occupationId)`, with source-bucketed tasks plus function anchors for the editor.
 That baseline now includes the reviewed task-to-function graph for both display and live scoring; custom task-to-function links are additive overrides rather than the only function links the scorer sees.
+
+Current counter meaning:
+- `task_breakdown.direct_evidence_tasks` now means active tasks resolved to a task-level evidence tier (`live_task_evidence`, `reviewed_task_estimate`, or `benchmark_task_label`), not only Anthropic-backed rows.
+- `task_breakdown.cluster_fallback_tasks` means active tasks that still fall back to proxy-only resolution.
+
+Current supporting counters:
+- `evidence_summary.source_coverage.task_evidence_adjusted_rows` = how many active task rows actually received a resolved-task-evidence blend
+- `diagnostics.task_evidence_adjusted_tasks` = matching engine-level counter for the same runtime behavior
+- `evidence_summary.source_coverage.task_first_cluster_rows` = how many active cluster baselines promoted into the coverage-aware task-first path
+- `diagnostics.task_first_cluster_count` = matching engine-level counter for that cluster-baseline behavior
+- `evidence_summary.source_coverage.task_first_task_rows` = how many active task rows promoted into the task-first task baseline path
+- `diagnostics.task_first_task_count` = matching engine-level counter for that task-baseline behavior
+- `evidence_summary.source_coverage.live_task_evidence_rows` = how many active task rows resolved primarily to Anthropic live task evidence
+- `evidence_summary.source_coverage.reviewed_task_estimate_rows` = how many active task rows resolved primarily to reviewed task estimates
+- `evidence_summary.source_coverage.benchmark_task_label_rows` = how many active task rows resolved primarily to benchmark task labels
+- `evidence_summary.source_coverage.cluster_proxy_rows` = how many active task rows still fall back to cluster proxy resolution
 
 ## Structural Scores Now Used Publicly
 
@@ -369,6 +495,7 @@ Still not implemented as first-class result objects:
 - explicit `split_risk`, `collapse_risk`, or `elevation_potential` fields
 - source drill-down at the task-row UI level
 - weighted user-entered task shares
+- universal per-task priors; the current live build now has both task-first cluster baselines and task-first task baselines, but low-coverage tasks still inherit a cluster-seeded fallback path
 
 Still implemented as transitional compatibility surfaces:
 - `role_outlook`

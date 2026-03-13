@@ -21,6 +21,7 @@
         taskFunctionEdges: 'data/normalized/task_function_edges.csv',
         taskMembership: 'data/normalized/task_cluster_membership.csv',
         taskEvidence: 'data/normalized/task_exposure_evidence.csv',
+        taskSourceEvidence: 'data/normalized/task_source_evidence.csv',
         taskPriors: 'data/normalized/task_augmentation_automation_priors.csv',
         occupationPriors: 'data/normalized/occupation_exposure_priors.csv',
         laborContext: 'data/normalized/occupation_labor_market_context.csv',
@@ -162,7 +163,14 @@
         adoptionRealizationBase: 0.92,
         adoptionRealizationScale: 0.16,
         dependencyPenaltyScale: 1.10,
-        recompositionCouplingPenalty: 0.20
+        recompositionCouplingPenalty: 0.20,
+        directTaskEvidenceBlendThreshold: 0.20,
+        maxDirectTaskEvidenceBlendWeight: 0.85,
+        taskFirstTaskReliabilityThreshold: 0.45,
+        maxTaskFirstTaskWeight: 1.00,
+        taskFirstClusterCoverageThreshold: 0.35,
+        taskFirstClusterReliabilityThreshold: 0.30,
+        maxTaskFirstClusterWeight: 0.90
     };
 
     function clamp(value, min, max) {
@@ -257,6 +265,368 @@
         return clamp(confidence * countWeight, 0.05, 0.98);
     }
 
+    function taskSourceRolePriority(sourceRole) {
+        switch (sourceRole) {
+            case 'live_task_evidence': return 5;
+            case 'reviewed_task_estimate': return 4;
+            case 'benchmark_task_label': return 3;
+            case 'cluster_prior_proxy': return 2;
+            case 'fallback_task_proxy': return 1;
+            default: return 0;
+        }
+    }
+
+    function taskSourcePromotionPriority(promotionStatus) {
+        switch (promotionStatus) {
+            case 'active_live': return 4;
+            case 'active_supporting': return 3;
+            case 'backstop_only': return 2;
+            case 'fallback_only': return 1;
+            case 'benchmark_only': return 1;
+            default: return 0;
+        }
+    }
+
+    function taskSourceBlendMultiplier(sourceRole) {
+        switch (sourceRole) {
+            case 'live_task_evidence': return 1.00;
+            case 'reviewed_task_estimate': return 0.88;
+            case 'benchmark_task_label': return 0.74;
+            case 'cluster_prior_proxy': return 0.22;
+            case 'fallback_task_proxy': return 0.12;
+            default: return 0.35;
+        }
+    }
+
+    function isTaskLevelEvidenceSource(sourceRole) {
+        return sourceRole === 'live_task_evidence' ||
+            sourceRole === 'reviewed_task_estimate' ||
+            sourceRole === 'benchmark_task_label';
+    }
+
+    function estimateTaskSourceEvidenceReliability(sourceEvidence, liveEvidence) {
+        if (!sourceEvidence) {
+            return 0;
+        }
+
+        var sourceRole = sourceEvidence.source_role || '';
+        if (sourceRole === 'live_task_evidence' && liveEvidence) {
+            return estimateTaskEvidenceReliability(liveEvidence);
+        }
+
+        var confidence = clamp(toNumber(sourceEvidence.confidence, 0.55), 0, 1);
+        var evidenceWeight = clamp(toNumber(sourceEvidence.evidence_weight, 0.5), 0.05, 1);
+        var roleFactor = sourceRole === 'reviewed_task_estimate'
+            ? 0.88
+            : sourceRole === 'benchmark_task_label'
+                ? 0.76
+                : sourceRole === 'cluster_prior_proxy'
+                    ? 0.42
+                    : sourceRole === 'fallback_task_proxy'
+                        ? 0.25
+                        : 0.55;
+        var promotionFactor = sourceEvidence.promotion_status === 'active_live'
+            ? 1.00
+            : sourceEvidence.promotion_status === 'active_supporting'
+                ? 0.90
+                : sourceEvidence.promotion_status === 'backstop_only'
+                    ? 0.55
+                    : sourceEvidence.promotion_status === 'fallback_only'
+                        ? 0.38
+                        : 0.60;
+
+        return clamp(confidence * (0.55 + (evidenceWeight * 0.45)) * roleFactor * promotionFactor, 0.02, 0.95);
+    }
+
+    function computeTaskEvidenceBlendWeight(reliability) {
+        var threshold = clamp(toNumber(SCORING_CONFIG.directTaskEvidenceBlendThreshold, 0.20), 0, 0.95);
+        var maxWeight = clamp(toNumber(SCORING_CONFIG.maxDirectTaskEvidenceBlendWeight, 0.85), 0, 1);
+        var normalizedReliability = clamp(toNumber(reliability, 0), 0, 1);
+        if (normalizedReliability <= threshold) {
+            return 0;
+        }
+        return clamp(((normalizedReliability - threshold) / Math.max(0.0001, 1 - threshold)) * maxWeight, 0, maxWeight);
+    }
+
+    function computeDirectTaskEvidenceSignal(evidence, fallbackSignal) {
+        if (!evidence) {
+            return clamp(toNumber(fallbackSignal, 0), 0, 1);
+        }
+
+        var automationScore = toNumber(evidence.automation_score, null);
+        var exposureScore = toNumber(evidence.exposure_score, null);
+        var augmentationScore = toNumber(evidence.augmentation_score, null);
+        var weightedTotal = 0;
+        var totalWeight = 0;
+
+        if (automationScore !== null) {
+            weightedTotal += clamp(automationScore, 0, 1) * 0.50;
+            totalWeight += 0.50;
+        }
+        if (exposureScore !== null) {
+            weightedTotal += clamp(exposureScore, 0, 1) * 0.35;
+            totalWeight += 0.35;
+        }
+        if (augmentationScore !== null) {
+            weightedTotal += clamp(augmentationScore, 0, 1) * 0.15;
+            totalWeight += 0.15;
+        }
+
+        var weightedSignal = totalWeight > 0 ? (weightedTotal / totalWeight) : null;
+
+        if (weightedSignal === null || !isFinite(weightedSignal) || weightedSignal <= 0) {
+            return clamp(toNumber(fallbackSignal, 0), 0, 1);
+        }
+
+        return clamp(weightedSignal, 0, 1);
+    }
+
+    function computeTaskEvidenceAutomationEase(evidence, fallbackEase) {
+        if (!evidence) {
+            return clamp(toNumber(fallbackEase, 0), 0, 1);
+        }
+
+        var automationScore = toNumber(evidence.automation_score, null);
+        var exposureScore = toNumber(evidence.exposure_score, null);
+        var augmentationScore = toNumber(evidence.augmentation_score, null);
+        var weightedTotal = 0;
+        var totalWeight = 0;
+
+        if (automationScore !== null) {
+            weightedTotal += clamp(automationScore, 0, 1) * 0.65;
+            totalWeight += 0.65;
+        }
+        if (exposureScore !== null) {
+            weightedTotal += clamp(exposureScore, 0, 1) * 0.25;
+            totalWeight += 0.25;
+        }
+        if (augmentationScore !== null) {
+            weightedTotal += clamp(augmentationScore, 0, 1) * 0.10;
+            totalWeight += 0.10;
+        }
+
+        var weightedSignal = totalWeight > 0 ? (weightedTotal / totalWeight) : null;
+        if (weightedSignal === null || !isFinite(weightedSignal)) {
+            return clamp(toNumber(fallbackEase, 0), 0, 1);
+        }
+
+        return clamp(weightedSignal, 0, 1);
+    }
+
+    function resolveTaskEvidence(options) {
+        var sourceRows = Array.isArray(options && options.taskSourceEvidenceRows)
+            ? options.taskSourceEvidenceRows.slice()
+            : [];
+        var liveEvidence = options && options.liveEvidence ? options.liveEvidence : null;
+        var baselineAutomationScore = clamp(toNumber(options && options.baselineAutomationScore, 0.5), 0, 1);
+        var baselineExposureScore = clamp(toNumber(options && options.baselineExposureScore, baselineAutomationScore), 0, 1);
+        var baselineAugmentationScore = clamp(toNumber(options && options.baselineAugmentationScore, 0.3), 0, 1);
+
+        if (!sourceRows.length && liveEvidence) {
+            sourceRows.push({
+                source_id: liveEvidence.source_id,
+                source_role: 'live_task_evidence',
+                exposure_score: liveEvidence.exposure_score,
+                augmentation_score: liveEvidence.augmentation_score,
+                automation_score: liveEvidence.automation_score,
+                evidence_weight: 1,
+                confidence: liveEvidence.confidence,
+                promotion_status: 'active_live',
+                notes: liveEvidence.notes || ''
+            });
+        }
+
+        var rankedRows = sourceRows.map(function (row) {
+            var reliability = estimateTaskSourceEvidenceReliability(
+                row,
+                row && row.source_role === 'live_task_evidence' ? liveEvidence : null
+            );
+            var evidenceWeight = clamp(toNumber(row && row.evidence_weight, 0.5), 0.05, 1);
+            var supportWeight = reliability * evidenceWeight * taskSourceBlendMultiplier(row && row.source_role);
+
+            return {
+                row: row,
+                reliability: reliability,
+                evidence_weight: evidenceWeight,
+                support_weight: supportWeight,
+                role_priority: taskSourceRolePriority(row && row.source_role),
+                promotion_priority: taskSourcePromotionPriority(row && row.promotion_status)
+            };
+        }).sort(function (left, right) {
+            if (right.role_priority !== left.role_priority) {
+                return right.role_priority - left.role_priority;
+            }
+            if (right.promotion_priority !== left.promotion_priority) {
+                return right.promotion_priority - left.promotion_priority;
+            }
+            if (right.reliability !== left.reliability) {
+                return right.reliability - left.reliability;
+            }
+            return right.evidence_weight - left.evidence_weight;
+        });
+
+        var taskLevelRows = rankedRows.filter(function (entry) {
+            return isTaskLevelEvidenceSource(entry.row && entry.row.source_role) && entry.support_weight > 0;
+        });
+        var primaryEntry = taskLevelRows[0] || rankedRows[0] || null;
+        var resolvedFromTaskEvidence = taskLevelRows.length > 0;
+        var resolvedSignals;
+        var resolvedReliability = 0;
+
+        if (resolvedFromTaskEvidence) {
+            resolvedSignals = {
+                automation_score: weightedAverage(taskLevelRows, function (entry) {
+                    return toNumber(entry.row && entry.row.automation_score, baselineAutomationScore);
+                }, 'support_weight'),
+                exposure_score: weightedAverage(taskLevelRows, function (entry) {
+                    return toNumber(entry.row && entry.row.exposure_score, baselineExposureScore);
+                }, 'support_weight'),
+                augmentation_score: weightedAverage(taskLevelRows, function (entry) {
+                    return toNumber(entry.row && entry.row.augmentation_score, baselineAugmentationScore);
+                }, 'support_weight')
+            };
+            resolvedReliability = clamp(weightedAverage(taskLevelRows, 'reliability', 'support_weight'), 0.02, 0.98);
+        } else {
+            resolvedSignals = primaryEntry ? {
+                automation_score: toNumber(primaryEntry.row && primaryEntry.row.automation_score, baselineAutomationScore),
+                exposure_score: toNumber(primaryEntry.row && primaryEntry.row.exposure_score, baselineExposureScore),
+                augmentation_score: toNumber(primaryEntry.row && primaryEntry.row.augmentation_score, baselineAugmentationScore)
+            } : {
+                automation_score: baselineAutomationScore,
+                exposure_score: baselineExposureScore,
+                augmentation_score: baselineAugmentationScore
+            };
+        }
+
+        return {
+            has_task_level_evidence: resolvedFromTaskEvidence,
+            has_live_task_evidence: rankedRows.some(function (entry) {
+                return entry.row && entry.row.source_role === 'live_task_evidence';
+            }),
+            has_direct_evidence: resolvedFromTaskEvidence,
+            direct_evidence_reliability: Number(resolvedReliability.toFixed(3)),
+            evidence_blend_weight: Number((resolvedFromTaskEvidence ? computeTaskEvidenceBlendWeight(resolvedReliability) : 0).toFixed(3)),
+            primary_source_id: primaryEntry && primaryEntry.row ? (primaryEntry.row.source_id || null) : null,
+            primary_source_role: primaryEntry && primaryEntry.row ? (primaryEntry.row.source_role || null) : null,
+            primary_promotion_status: primaryEntry && primaryEntry.row ? (primaryEntry.row.promotion_status || null) : null,
+            fallback_source_role: primaryEntry && primaryEntry.row ? (primaryEntry.row.source_role || null) : null,
+            source_count: rankedRows.length,
+            task_level_source_count: taskLevelRows.length,
+            source_roles: uniqueStrings(rankedRows.map(function (entry) {
+                return entry.row && entry.row.source_role;
+            })),
+            task_level_source_roles: uniqueStrings(taskLevelRows.map(function (entry) {
+                return entry.row && entry.row.source_role;
+            })),
+            supporting_source_ids: uniqueStrings(taskLevelRows.map(function (entry) {
+                return entry.row && entry.row.source_id;
+            })),
+            evidence: {
+                automation_score: Number(clamp(toNumber(resolvedSignals.automation_score, baselineAutomationScore), 0, 1).toFixed(3)),
+                exposure_score: Number(clamp(toNumber(resolvedSignals.exposure_score, baselineExposureScore), 0, 1).toFixed(3)),
+                augmentation_score: Number(clamp(toNumber(resolvedSignals.augmentation_score, baselineAugmentationScore), 0, 1).toFixed(3))
+            }
+        };
+    }
+
+    function summarizeResolvedTaskEvidenceByCluster(options) {
+        var occupationId = options && options.occupationId ? options.occupationId : null;
+        var taskInventoryRows = options && Array.isArray(options.taskInventoryRows) ? options.taskInventoryRows : [];
+        var taskSourceEvidenceByTaskId = options && options.taskSourceEvidenceByTaskId ? options.taskSourceEvidenceByTaskId : {};
+        var taskEvidenceByKey = options && options.taskEvidenceByKey ? options.taskEvidenceByKey : {};
+        var buckets = {};
+
+        taskInventoryRows.forEach(function (task) {
+            var clusterId = task.task_family_id;
+            if (!clusterId) {
+                return;
+            }
+
+            if (!buckets[clusterId]) {
+                buckets[clusterId] = {
+                    task_cluster_id: clusterId,
+                    total_share: 0,
+                    resolved_share: 0,
+                    reliability_numerator: 0,
+                    ease_numerator: 0,
+                    resolved_task_count: 0,
+                    live_task_count: 0,
+                    reviewed_task_count: 0,
+                    benchmark_task_count: 0
+                };
+            }
+
+            var bucket = buckets[clusterId];
+            var share = Math.max(toNumber(task.time_share_prior, 0), 0.0001);
+            var rowTaskId = task.task_id || taskKey(occupationId, task.onet_task_id);
+            var key = taskKey(occupationId, task.onet_task_id);
+            var liveEvidence = String(task.onet_task_id || '').indexOf('manual_') === 0
+                ? null
+                : (taskEvidenceByKey[key] || null);
+            var sourceResolution = resolveTaskEvidence({
+                taskSourceEvidenceRows: taskSourceEvidenceByTaskId[rowTaskId] || [],
+                liveEvidence: liveEvidence,
+                baselineAutomationScore: 0.5,
+                baselineExposureScore: 0.5,
+                baselineAugmentationScore: clamp(toNumber(task.ai_support_observability, 0.3), 0, 1)
+            });
+
+            bucket.total_share += share;
+            if (!sourceResolution.has_direct_evidence || !sourceResolution.evidence) {
+                return;
+            }
+
+            var reliability = clamp(toNumber(sourceResolution.direct_evidence_reliability, 0), 0, 1);
+            var evidenceEase = computeTaskEvidenceAutomationEase(sourceResolution.evidence, 0.5);
+            bucket.resolved_share += share;
+            bucket.reliability_numerator += share * reliability;
+            bucket.ease_numerator += share * evidenceEase;
+            bucket.resolved_task_count += 1;
+
+            if (sourceResolution.primary_source_role === 'live_task_evidence') {
+                bucket.live_task_count += 1;
+            } else if (sourceResolution.primary_source_role === 'reviewed_task_estimate') {
+                bucket.reviewed_task_count += 1;
+            } else if (sourceResolution.primary_source_role === 'benchmark_task_label') {
+                bucket.benchmark_task_count += 1;
+            }
+        });
+
+        return Object.keys(buckets).reduce(function (map, clusterId) {
+            var bucket = buckets[clusterId];
+            var resolvedShare = Math.max(bucket.resolved_share, 0);
+            var totalShare = Math.max(bucket.total_share, 0.0001);
+            var coverageRatio = resolvedShare / totalShare;
+            var meanReliability = resolvedShare > 0 ? (bucket.reliability_numerator / resolvedShare) : 0;
+            var taskEmpiricalEase = resolvedShare > 0 ? (bucket.ease_numerator / resolvedShare) : null;
+            var taskFirstWeight = computeTaskFirstClusterWeight(coverageRatio, meanReliability);
+
+            map[clusterId] = {
+                task_cluster_id: clusterId,
+                task_evidence_coverage_ratio: Number(clamp(coverageRatio, 0, 1).toFixed(3)),
+                task_evidence_mean_reliability: Number(clamp(meanReliability, 0, 1).toFixed(3)),
+                task_empirical_ease: taskEmpiricalEase === null ? null : Number(clamp(taskEmpiricalEase, 0, 1).toFixed(3)),
+                task_first_weight: Number(clamp(taskFirstWeight, 0, 1).toFixed(3)),
+                resolved_task_count: bucket.resolved_task_count,
+                live_task_count: bucket.live_task_count,
+                reviewed_task_count: bucket.reviewed_task_count,
+                benchmark_task_count: bucket.benchmark_task_count
+            };
+            return map;
+        }, {});
+    }
+
+    function waveAssignmentForDifficulty(difficulty) {
+        var normalizedDifficulty = clamp(toNumber(difficulty, 0.5), 0, 1);
+        if (normalizedDifficulty <= WAVE_THRESHOLDS.current_max) {
+            return 'current';
+        }
+        if (normalizedDifficulty <= WAVE_THRESHOLDS.next_max) {
+            return 'next';
+        }
+        return 'distant';
+    }
+
     function deriveClusterFriction(signals, clusterId) {
         var profile = CLUSTER_FRICTION_PROFILES[clusterId] || {
             exception_burden: 0.40,
@@ -341,6 +711,196 @@
         return {
             penalty: rawPenalty * SCORING_CONFIG.dependencyPenaltyScale,
             bindings: bindings.slice(0, 3)
+        };
+    }
+
+    function computeWaveTrajectoryFromBundle(bundleRows, signals) {
+        var normalizedBundle = (bundleRows || []).map(function (row) {
+            var shareOfRole = clamp(toNumber(row.share_of_role, 0), 0, 1.25);
+            var automationDifficulty = clamp(toNumber(row.automation_difficulty, 0.5), 0.02, 0.98);
+            var absorbedShare = toNumber(row.absorbed_share, null);
+            var inferredAbsorptionRate = shareOfRole > 0 && absorbedShare !== null
+                ? (absorbedShare / Math.max(shareOfRole, 0.0001))
+                : null;
+            var absorptionRate = clamp(
+                toNumber(row.absorption_rate, inferredAbsorptionRate === null ? 0 : inferredAbsorptionRate),
+                0,
+                0.98
+            );
+            var normalizedAbsorbedShare = absorbedShare === null
+                ? (shareOfRole * absorptionRate)
+                : clamp(absorbedShare, 0, 1.25);
+            var retainedShare = toNumber(row.retained_share, null);
+            var residualRelevance = toNumber(row.residual_relevance, retainedShare === null ? (shareOfRole - normalizedAbsorbedShare) : retainedShare);
+
+            return Object.assign({}, row, {
+                share_of_role: Number(shareOfRole.toFixed(3)),
+                automation_difficulty: Number(automationDifficulty.toFixed(3)),
+                wave_assignment: waveAssignmentForDifficulty(automationDifficulty),
+                absorption_rate: Number(absorptionRate.toFixed(3)),
+                absorbed_share: Number(clamp(normalizedAbsorbedShare, 0, 1.25).toFixed(3)),
+                exposed_share: Number(clamp(toNumber(row.exposed_share, normalizedAbsorbedShare), 0, 1.25).toFixed(3)),
+                retained_share: Number(clamp(retainedShare === null ? (shareOfRole - normalizedAbsorbedShare) : retainedShare, 0, 1.25).toFixed(3)),
+                residual_relevance: Number(clamp(residualRelevance, 0, 1.25).toFixed(3)),
+                elevation_boost: Number(clamp(toNumber(row.elevation_boost, 0), 0, 1.25).toFixed(3))
+            });
+        }).sort(function (left, right) {
+            return right.share_of_role - left.share_of_role;
+        });
+
+        var rowsById = {};
+        var waveGroups = { current: [], next: [], distant: [] };
+        normalizedBundle.forEach(function (row) {
+            rowsById[row.task_cluster_id] = row;
+            waveGroups[row.wave_assignment].push(row);
+        });
+
+        var waves = ['current', 'next', 'distant'];
+        var waveResults = {};
+        var cumulativeAutomated = {};
+
+        waves.forEach(function (waveName) {
+            waveGroups[waveName].forEach(function (cluster) {
+                cluster.absorbed_share = Number(clamp(cluster.share_of_role * cluster.absorption_rate, 0, 1.25).toFixed(3));
+                cluster.residual_relevance = Number(clamp(cluster.share_of_role * (1 - cluster.absorption_rate), 0, 1.25).toFixed(3));
+                cumulativeAutomated[cluster.task_cluster_id] = true;
+            });
+
+            var remainingClusters = normalizedBundle.filter(function (cluster) {
+                return !cumulativeAutomated[cluster.task_cluster_id];
+            });
+            var automatedClusters = normalizedBundle.filter(function (cluster) {
+                return !!cumulativeAutomated[cluster.task_cluster_id];
+            });
+            var elevationBoosts = {};
+
+            remainingClusters.forEach(function (cluster) {
+                if (!ELEVATION_CLUSTERS[cluster.task_cluster_id]) {
+                    return;
+                }
+                var elevationPull = 0;
+                automatedClusters.forEach(function (automated) {
+                    var deps = CLUSTER_DEPENDENCY_MATRIX[automated.task_cluster_id];
+                    if (deps && deps[cluster.task_cluster_id]) {
+                        elevationPull += deps[cluster.task_cluster_id] * automated.absorbed_share;
+                    }
+                });
+                elevationBoosts[cluster.task_cluster_id] = elevationPull * (1 + (toNumber(signals && signals.seniority, 0) * 0.25));
+            });
+
+            var retainedShare = 0;
+            normalizedBundle.forEach(function (cluster) {
+                if (cumulativeAutomated[cluster.task_cluster_id]) {
+                    retainedShare += cluster.residual_relevance;
+                    return;
+                }
+                retainedShare += cluster.share_of_role + (elevationBoosts[cluster.task_cluster_id] || 0);
+            });
+            retainedShare = clamp(retainedShare, 0, 1);
+
+            var connectedWeight = 0;
+            var totalWeight = 0;
+            Object.keys(CLUSTER_DEPENDENCY_MATRIX).forEach(function (sourceId) {
+                if (!rowsById[sourceId]) {
+                    return;
+                }
+                Object.keys(CLUSTER_DEPENDENCY_MATRIX[sourceId]).forEach(function (targetId) {
+                    if (!rowsById[targetId]) {
+                        return;
+                    }
+                    var depWeight = CLUSTER_DEPENDENCY_MATRIX[sourceId][targetId];
+                    totalWeight += depWeight;
+                    if (!cumulativeAutomated[sourceId] && !cumulativeAutomated[targetId]) {
+                        connectedWeight += depWeight;
+                    }
+                });
+            });
+
+            var coherence = totalWeight > 0 ? (connectedWeight / totalWeight) : 0.5;
+            if (remainingClusters.length >= COHERENCE_BONUSES.clusterCountThreshold) {
+                coherence += COHERENCE_BONUSES.clusterCountBonus;
+            }
+            if (retainedShare >= COHERENCE_BONUSES.retainedShareThreshold) {
+                coherence += COHERENCE_BONUSES.retainedShareBonus;
+            }
+            coherence = clamp(coherence, 0, 1);
+
+            var waveState;
+            if (retainedShare >= 0.70 && coherence >= 0.50) {
+                waveState = 'stable';
+            } else if (retainedShare >= 0.40 && coherence >= 0.35) {
+                waveState = 'narrowed';
+            } else if (retainedShare >= 0.20) {
+                waveState = 'transformed';
+            } else {
+                waveState = 'displaced';
+            }
+
+            waveResults[waveName] = {
+                wave: waveName,
+                state: waveState,
+                state_label: WAVE_STATE_LABELS[waveState],
+                retained_share: Number(retainedShare.toFixed(3)),
+                coherence: Number(coherence.toFixed(3)),
+                coherence_tier: coherence < 0.35 ? 'fragmented' : (coherence < 0.60 ? 'narrowed' : 'coherent'),
+                automated_clusters: automatedClusters.map(function (cluster) { return cluster.task_cluster_id; }),
+                remaining_clusters: remainingClusters.map(function (cluster) { return cluster.task_cluster_id; }),
+                elevation_boosts: elevationBoosts
+            };
+
+            if (waveName === 'next') {
+                normalizedBundle.forEach(function (cluster) {
+                    cluster.elevation_boost = Number((elevationBoosts[cluster.task_cluster_id] || 0).toFixed(3));
+                    if (cumulativeAutomated[cluster.task_cluster_id]) {
+                        cluster.residual_relevance = Number(clamp(cluster.share_of_role * (1 - cluster.absorption_rate), 0, 1.25).toFixed(3));
+                    } else {
+                        cluster.residual_relevance = Number(clamp(cluster.share_of_role + cluster.elevation_boost, 0, 1.25).toFixed(3));
+                    }
+                });
+            }
+        });
+
+        var primaryDisplacementWave = 'distant';
+        if (waveResults.current.state === 'displaced' || waveResults.current.state === 'transformed') {
+            primaryDisplacementWave = 'current';
+        } else if (waveResults.next.state === 'displaced' || waveResults.next.state === 'transformed') {
+            primaryDisplacementWave = 'next';
+        }
+
+        var byId = {};
+        normalizedBundle.forEach(function (cluster) {
+            byId[cluster.task_cluster_id] = cluster;
+        });
+
+        return {
+            current_bundle: normalizedBundle,
+            by_id: byId,
+            wave_groups: waveGroups,
+            wave_results: waveResults,
+            primary_displacement_wave: primaryDisplacementWave,
+            current_wave_absorbed: Number(sum(waveGroups.current.map(function (cluster) {
+                return clamp(toNumber(cluster.absorbed_share, 0), 0, 1.25);
+            })).toFixed(3)),
+            exposed_clusters: normalizedBundle.filter(function (cluster) {
+                return cluster.wave_assignment === 'current' || cluster.wave_assignment === 'next';
+            }).sort(function (left, right) {
+                var rightExposed = toNumber(right.exposed_share, 0);
+                var leftExposed = toNumber(left.exposed_share, 0);
+                if (rightExposed !== leftExposed) {
+                    return rightExposed - leftExposed;
+                }
+                return toNumber(right.direct_exposure_pressure, 0) - toNumber(left.direct_exposure_pressure, 0);
+            }),
+            retained_clusters: normalizedBundle.filter(function (cluster) {
+                return toNumber(cluster.residual_relevance, 0) >= 0.055;
+            }).sort(function (left, right) {
+                return toNumber(right.residual_relevance, 0) - toNumber(left.residual_relevance, 0);
+            }),
+            elevated_clusters: normalizedBundle.filter(function (cluster) {
+                return toNumber(cluster.elevation_boost, 0) >= 0.015;
+            }).sort(function (left, right) {
+                return toNumber(right.elevation_boost, 0) - toNumber(left.elevation_boost, 0);
+            })
         };
     }
 
@@ -534,6 +1094,42 @@
 
     function taskKey(occupationId, onetTaskId) {
         return String(occupationId || '') + '|' + String(onetTaskId || '');
+    }
+
+    function computeTaskFirstClusterWeight(coverageRatio, meanReliability) {
+        var coverageThreshold = clamp(toNumber(SCORING_CONFIG.taskFirstClusterCoverageThreshold, 0.35), 0, 0.95);
+        var reliabilityThreshold = clamp(toNumber(SCORING_CONFIG.taskFirstClusterReliabilityThreshold, 0.30), 0, 0.95);
+        var maxWeight = clamp(toNumber(SCORING_CONFIG.maxTaskFirstClusterWeight, 0.90), 0, 1);
+        var coverage = clamp(toNumber(coverageRatio, 0), 0, 1);
+        var reliability = clamp(toNumber(meanReliability, 0), 0, 1);
+
+        if (coverage <= coverageThreshold || reliability <= reliabilityThreshold) {
+            return 0;
+        }
+
+        var normalizedCoverage = (coverage - coverageThreshold) / Math.max(0.0001, 1 - coverageThreshold);
+        var normalizedReliability = (reliability - reliabilityThreshold) / Math.max(0.0001, 1 - reliabilityThreshold);
+        return clamp(
+            ((normalizedCoverage * 0.60) + (normalizedReliability * 0.40)) * maxWeight,
+            0,
+            maxWeight
+        );
+    }
+
+    function computeTaskFirstTaskWeight(reliability) {
+        var threshold = clamp(toNumber(SCORING_CONFIG.taskFirstTaskReliabilityThreshold, 0.45), 0, 0.95);
+        var maxWeight = clamp(toNumber(SCORING_CONFIG.maxTaskFirstTaskWeight, 1.00), 0, 1);
+        var normalizedReliability = clamp(toNumber(reliability, 0), 0, 1);
+
+        if (normalizedReliability <= threshold) {
+            return 0;
+        }
+
+        return clamp(
+            ((normalizedReliability - threshold) / Math.max(0.0001, 1 - threshold)) * maxWeight,
+            0,
+            maxWeight
+        );
     }
 
     function dependencyEdgeKey(fromTaskId, toTaskId) {
@@ -1578,6 +2174,7 @@
         var taskInventoryRows = options.taskInventoryRows || [];
         var dependencyEdges = options.dependencyEdges || [];
         var clusterResultsById = options.clusterResultsById || {};
+        var taskSourceEvidenceByTaskId = options.taskSourceEvidenceByTaskId || {};
         var taskEvidenceByKey = options.taskEvidenceByKey || {};
         var taskMembershipByKey = options.taskMembershipByKey || {};
         var dominantTaskSet = toLookup(options.dominantTaskIds || []);
@@ -1589,11 +2186,21 @@
             return null;
         }
 
+        var adoptionRealization = clamp(toNumber(options.adoptionRealization, SCORING_CONFIG.adoptionRealizationBase), 0, 1.2);
         var clusterInventorySummary = summarizeTaskInventoryByCluster(taskInventoryRows);
         var rows = [];
         var rowsById = {};
         var directTaskEvidenceCount = 0;
         var fallbackTaskCount = 0;
+        var taskEvidenceAdjustedCount = 0;
+        var taskFirstTaskCount = 0;
+        var sourceRoleCounts = {
+            live_task_evidence: 0,
+            reviewed_task_estimate: 0,
+            benchmark_task_label: 0,
+            cluster_prior_proxy: 0,
+            fallback_task_proxy: 0
+        };
 
         taskInventoryRows.forEach(function (task) {
             var clusterId = task.task_family_id;
@@ -1622,12 +2229,12 @@
                 toNumber(task.value_centrality, 0.5) + (isUserSelectedCritical ? 0.10 : 0),
                 0, 1
             );
-            var directPressure = clamp(
-                ((1 - clusterResult.automation_difficulty) * 0.68) +
+            var clusterSeedTaskDifficulty = clamp(toNumber(clusterResult.automation_difficulty, 0.5), 0, 1);
+            var clusterSeedTaskEase = 1 - clusterSeedTaskDifficulty;
+            var clusterSeedDirectPressure = clamp(
+                ((1 - clusterSeedTaskDifficulty) * 0.68) +
                 (clusterResult.absorption_rate * 0.20) +
-                (aiSupportObservability * 0.12) -
-                (isUserSelectedAiSupport ? 0.14 : 0) +
-                (isUserSelectedSupportTask ? 0.03 : 0),
+                (aiSupportObservability * 0.12),
                 0, 1
             );
             var shareMultiplier = 1 +
@@ -1637,13 +2244,77 @@
 
             var key = taskKey(occupationId, task.onet_task_id);
             var evidence = String(task.onet_task_id || '').indexOf('manual_') === 0 ? null : (taskEvidenceByKey[key] || null);
+            var sourceResolution = resolveTaskEvidence({
+                taskSourceEvidenceRows: taskSourceEvidenceByTaskId[rowTaskId] || [],
+                liveEvidence: evidence,
+                baselineAutomationScore: 1 - clusterSeedTaskDifficulty,
+                baselineExposureScore: clusterSeedDirectPressure,
+                baselineAugmentationScore: aiSupportObservability
+            });
             var membership = taskMembershipByKey[key] || null;
-            var hasDirectEvidence = !!(evidence && evidence.source_id && String(evidence.source_id).indexOf('src_internal_stub') !== 0);
-            var taskEvidenceReliability = hasDirectEvidence ? estimateTaskEvidenceReliability(evidence) : 0;
+            var hasDirectEvidence = !!sourceResolution.has_direct_evidence;
+            var hasLiveTaskEvidence = !!sourceResolution.has_live_task_evidence;
+            var taskEvidenceReliability = toNumber(sourceResolution.direct_evidence_reliability, 0);
+            var resolvedEvidence = sourceResolution.evidence || null;
+            var taskEvidenceDifficultySignal = hasDirectEvidence
+                ? (1 - computeTaskEvidenceAutomationEase(resolvedEvidence, clusterSeedTaskEase))
+                : null;
+            var taskFirstTaskWeight = hasDirectEvidence
+                ? computeTaskFirstTaskWeight(taskEvidenceReliability)
+                : 0;
+            var baselineTaskDifficulty = taskFirstTaskWeight > 0
+                ? clamp(
+                    ((1 - taskFirstTaskWeight) * clusterSeedTaskDifficulty) +
+                    (taskFirstTaskWeight * (taskEvidenceDifficultySignal === null ? clusterSeedTaskDifficulty : taskEvidenceDifficultySignal)),
+                    0.02,
+                    0.98
+                )
+                : clusterSeedTaskDifficulty;
+            var baselineTaskEase = 1 - baselineTaskDifficulty;
+            var taskAutomationEvidenceWeight = clamp(
+                Math.max(0, toNumber(sourceResolution.evidence_blend_weight, 0) - taskFirstTaskWeight),
+                0,
+                1
+            );
+            var taskAutomationEaseSignal = hasDirectEvidence
+                ? computeTaskEvidenceAutomationEase(resolvedEvidence, baselineTaskEase)
+                : null;
+            var taskAutomationDifficulty = clamp(
+                ((1 - taskAutomationEvidenceWeight) * baselineTaskDifficulty) +
+                (taskAutomationEvidenceWeight * (1 - (taskAutomationEaseSignal === null ? baselineTaskEase : taskAutomationEaseSignal))),
+                0.02,
+                0.98
+            );
+            var directTaskEvidenceSignal = hasDirectEvidence
+                ? computeDirectTaskEvidenceSignal(resolvedEvidence, clusterSeedDirectPressure)
+                : null;
+            var directTaskEvidenceWeight = toNumber(sourceResolution.evidence_blend_weight, 0);
+            var baselineDirectPressure = clamp(
+                ((1 - taskAutomationDifficulty) * 0.68) +
+                (clusterResult.absorption_rate * 0.20) +
+                (aiSupportObservability * 0.12),
+                0, 1
+            );
+            var directPressure = clamp(
+                ((1 - directTaskEvidenceWeight) * baselineDirectPressure) +
+                (directTaskEvidenceWeight * (directTaskEvidenceSignal === null ? baselineDirectPressure : directTaskEvidenceSignal)) -
+                (isUserSelectedAiSupport ? 0.14 : 0) +
+                (isUserSelectedSupportTask ? 0.03 : 0),
+                0, 1
+            );
             if (hasDirectEvidence) {
                 directTaskEvidenceCount += 1;
             } else {
                 fallbackTaskCount += 1;
+            }
+            if (sourceResolution.primary_source_role && sourceRoleCounts[sourceResolution.primary_source_role] !== undefined) {
+                sourceRoleCounts[sourceResolution.primary_source_role] += 1;
+            }
+            if (taskFirstTaskWeight > 0) {
+                taskFirstTaskCount += 1;
+            }
+            if (directTaskEvidenceWeight > 0) {
+                taskEvidenceAdjustedCount += 1;
             }
 
             var row = {
@@ -1655,9 +2326,22 @@
                 task_cluster_label: clusterResult.label,
                 share_of_role: Number(taskShare.toFixed(4)),
                 selection_multiplier: Number(shareMultiplier.toFixed(3)),
-                automation_difficulty: Number(clusterResult.automation_difficulty.toFixed(3)),
-                wave_assignment: clusterResult.wave_assignment,
+                automation_difficulty: Number(taskAutomationDifficulty.toFixed(3)),
+                automation_difficulty_baseline: Number(baselineTaskDifficulty.toFixed(3)),
+                automation_difficulty_baseline_source: taskFirstTaskWeight > 0
+                    ? 'task_first_resolved_evidence'
+                    : (clusterResult.baseline_difficulty_source || 'cluster_priors'),
+                automation_difficulty_task_first_weight: Number(taskFirstTaskWeight.toFixed(3)),
+                automation_difficulty_evidence_weight: Number(taskAutomationEvidenceWeight.toFixed(3)),
+                automation_difficulty_source: taskFirstTaskWeight > 0
+                    ? 'task_first_resolved_evidence'
+                    : (taskAutomationEvidenceWeight > 0 ? 'resolved_task_evidence' : 'cluster_model'),
+                wave_assignment: waveAssignmentForDifficulty(taskAutomationDifficulty),
                 direct_exposure_pressure: Number(directPressure.toFixed(3)),
+                direct_pressure_baseline: Number(baselineDirectPressure.toFixed(3)),
+                direct_pressure_evidence_signal: directTaskEvidenceSignal === null ? null : Number(directTaskEvidenceSignal.toFixed(3)),
+                direct_pressure_evidence_weight: Number(directTaskEvidenceWeight.toFixed(3)),
+                direct_pressure_source: directTaskEvidenceWeight > 0 ? 'resolved_task_evidence' : 'cluster_model',
                 indirect_dependency_pressure: 0,
                 value_centrality: valueCentrality,
                 bargaining_power_weight: bargainingPowerWeight,
@@ -1667,15 +2351,27 @@
                     clusterResult.evidence_confidence,
                     toNumber(task.source_confidence, 0.45),
                     evidence ? toNumber(evidence.confidence, 0.55) : null,
+                    resolvedEvidence ? average([
+                        toNumber(resolvedEvidence.automation_score, null),
+                        toNumber(resolvedEvidence.exposure_score, null),
+                        toNumber(resolvedEvidence.augmentation_score, null)
+                    ]) : null,
                     membership ? toNumber(membership.mapping_confidence, 0.45) : null
                 ]).toFixed(3)),
                 direct_evidence_reliability: Number(taskEvidenceReliability.toFixed(3)),
                 mapping_method: membership ? membership.mapping_method : (String(task.onet_task_id || '').indexOf('manual_') === 0 ? 'manual_role_graph_review' : 'role_graph_inventory'),
                 mapping_confidence: Number((membership ? toNumber(membership.mapping_confidence, 0.45) : toNumber(task.source_confidence, 0.45)).toFixed(3)),
-                evidence_type: evidence ? evidence.evidence_type : 'role_graph_inventory',
-                evidence_source: evidence ? evidence.source_id : null,
+                evidence_type: sourceResolution.primary_source_role || (evidence ? evidence.evidence_type : 'role_graph_inventory'),
+                evidence_source: sourceResolution.primary_source_id || (evidence ? evidence.source_id : null),
                 observed_usage_share: Number((evidence ? toNumber(evidence.observed_usage_share, 0) : 0).toFixed(4)),
                 has_direct_evidence: hasDirectEvidence,
+                has_live_task_evidence: hasLiveTaskEvidence,
+                resolved_evidence_source_role: sourceResolution.primary_source_role,
+                resolved_evidence_promotion_status: sourceResolution.primary_promotion_status,
+                resolved_evidence_source_count: sourceResolution.source_count,
+                resolved_evidence_task_source_count: sourceResolution.task_level_source_count,
+                resolved_evidence_supporting_source_ids: sourceResolution.supporting_source_ids,
+                resolved_evidence_supporting_roles: sourceResolution.task_level_source_roles,
                 is_role_critical: isUserSelectedCritical || task.role_criticality === 'core',
                 is_user_selected_dominant: isUserSelectedDominant,
                 is_user_selected_critical: isUserSelectedCritical,
@@ -1740,7 +2436,12 @@
                 ? ((clusterResult.elevation_boost || 0) * (row.share_of_role / clusterResult.share_of_role))
                 : 0;
             var absorbedRate = clamp(
-                (clusterResult ? clusterResult.absorption_rate : 0.5) * (0.55 + (row.direct_exposure_pressure * 0.45)) +
+                adoptionRealization *
+                (1 - row.automation_difficulty * 0.30) *
+                (0.92 + (row.ai_support_observability * 0.10) - ((row.role_criticality === 'core' ? 1 : 0) * 0.06)) *
+                (1 - (toNumber(options.dependencyBottleneckStrength, 0.5) * 0.10)) *
+                (1 - (toNumber(options.humanSignoffRequirement, 0.5) * 0.08)) *
+                (0.55 + (row.direct_exposure_pressure * 0.45)) +
                 (row.indirect_dependency_pressure * 0.20) -
                 (row.is_user_selected_ai_support ? 0.06 : 0),
                 0, 0.98
@@ -1824,6 +2525,159 @@
             }
         });
 
+        var clusterBuckets = {};
+        rows.forEach(function (row) {
+            var clusterId = row.task_cluster_id;
+            var baseCluster = clusterResultsById[clusterId] || {};
+            if (!clusterBuckets[clusterId]) {
+                clusterBuckets[clusterId] = {
+                    task_cluster_id: clusterId,
+                    label: row.task_cluster_label || baseCluster.label || slugToLabel(clusterId),
+                    share_of_role: 0,
+                    direct_numerator: 0,
+                    indirect_numerator: 0,
+                    retained_numerator: 0,
+                    evidence_numerator: 0,
+                    difficulty_numerator: 0,
+                    exposure_numerator: 0,
+                    absorption_numerator: 0,
+                    exposed_share: 0,
+                    retained_share: 0,
+                    elevation_boost: 0,
+                    direct_evidence_task_count: 0,
+                    task_first_task_count: 0,
+                    task_evidence_adjusted_tasks: 0,
+                    is_role_critical: !!baseCluster.is_role_critical,
+                    primary_sources: baseCluster.primary_sources || [],
+                    prior_reliability: toNumber(baseCluster.prior_reliability, 0),
+                    baseline_difficulty_source: baseCluster.baseline_difficulty_source || 'cluster_priors',
+                    task_first_weight: toNumber(baseCluster.task_first_weight, 0),
+                    task_evidence_coverage_ratio: toNumber(baseCluster.task_evidence_coverage_ratio, 0),
+                    task_evidence_mean_reliability: toNumber(baseCluster.task_evidence_mean_reliability, 0),
+                    resolved_task_evidence_count: toNumber(baseCluster.resolved_task_evidence_count, 0),
+                    friction_dimensions: baseCluster.friction_dimensions || null,
+                    intrinsic_friction: toNumber(baseCluster.intrinsic_friction, 0),
+                    empirical_resistance: toNumber(baseCluster.empirical_resistance, 0),
+                    graph_core_share: toNumber(baseCluster.graph_core_share, 0),
+                    graph_bargaining_weight: toNumber(baseCluster.graph_bargaining_weight, 0),
+                    graph_ai_support: toNumber(baseCluster.graph_ai_support, 0),
+                    source_mix: []
+                };
+            }
+
+            var bucket = clusterBuckets[clusterId];
+            var share = clamp(toNumber(row.share_of_role, 0), 0, 1.25);
+            bucket.share_of_role += share;
+            bucket.direct_numerator += share * clamp(toNumber(row.direct_exposure_pressure, 0), 0, 1);
+            bucket.indirect_numerator += share * clamp(toNumber(row.indirect_dependency_pressure, 0), 0, 1);
+            bucket.retained_numerator += share * clamp(toNumber(row.retained_leverage, 0), 0, 1);
+            bucket.evidence_numerator += share * clamp(toNumber(row.evidence_confidence, 0), 0, 1);
+            bucket.difficulty_numerator += share * clamp(toNumber(row.automation_difficulty, 0), 0, 1);
+            bucket.exposure_numerator += share * clamp(toNumber(row.exposure_score, 0), 0, 1);
+            bucket.absorption_numerator += clamp(toNumber(row.exposed_share, 0), 0, 1.25);
+            bucket.exposed_share += clamp(toNumber(row.exposed_share, 0), 0, 1.25);
+            bucket.retained_share += clamp(toNumber(row.retained_share, 0), 0, 1.25);
+            bucket.elevation_boost += clamp(toNumber(row.elevation_boost, 0), 0, 1.25);
+            if (row.has_direct_evidence) {
+                bucket.direct_evidence_task_count += 1;
+            }
+            if (toNumber(row.automation_difficulty_task_first_weight, 0) > 0) {
+                bucket.task_first_task_count += 1;
+            }
+            if (toNumber(row.direct_pressure_evidence_weight, 0) > 0) {
+                bucket.task_evidence_adjusted_tasks += 1;
+            }
+            if (row.is_role_critical || row.role_criticality === 'core') {
+                bucket.is_role_critical = true;
+            }
+            if (row.evidence_source && bucket.source_mix.indexOf(row.evidence_source) === -1) {
+                bucket.source_mix.push(row.evidence_source);
+            }
+        });
+
+        var clusterSummaryById = {};
+        var clusterSummaryRows = Object.keys(clusterBuckets).map(function (clusterId) {
+            var bucket = clusterBuckets[clusterId];
+            var share = Math.max(bucket.share_of_role, 0.0001);
+            var automationDifficulty = clamp(bucket.difficulty_numerator / share, 0, 1);
+            var absorptionRate = clamp(bucket.absorption_numerator / share, 0, 0.98);
+            var waveAssignment;
+            if (automationDifficulty <= WAVE_THRESHOLDS.current_max) {
+                waveAssignment = 'current';
+            } else if (automationDifficulty <= WAVE_THRESHOLDS.next_max) {
+                waveAssignment = 'next';
+            } else {
+                waveAssignment = 'distant';
+            }
+
+            var summary = {
+                task_cluster_id: clusterId,
+                label: bucket.label,
+                share_of_role: Number(bucket.share_of_role.toFixed(3)),
+                automation_difficulty: Number(automationDifficulty.toFixed(3)),
+                automation_difficulty_source: bucket.task_first_task_count > 0
+                    ? 'task_aggregated_task_first_resolved_evidence'
+                    : (bucket.task_evidence_adjusted_tasks > 0 ? 'task_aggregated_resolved_task_evidence' : 'task_aggregated_cluster_model'),
+                baseline_difficulty_source: bucket.baseline_difficulty_source,
+                task_first_weight: Number(clamp(bucket.task_first_weight, 0, 1).toFixed(3)),
+                task_evidence_coverage_ratio: Number(clamp(bucket.task_evidence_coverage_ratio, 0, 1).toFixed(3)),
+                task_evidence_mean_reliability: Number(clamp(bucket.task_evidence_mean_reliability, 0, 1).toFixed(3)),
+                resolved_task_evidence_count: Math.round(toNumber(bucket.resolved_task_evidence_count, 0)),
+                wave_assignment: waveAssignment,
+                wave_assignment_source: 'task_aggregated',
+                absorption_rate: Number(absorptionRate.toFixed(3)),
+                direct_exposure_pressure: Number(clamp(bucket.direct_numerator / share, 0, 1).toFixed(3)),
+                indirect_dependency_pressure: Number(clamp(bucket.indirect_numerator / share, 0, 1).toFixed(3)),
+                retained_leverage: Number(clamp(bucket.retained_numerator / share, 0, 1).toFixed(3)),
+                evidence_confidence: Number(clamp(bucket.evidence_numerator / share, 0, 1).toFixed(3)),
+                exposure_score: Number(clamp(bucket.exposure_numerator / share, 0, 1).toFixed(3)),
+                exposure_level: toTier(clamp(bucket.exposure_numerator / share, 0, 1), [0.40, 0.68], ['low', 'moderate', 'high']),
+                exposed_share: Number(clamp(bucket.exposed_share, 0, 1.25).toFixed(3)),
+                retained_share: Number(clamp(bucket.retained_share, 0, 1.25).toFixed(3)),
+                residual_relevance: Number(clamp(bucket.retained_share, 0, 1.25).toFixed(3)),
+                elevation_boost: Number(clamp(bucket.elevation_boost, 0, 1.25).toFixed(3)),
+                absorbed_share: Number(clamp(bucket.exposed_share, 0, 1.25).toFixed(3)),
+                is_role_critical: bucket.is_role_critical,
+                direct_evidence_task_count: bucket.direct_evidence_task_count,
+                task_first_task_count: bucket.task_first_task_count,
+                task_evidence_adjusted_tasks: bucket.task_evidence_adjusted_tasks,
+                primary_sources: bucket.primary_sources,
+                source_mix: bucket.source_mix,
+                prior_reliability: Number(clamp(bucket.prior_reliability, 0, 1).toFixed(3)),
+                friction_dimensions: bucket.friction_dimensions,
+                intrinsic_friction: Number(clamp(bucket.intrinsic_friction, 0, 1).toFixed(3)),
+                empirical_resistance: Number(clamp(bucket.empirical_resistance, 0, 1).toFixed(3)),
+                graph_core_share: Number(clamp(bucket.graph_core_share, 0, 1).toFixed(3)),
+                graph_bargaining_weight: Number(clamp(bucket.graph_bargaining_weight, 0, 1).toFixed(3)),
+                graph_ai_support: Number(clamp(bucket.graph_ai_support, 0, 1).toFixed(3)),
+                summary_source: 'task_aggregated'
+            };
+            clusterSummaryById[clusterId] = summary;
+            return summary;
+        });
+
+        var taskDerivedCurrentBundle = clusterSummaryRows.slice().sort(function (left, right) {
+            return right.share_of_role - left.share_of_role;
+        });
+        var taskDerivedExposedClusters = clusterSummaryRows.filter(function (cluster) {
+            return cluster.wave_assignment === 'current' || cluster.wave_assignment === 'next';
+        }).sort(function (left, right) {
+            if (right.exposed_share !== left.exposed_share) {
+                return right.exposed_share - left.exposed_share;
+            }
+            return right.direct_exposure_pressure - left.direct_exposure_pressure;
+        });
+        var taskDerivedRetainedClusters = clusterSummaryRows.filter(function (cluster) {
+            return cluster.retained_share >= 0.055;
+        }).sort(function (left, right) {
+            return right.retained_share - left.retained_share;
+        });
+        var taskDerivedElevatedClusters = clusterSummaryRows.filter(function (cluster) {
+            return cluster.elevation_boost >= 0.015;
+        }).sort(function (left, right) {
+            return right.elevation_boost - left.elevation_boost;
+        });
+
         return {
             total_tasks_considered: rows.length,
             direct_evidence_tasks: directTaskEvidenceCount,
@@ -1831,12 +2685,15 @@
             direct_coverage_ratio: Number(directCoverageRatio.toFixed(3)),
             dependency_penalty: Number(dependencyPenalty.toFixed(3)),
             binding_dependencies: bindings.slice(0, 3),
+            resolved_source_role_counts: sourceRoleCounts,
             direct_exposure_pressure: Number(directExposurePressure.toFixed(3)),
             indirect_dependency_pressure: Number(indirectDependencyPressure.toFixed(3)),
             retained_leverage_score: Number(retainedLeverageScore.toFixed(3)),
             residual_role_integrity: Number(residualRoleIntegrity.toFixed(3)),
             exposed_core_share: Number(clamp(exposedCoreShare, 0, 1).toFixed(3)),
             retained_core_share: Number(clamp(retainedCoreShare, 0, 1.25).toFixed(3)),
+            task_first_task_count: taskFirstTaskCount,
+            task_evidence_adjusted_tasks: taskEvidenceAdjustedCount,
             user_selected_task_count: uniqueStrings(
                 (options.dominantTaskIds || [])
                     .concat(options.criticalTaskIds || [])
@@ -1844,6 +2701,13 @@
                     .concat(options.supportTaskIds || [])
             ).length,
             top_exposed_cluster_id: topExposedClusterId,
+            cluster_summaries: {
+                by_id: clusterSummaryById,
+                current_bundle: taskDerivedCurrentBundle,
+                exposed_clusters: taskDerivedExposedClusters,
+                retained_clusters: taskDerivedRetainedClusters,
+                elevated_clusters: taskDerivedElevatedClusters
+            },
             tasks: rows
         };
     }
@@ -2459,6 +3323,13 @@
             var adoptionRealization = SCORING_CONFIG.adoptionRealizationBase + (signals.adoptionPressure * SCORING_CONFIG.adoptionRealizationScale);
             var waveGroups = { current: [], next: [], distant: [] };
             var taskInventoryByCluster = summarizeTaskInventoryByCluster(taskInventoryRows);
+            var resolvedTaskEvidenceByCluster = summarizeResolvedTaskEvidenceByCluster({
+                occupationId: occupationId,
+                taskInventoryRows: taskInventoryRows,
+                taskSourceEvidenceByTaskId: store.taskSourceEvidenceByTaskId,
+                taskEvidenceByKey: store.taskEvidenceByKey
+            });
+            var taskFirstClusterCount = 0;
 
             taskClusters.forEach(function (cluster) {
                 var prior = taskPriorsByCluster[cluster.task_cluster_id] || {};
@@ -2468,6 +3339,7 @@
                 var isRoleCritical = !!roleCriticalSet[cluster.task_cluster_id];
                 var clusterShare = toNumber(cluster.share_prior, 0);
                 var inventoryProfile = taskInventoryByCluster[cluster.task_cluster_id] || null;
+                var resolvedTaskEvidenceCluster = resolvedTaskEvidenceByCluster[cluster.task_cluster_id] || null;
                 var graphCoreShare = inventoryProfile ? toNumber(inventoryProfile.core_share, 0) : 0;
                 var graphBargainingWeight = inventoryProfile ? toNumber(inventoryProfile.mean_bargaining_power_weight, 0.5) : 0.5;
                 var graphAiSupport = inventoryProfile ? toNumber(inventoryProfile.mean_ai_support_observability, 0.3) : 0.3;
@@ -2492,6 +3364,18 @@
                     priorReliability,
                     0.25
                 );
+                var taskFirstClusterWeight = resolvedTaskEvidenceCluster
+                    ? clamp(toNumber(resolvedTaskEvidenceCluster.task_first_weight, 0), 0, 1)
+                    : 0;
+                if (taskFirstClusterWeight > 0) {
+                    empiricalEase = shrinkTowardPrior(
+                        resolvedTaskEvidenceCluster.task_empirical_ease,
+                        empiricalEase,
+                        taskFirstClusterWeight,
+                        empiricalEase
+                    );
+                    taskFirstClusterCount += 1;
+                }
                 var empiricalResistance = 1 - empiricalEase;
 
                 var automationDifficulty = clamp(
@@ -2552,6 +3436,11 @@
                     primary_sources: parsePipeList(prior.primary_sources || cluster.source_mix || ''),
                     is_role_critical: isRoleCritical,
                     prior_reliability: priorReliability,
+                    baseline_difficulty_source: taskFirstClusterWeight > 0 ? 'task_first_cluster_evidence' : 'cluster_priors',
+                    task_first_weight: Number(taskFirstClusterWeight.toFixed(3)),
+                    task_evidence_coverage_ratio: resolvedTaskEvidenceCluster ? Number(toNumber(resolvedTaskEvidenceCluster.task_evidence_coverage_ratio, 0).toFixed(3)) : 0,
+                    task_evidence_mean_reliability: resolvedTaskEvidenceCluster ? Number(toNumber(resolvedTaskEvidenceCluster.task_evidence_mean_reliability, 0).toFixed(3)) : 0,
+                    resolved_task_evidence_count: resolvedTaskEvidenceCluster ? toNumber(resolvedTaskEvidenceCluster.resolved_task_count, 0) : 0,
                     friction_dimensions: frictionDimensions,
                     intrinsic_friction: intrinsicFriction,
                     empirical_resistance: empiricalResistance,
@@ -2785,15 +3674,110 @@
                 taskInventoryRows: taskInventoryRows,
                 dependencyEdges: dependencyEdges,
                 clusterResultsById: clusterResultsById,
+                taskSourceEvidenceByTaskId: store.taskSourceEvidenceByTaskId,
                 taskEvidenceByKey: store.taskEvidenceByKey,
                 taskMembershipByKey: store.taskMembershipByKey,
+                adoptionRealization: adoptionRealization,
+                dependencyBottleneckStrength: signals.questionnaireProfile.dependency_bottleneck_strength,
+                humanSignoffRequirement: signals.questionnaireProfile.human_signoff_requirement,
                 dominantTaskIds: dominantTaskIds,
                 criticalTaskIds: criticalTaskIds,
                 aiSupportTaskIds: aiSupportTaskIds,
                 supportTaskIds: supportTaskIds
             });
-            if (taskGraphSummary && taskGraphSummary.top_exposed_cluster_id && clusterResultsById[taskGraphSummary.top_exposed_cluster_id]) {
-                topExposed = clusterResultsById[taskGraphSummary.top_exposed_cluster_id];
+            var taskDerivedClusterSummaries = taskGraphSummary && taskGraphSummary.cluster_summaries
+                ? taskGraphSummary.cluster_summaries
+                : null;
+            var finalWaveEngine = computeWaveTrajectoryFromBundle(
+                taskDerivedClusterSummaries ? taskDerivedClusterSummaries.current_bundle : currentBundle,
+                signals
+            );
+            currentBundle = finalWaveEngine.current_bundle;
+            waveGroups = finalWaveEngine.wave_groups;
+            waveResults = finalWaveEngine.wave_results;
+            primaryDisplacementWave = finalWaveEngine.primary_displacement_wave;
+            currentWaveAbsorbed = finalWaveEngine.current_wave_absorbed;
+            if (taskDerivedClusterSummaries) {
+                taskDerivedClusterSummaries.by_id = finalWaveEngine.by_id;
+                taskDerivedClusterSummaries.current_bundle = finalWaveEngine.current_bundle;
+                taskDerivedClusterSummaries.exposed_clusters = finalWaveEngine.exposed_clusters;
+                taskDerivedClusterSummaries.retained_clusters = finalWaveEngine.retained_clusters;
+                taskDerivedClusterSummaries.elevated_clusters = finalWaveEngine.elevated_clusters;
+            }
+
+            adoptionFriction = 1 - signals.adoptionPressure;
+            residualViabilityScore = clamp(
+                waveResults.next.retained_share * 0.45 +
+                waveResults.next.coherence * 0.35 +
+                signals.functionRetention * 0.10 +
+                signals.questionnaireProfile.human_signoff_requirement * 0.05 +
+                adoptionFriction * 0.05,
+                0, 1
+            );
+
+            cwState = waveResults.current.state;
+            nwState = waveResults.next.state;
+            if (cwState === 'displaced') {
+                roleState = 'high_displacement_risk';
+            } else if (cwState === 'transformed') {
+                roleState = 'role_fragments';
+            } else if (cwState === 'stable' && nwState === 'stable') {
+                roleState = 'mostly_augmented';
+            } else if (cwState === 'stable' && nwState === 'narrowed') {
+                roleState = 'routine_tasks_absorbed';
+            } else if (cwState === 'stable' && nwState === 'transformed') {
+                roleState = 'role_becomes_more_senior';
+            } else if (cwState === 'stable' && nwState === 'displaced') {
+                roleState = 'role_narrows_but_remains_viable';
+            } else if (cwState === 'narrowed') {
+                roleState = 'role_narrows_but_remains_viable';
+            } else {
+                roleState = 'routine_tasks_absorbed';
+            }
+
+            personalizationFitScore = clamp(
+                average([
+                    occupationAdaptive,
+                    signals.functionRetention,
+                    signals.couplingProtection,
+                    signals.seniority * 0.30 + signals.capabilitySignal * 0.30 + signals.augmentationFit * 0.40,
+                    waveResults.next.retained_share,
+                    waveResults.next.coherence
+                ]),
+                0, 1
+            );
+
+            bundleFriction = summarizeBundleFriction(currentBundle);
+            workflowCompression = clamp(
+                currentWaveAbsorbed *
+                (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)) *
+                (1 - (signals.functionRetention * 0.10)),
+                0, 1
+            );
+            organizationalConversion = clamp(
+                signals.adoptionPressure * 0.30 +
+                (1 - signals.couplingProtection) * 0.25 +
+                currentWaveAbsorbed * 0.20 +
+                (1 - bundleFriction.accountability_load) * 0.10 +
+                (1 - bundleFriction.judgment_requirement) * 0.08 +
+                bundleFriction.document_intensity * 0.07 -
+                (signals.questionnaireProfile.human_signoff_requirement * 0.05) -
+                (signals.questionnaireProfile.liability_and_regulatory_burden * 0.05),
+                0, 1
+            );
+            substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
+            substitutionGap = clamp(workflowCompression - substitutionPotential, 0, 1);
+            topExposed = currentBundle.slice().sort(function (left, right) {
+                var leftScore = left.share_of_role * (1 - left.automation_difficulty) * (left.is_role_critical ? 1.35 : 1);
+                var rightScore = right.share_of_role * (1 - right.automation_difficulty) * (right.is_role_critical ? 1.35 : 1);
+                return rightScore - leftScore;
+            })[0] || null;
+            if (taskGraphSummary && taskGraphSummary.top_exposed_cluster_id) {
+                if (taskDerivedClusterSummaries && taskDerivedClusterSummaries.by_id[taskGraphSummary.top_exposed_cluster_id]) {
+                    topExposed = taskDerivedClusterSummaries.by_id[taskGraphSummary.top_exposed_cluster_id];
+                } else if (clusterResultsById[taskGraphSummary.top_exposed_cluster_id]) {
+                    topExposed = clusterResultsById[taskGraphSummary.top_exposed_cluster_id];
+                }
             }
             if (taskGraphSummary) {
                 residualViabilityScore = clamp(
@@ -2830,11 +3814,22 @@
                 substitutionPotential = clamp(workflowCompression * organizationalConversion, 0, 1);
                 substitutionGap = clamp(workflowCompression - substitutionPotential, 0, 1);
             }
+            if (taskDerivedClusterSummaries && roleDefiningWork && taskDerivedClusterSummaries.by_id[roleDefiningWork.task_cluster_id]) {
+                var roleDefiningSummary = taskDerivedClusterSummaries.by_id[roleDefiningWork.task_cluster_id];
+                roleDefiningWork = Object.assign({}, roleDefiningWork, {
+                    share_of_role: roleDefiningSummary.share_of_role,
+                    residual_relevance: roleDefiningSummary.retained_share,
+                    automation_difficulty: roleDefiningSummary.automation_difficulty,
+                    wave_assignment: roleDefiningSummary.wave_assignment,
+                    label: roleDefiningSummary.label,
+                    is_role_critical: roleDefiningSummary.is_role_critical
+                });
+            }
 
             var viabilityTier = toTier(residualViabilityScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
             var personalizationTier = toTier(personalizationFitScore, [0.45, 0.68], ['weak', 'moderate', 'strong']);
             var exposureLevel = topExposed
-                ? toTier(1 - topExposed.automation_difficulty, [0.40, 0.68], ['low', 'moderate', 'high'])
+                ? (topExposed.exposure_level || toTier(1 - topExposed.automation_difficulty, [0.40, 0.68], ['low', 'moderate', 'high']))
                 : 'low';
             var occupationAnchorConfidence = average([
                 occupationPrior ? toNumber(occupationPrior.confidence, 0.45) : 0.40,
@@ -2843,7 +3838,7 @@
             var personalizationConfidence = average([
                 signals.couplingProtection,
                 signals.capabilitySignal,
-                average(currentBundle.map(function (cluster) {
+                average((taskDerivedClusterSummaries ? taskDerivedClusterSummaries.current_bundle : currentBundle).map(function (cluster) {
                     return cluster.evidence_confidence;
                 }))
             ]);
@@ -2852,17 +3847,18 @@
                 : 0;
 
             // --- Derived lists ---
-            var exposedClusters = currentBundle.filter(function (c) {
+            var currentBundleForOutput = taskDerivedClusterSummaries ? taskDerivedClusterSummaries.current_bundle : currentBundle;
+            var exposedClusters = taskDerivedClusterSummaries ? taskDerivedClusterSummaries.exposed_clusters : currentBundle.filter(function (c) {
                 return c.wave_assignment === 'current' || c.wave_assignment === 'next';
             }).sort(function (left, right) {
                 return left.automation_difficulty - right.automation_difficulty;
             });
-            var retainedClusters = currentBundle.filter(function (c) {
+            var retainedClusters = taskDerivedClusterSummaries ? taskDerivedClusterSummaries.retained_clusters : currentBundle.filter(function (c) {
                 return c.residual_relevance >= 0.055;
             }).sort(function (left, right) {
                 return right.residual_relevance - left.residual_relevance;
             });
-            var elevatedClusters = currentBundle.filter(function (c) {
+            var elevatedClusters = taskDerivedClusterSummaries ? taskDerivedClusterSummaries.elevated_clusters : currentBundle.filter(function (c) {
                 return c.elevation_boost >= 0.015;
             }).sort(function (left, right) {
                 return right.elevation_boost - left.elevation_boost;
@@ -2922,7 +3918,7 @@
             var dependencyPenalty = clamp(dependencyRead.penalty, 0, 0.5);
             var bindingDependencies = dependencyRead.bindings;
             var recompositionConfidence = clamp(average([
-                average(currentBundle.map(function (cluster) {
+                average(currentBundleForOutput.map(function (cluster) {
                     return cluster.evidence_confidence;
                 })),
                 occupationAnchorConfidence,
@@ -3038,7 +4034,7 @@
             };
 
             var evidenceSummary = {
-                task_evidence_confidence: average(currentBundle.map(function (cluster) {
+                task_evidence_confidence: average(currentBundleForOutput.map(function (cluster) {
                     return cluster.evidence_confidence;
                 })),
                 occupation_anchor_confidence: occupationAnchorConfidence,
@@ -3068,9 +4064,16 @@
                 },
                 source_coverage: {
                     occupation_prior_source: occupationPrior ? occupationPrior.source_id : null,
-                    task_prior_rows: currentBundle.length,
+                    task_prior_rows: currentBundleForOutput.length,
                     exposed_cluster_rows: exposedClusters.length,
+                    task_first_cluster_rows: taskFirstClusterCount,
+                    task_first_task_rows: taskGraphSummary ? taskGraphSummary.task_first_task_count : 0,
                     direct_task_evidence_rows: directTaskEvidenceCount,
+                    live_task_evidence_rows: taskGraphSummary && taskGraphSummary.resolved_source_role_counts ? (taskGraphSummary.resolved_source_role_counts.live_task_evidence || 0) : 0,
+                    reviewed_task_estimate_rows: taskGraphSummary && taskGraphSummary.resolved_source_role_counts ? (taskGraphSummary.resolved_source_role_counts.reviewed_task_estimate || 0) : 0,
+                    benchmark_task_label_rows: taskGraphSummary && taskGraphSummary.resolved_source_role_counts ? (taskGraphSummary.resolved_source_role_counts.benchmark_task_label || 0) : 0,
+                    cluster_proxy_rows: taskGraphSummary && taskGraphSummary.resolved_source_role_counts ? (taskGraphSummary.resolved_source_role_counts.cluster_prior_proxy || 0) : 0,
+                    task_evidence_adjusted_rows: taskGraphSummary ? taskGraphSummary.task_evidence_adjusted_tasks : 0,
                     fallback_task_rows: fallbackTaskCount,
                     role_graph_task_rows: taskBreakdownRows.length,
                     dependency_edge_rows: dependencyEdges.length,
@@ -3078,10 +4081,10 @@
                 },
                 notes: [
                     occupationPrior ? ('Occupation prior source: ' + occupationPrior.source_id) : 'Occupation prior source: fallback heuristic',
-                    'v2.1 wave-based model: automation difficulty per cluster drives wave assignment (current/next/distant).',
+                    'v2.1 task-derived wave model: the baseline difficulty path now promotes task-resolved evidence into cluster baselines when cluster-level task coverage and reliability are strong enough; otherwise cluster priors still seed the difficulty path. Resolved task-level evidence can also alter task difficulty and direct pressure before public wave assignment is recomputed from the task-derived cluster bundle.',
                     'Task-family friction scored across exception burden, accountability load, judgment requirement, document intensity, and tacit/context dependence.',
                     'Task-role graph scoring now adds task-level bargaining weights, default task-to-function bindings, custom task-to-function links, and dependency spillover between support work and exposed core work.',
-                    'Cluster priors are shrunk toward occupation-level priors using evidence confidence.',
+                    'Cluster priors are still shrunk toward occupation-level priors using evidence confidence, but clusters with strong resolved task-evidence coverage now receive a task-first baseline blend before task rows are scored. `task_source_evidence.csv` continues to resolve reviewed task estimates, benchmark task labels, and live task evidence before proxy fallback at the task row.',
                     'Wave trajectory: current=' + waveResults.current.state + ', next=' + waveResults.next.state + ', distant=' + waveResults.distant.state + '. Primary displacement wave: ' + primaryDisplacementWave + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + ' (wave: ' + roleDefiningWork.wave_assignment + ').') : 'No explicit role-defining task input selected.',
                     'Active composition: ' + taskInventoryRows.length + ' tasks and ' + activeFunctionRows.length + ' function anchors after user edits.',
@@ -3146,7 +4149,7 @@
                 function_metrics: functionMetrics,
                 recomposition_summary: recompositionSummary,
                 transformation_map: {
-                    current_bundle: currentBundle,
+                    current_bundle: currentBundleForOutput,
                     exposed_clusters: exposedClusters,
                     retained_clusters: retainedClusters,
                     elevated_clusters: elevatedClusters
@@ -3189,6 +4192,9 @@
                     bundle_prior_concentration: Number(bundlePriorConcentration.toFixed(3)),
                     mean_cluster_prior_reliability: Number(average(clusterPriorReliabilities).toFixed(3)),
                     mean_task_direct_reliability: Number(average(taskDirectReliabilities).toFixed(3)),
+                    task_first_cluster_count: taskFirstClusterCount,
+                    task_first_task_count: taskGraphSummary ? taskGraphSummary.task_first_task_count : 0,
+                    task_evidence_adjusted_tasks: taskGraphSummary ? taskGraphSummary.task_evidence_adjusted_tasks : 0,
                     workflow_compression: Number(workflowCompression.toFixed(3)),
                     organizational_conversion: Number(organizationalConversion.toFixed(3)),
                     substitution_potential: Number(substitutionPotential.toFixed(3)),
@@ -3372,6 +4378,7 @@
             occupationFunctionMapByOcc: groupBy(loaded.occupationFunctionMap, 'occupation_id'),
             functionAccountabilityByFunctionId: indexBy(loaded.functionAccountabilityProfiles, 'function_id'),
             taskFunctionEdgesByTaskId: groupBy(loaded.taskFunctionEdges, 'task_id'),
+            taskSourceEvidenceByTaskId: groupBy(loaded.taskSourceEvidence, 'task_id'),
             taskMembershipByKey: loaded.taskMembership.reduce(function (map, row) {
                 var key = taskKey(row.occupation_id, row.onet_task_id);
                 var current = map[key];

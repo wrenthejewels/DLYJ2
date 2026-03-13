@@ -2,15 +2,20 @@
 
 When a normalized field could be informed by multiple sources, use this default precedence:
 
-1. direct task-level evidence
-2. occupation-level empirical priors
-3. O*NET structure and context proxies
-4. manual heuristic fallback
+1. live task evidence
+2. reviewed task estimates
+3. benchmark task labels
+4. cluster prior proxies
+5. fallback task proxies
+6. occupation-level empirical priors
+7. O*NET structure and context proxies
+8. manual heuristic fallback
 
 ## Examples
 
-- `task_exposure_evidence.csv`: prefer the normalized Anthropic `2026-01-15` task telemetry; use the legacy `2025-03-27` Anthropic extract only as fallback when the newer release does not resolve a row.
-- `occupation_exposure_priors.csv`: prefer the launch aggregate prior derived from Anthropic task evidence, O*NET structure, and BLS labor context.
+- `task_source_evidence.csv`: resolve task rows in this order: `live_task_evidence`, then `reviewed_task_estimate`, then `benchmark_task_label`, and only then `cluster_prior_proxy` or `fallback_task_proxy`. In the live engine, the first three tiers can alter task difficulty and task pressure, can push a cluster into the coverage-aware `task_first_cluster_evidence` baseline path when enough task coverage exists, and can promote a task row into `task_first_resolved_evidence` when task-level reliability is strong enough. Proxy tiers remain fallback only.
+- `task_exposure_evidence.csv`: treat this as the live-task-evidence input feeding `task_source_evidence.csv`, not the only task-level runtime source.
+- `occupation_exposure_priors.csv`: prefer the launch aggregate occupation exposure prior derived from Anthropic task evidence and O*NET structure. Treat BLS labor context as a separate downstream input for demand/readout layers rather than part of the exposure prior itself.
 - `occupation_benchmark_scores.csv`: keep benchmark scores separate from public scoring and use them only for comparison reports or offline validation.
 - `occupation_quality_indicators.csv`: use OECD as a framework and O*NET as the initial implementation substrate.
 - `occupation_transition_adjacency.csv`: use O*NET adjacency and later augment with empirical transition data if added.

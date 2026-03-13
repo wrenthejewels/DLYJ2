@@ -1,8 +1,8 @@
-# Role Transformation Overhaul Plan
+# Current Model Working Plan
 
 ## Read This First
 
-This is the canonical planning and handoff document for the current model.
+This is the canonical living planning and handoff document for the current model.
 
 A new session should read this document first to understand:
 - what the live product is now
@@ -11,24 +11,30 @@ A new session should read this document first to understand:
 - what still needs to be done next
 
 Supporting docs:
+- `docs/README.md` = documentation entrypoint and source-of-truth routing
 - `docs/v2_0_questionnaire_spec.md` = current intake and questionnaire contract
 - `docs/v2_0_results_spec.md` = current result object and UI/result contract
-- `docs/v2_0_release_plan.md` = short release snapshot only, not the main plan
+- `docs/model_build_history.md` = plain-speak history of how the model evolved
 
 ## Documentation Structure
 
 Keep this file as the one central planning and handoff doc.
 
 Recommended doc roles:
+- `docs/README.md` = first stop for doc routing and precedence
 - `docs/role_transformation_overhaul_plan.md` = canonical current-state, roadmap, and next-steps document
 - `docs/v2_0_questionnaire_spec.md` = supporting intake and questionnaire reference
 - `docs/v2_0_results_spec.md` = supporting output/result contract reference
-- `docs/v2_0_release_plan.md` = short snapshot of what is live, not a separate roadmap
+- `docs/model_build_history.md` = plain-speak history and future writing input
 
 Recommended merge decision:
 - do not merge the questionnaire or results specs into this file, because they work better as narrow contract docs
-- do not let `docs/v2_0_release_plan.md` grow into a second planning document
+- do not create a second top-level roadmap or release snapshot doc
 - if future planning notes are created, fold them back into this file instead of creating another top-level roadmap
+
+Update rule:
+- update this file whenever the live model, roadmap, or implementation status materially changes
+- update `docs/model_build_history.md` when the change is architecturally meaningful enough to matter for the model narrative
 
 ## Current Live Surface
 
@@ -47,7 +53,8 @@ The live model is a role-fate model built on top of:
 - a mapped occupation anchor
 - an occupation task inventory
 - a task-role graph with dependency edges
-- direct and fallback task evidence
+- a task-source evidence resolver spanning live task evidence, reviewed task estimates, benchmark task labels, and proxy fallback
+- a hybrid task-pressure stack where cluster priors still provide the fallback difficulty anchor, but strong resolved task evidence can now shift cluster baselines and blend into task-level automation difficulty and task-level direct pressure
 - a structured role-refinement profile derived from the questionnaire
 - labor-market context as a supporting layer
 
@@ -61,13 +68,13 @@ The live model currently outputs:
 - an editable role composition layer built from source-bucketed tasks and function anchors
 
 Current live role-fate labels:
-- `Augmented`
-- `Compressed`
-- `Elevated`
-- `Split`
-- `Expanded`
-- `Collapsed`
-- `Mixed transition`
+- `Reinforced`
+- `Shrinking`
+- `Narrowed upward`
+- `Polarized`
+- `Growing`
+- `Hollowed out`
+- `Unclear trajectory`
 
 ## First-Pass Implementation Status
 
@@ -81,6 +88,31 @@ Implemented on `2026-03-10`:
 - `occupation_source_priors.csv`
 - `occupation_role_transformation.csv`
 - `occupation_role_explanations.csv`
+
+Implemented on `2026-03-13`:
+- phase-1 direct task-evidence blending in the live browser scorer:
+  - cluster priors still provided the baseline task-difficulty model
+  - reliable resolved task evidence now blends into `direct_exposure_pressure` at the task row level
+  - low-reliability task evidence remains confidence/coverage metadata only
+- phase-2 task-derived cluster summaries in the live browser scorer:
+  - public cluster surfaces now aggregate from scored task rows rather than the pre-task cluster bundle
+  - `top_exposed_work` and `transformation_map` now reflect task-level pressure and spillover
+- phase-3 task-derived wave engine in the live browser scorer:
+  - reliable resolved task evidence now also blends into task-level `automation_difficulty`
+  - task-derived cluster summaries now carry task-aggregated difficulty, absorption rate, and wave assignment
+  - `wave_trajectory` and `primary_displacement_wave` are now recomputed from the task-derived cluster bundle rather than preserved from the pre-task cluster bundle
+- phase-4 task-source evidence resolver in the live browser scorer:
+  - `task_source_evidence.csv` now drives task-level evidence resolution at runtime
+  - `live_task_evidence`, `reviewed_task_estimate`, and `benchmark_task_label` can all promote into the live task score before proxy fallback
+  - proxy rows remain visible and can still backstop unresolved tasks, but they no longer block reviewed or benchmark task-level evidence from affecting the score
+- phase-5 coverage-aware task-first cluster baselines in the live browser scorer:
+  - cluster baselines can now shift toward resolved task evidence when a cluster has enough task-level evidence coverage and reliability
+  - the public diagnostics now report how many cluster baselines used this task-first path
+  - this is still a hybrid baseline, not yet a pure per-task prior model
+- phase-6 task-first task baselines in the live browser scorer:
+  - high-reliability task rows can now promote into `task_first_resolved_evidence` instead of only inheriting a cluster-seeded baseline
+  - task-level baseline promotion now reduces the remaining task-evidence blend weight so the same evidence is not double-counted
+  - public diagnostics now report how many task rows used this task-first task path
 
 Implemented scripts:
 - `build_job_description_evidence.ps1`
@@ -99,6 +131,12 @@ Current implementation scope:
 - unified task-source comparison rows across Anthropic, GPT task labels, cluster proxies, and stubs, with proxies down-weighted when task-level evidence exists
 - unified occupation prior rows across live aggregates and benchmark sources
 - occupation-level explanation summaries for all `34` modeled occupations
+- task-row evidence resolution from `task_source_evidence.csv`, with reviewed and benchmark task evidence now participating in live scoring alongside Anthropic task evidence
+- task-row direct-evidence blending for both automation difficulty and direct pressure
+- coverage-aware task-first cluster baselines, where strong resolved task evidence can now shift the cluster baseline before that baseline is projected onto task rows
+- task-first task baselines, where high-reliability task rows can now promote into their own task-level baseline before any residual task-evidence blend is applied
+- phase-2 task-derived cluster aggregation for exposed/retained cluster surfaces and top-exposed-cluster readouts
+- phase-3 task-derived automation-difficulty and wave recomputation for public wave timing and cluster outputs
 - runtime questionnaire redesign with native role-refinement factors and legacy-answer fallback retained only for compatibility
 - reviewed public-job-posting task-gap coverage for all `34` modeled occupations
 - reviewed role-transformation calibration for all `34` modeled occupations:
@@ -113,7 +151,8 @@ Current implementation scope:
 Known current limits:
 - multi-anchor function coverage exists only for a reviewed subset of the most obviously split roles, not yet for every occupation that may need it
 - transformation scoring still relies on broad role-family defaults and benchmark floors underneath the reviewed overrides
-- task evidence still depends too much on cluster priors for the thinnest-covered occupations even after proxy down-weighting
+- thin-coverage occupations still depend heavily on cluster priors for automation difficulty even after proxy down-weighting and the new task-first baseline layers
+- the live engine now has both task-first cluster baselines and task-first task baselines, but low-coverage tasks still inherit a cluster-seeded fallback path
 - the live questionnaire now renders as core questions plus optional deeper modules and writes a native factor-based role-refinement profile, but external legacy-answer fallback still exists in the engine for compatibility
 
 ### What Has Been Done So Far
@@ -125,6 +164,12 @@ Known current limits:
 - Added a first-pass role-transformation scoring layer for all modeled occupations
 - Added occupation-by-occupation explanation outputs so each transformation row has a plain-English audit summary
 - Reduced proxy overreach by down-weighting cluster-prior task evidence when direct task evidence or benchmark task labels already exist
+- Promoted the source-comparison layer into the live task scorer so reviewed task estimates and benchmark task labels can now affect runtime task scoring instead of remaining comparison-only
+- Added a first live direct-task-evidence runtime blend so sufficiently reliable task evidence can move task-level direct pressure and task-level automation difficulty without replacing the baseline cluster-prior layer
+- Added a coverage-aware task-first cluster-baseline blend so clusters with enough resolved task evidence can shift the baseline difficulty path before task-row scoring
+- Added a task-first task-baseline path so high-reliability task rows can now use their own resolved task evidence as the main baseline source rather than only adjusting a cluster-seeded baseline
+- Added task-derived cluster aggregation so the public cluster summaries and `top_exposed_work` now reflect scored task rows rather than only the pre-task cluster bundle
+- Recomputed the live wave engine from the task-derived cluster bundle so public wave timing now follows the same bottom-up task stack as the public cluster layer
 - Added a reviewed task-scoring layer for the highest-proxy occupation gap so Business Operations Specialists no longer reads as pure proxy coverage
 - Extended the reviewed task-scoring layer to the remaining medium-priority evidence gaps:
   - Data Scientists
@@ -246,19 +291,39 @@ What is not finished yet:
 - Extend multi-anchor function graphs further wherever one anchor still collapses distinct human-retained functions
 - Improve task-to-function weighting where O*NET still overstates generic admin or workflow tasks
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
+- Expand task-first task-baseline coverage so more occupations can leave the cluster-seeded fallback path without becoming noisy
 - Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
 - Add simple task-weight controls so users can mark selected work as major, medium, or minor rather than only in/out
 - Add clearer result deltas that tell users exactly what their composition edits changed in the current run
 - Decide whether to keep or remove the remaining legacy-answer compatibility fallback in the engine
 - Expand beyond the current `34` modeled occupations once the reviewed workflow is stable
 - Evaluate whether the current output taxonomy needs refinement beyond:
-  - `Augmented`
-  - `Compressed`
-  - `Elevated`
-  - `Split`
-  - `Expanded`
-  - `Collapsed`
-  - `Mixed transition`
+  - `Reinforced`
+  - `Shrinking`
+  - `Narrowed upward`
+  - `Polarized`
+  - `Growing`
+  - `Hollowed out`
+  - `Unclear trajectory`
+
+### Autoresearch Agenda
+
+Highest-value next research directions:
+- empirical outcome calibration from official labor-market and work-organization data instead of only internal score tuning
+- better within-occupation task heterogeneity so one occupation can represent more than one stable role shape
+- clearer user-facing explanation of why exposed work does or does not destroy the role
+
+Best external data directions to evaluate next:
+- `BLS Occupational Requirements Survey (ORS)` for judgment, decision, interpersonal, and contextual requirements that could sharpen human-retention guardrails
+- `BLS American Time Use Survey (ATUS)` for grounding how broad work categories and time use actually split in practice
+- `Census ACS PUMS` for within-occupation heterogeneity, wage dispersion, and worker-mix analysis
+- `Census Business Trends and Outlook Survey (BTOS)` AI-use modules for organization-level adoption and deployment context
+- `O*NET Technology Skills / Tools and Technology` for task-tool adjacency and more explicit augmentation vs automation routing
+
+Directions that are probably weak unless new evidence appears:
+- adding more benchmark score vendors without improving outcome calibration
+- inventing more top-level labels before the current label set is externally stress-tested
+- treating labor-market demand data as if it directly proves task automability
 
 ## Purpose
 
@@ -475,7 +540,8 @@ Right now the repo has useful source imports, but the active stack and benchmark
 ### Proposed rules
 
 - Anthropic = primary live task evidence
-- GPTs task labels = secondary task evidence / fallback
+- reviewed task estimates = promoted supporting task evidence
+- GPTs task labels = secondary task evidence / fallback promotion tier
 - AIOE = occupation + ability prior
 - Webb = occupation benchmark prior
 - SML = occupation benchmark prior
@@ -487,6 +553,15 @@ A normalized exposure framework that answers:
 - where sources agree
 - where sources disagree
 - which source is allowed to drive which layer
+
+Current live status:
+- cluster priors still provide the baseline difficulty prior
+- resolved task evidence now blends into both task-level automation difficulty and task-level direct pressure when `direct_evidence_reliability > 0.20`
+- the task-level resolver currently prioritizes `live_task_evidence`, then `reviewed_task_estimate`, then `benchmark_task_label`, then proxy fallback
+- that blend weight is capped at `0.85`
+- low-reliability task evidence still stays in confidence and coverage surfaces only
+- public cluster summaries are now aggregated back up from scored task rows after direct pressure, spillover, and retained-share calculations
+- wave trajectory is now recomputed from that task-derived cluster bundle rather than from the older pre-task cluster bundle
 
 ## Workstream 2. Task Gap Expansion
 
@@ -701,6 +776,15 @@ Build:
 Success condition:
 - every launch role has a transparent source comparison view
 
+Current shipped subset:
+- resolved task evidence now influences live task-level automation difficulty and direct pressure when reliability clears the runtime threshold
+- task-derived cluster summaries now drive the public cluster layer and top-exposed-cluster readouts
+- the task-derived wave engine is now live on top of those task-derived cluster summaries
+- the runtime task-source evidence resolver is now live
+- the runtime now also has a coverage-aware task-first cluster-baseline path
+- the runtime now also has a task-first task-baseline path for high-reliability task rows
+- the remaining gap is expanding that task-first coverage without making thin occupations unstable
+
 ## Phase 2. Task-gap expansion
 
 Build:
@@ -747,8 +831,10 @@ Success condition:
 1. Add weighted task-share controls to the composition editor so selected tasks can be marked as major, medium, or minor instead of only present or absent.
 2. Add explicit result deltas that explain what changed after composition edits, for example which retained functions strengthened or which spillover links increased pressure.
 3. Replace more cluster-prior proxy dependence with direct task evidence, GPT task-label promotion, or reviewed manual mapping for the highest-proxy occupations that still lean on fallback.
-4. Use the new occupation explanation layer to run another occupation-by-occupation audit and tighten task-to-function weighting where explanations still look generic.
-5. Decide whether to keep or remove the remaining legacy-answer compatibility fallback after external callers are checked.
+4. Push direct task evidence one layer deeper by deriving cluster automation difficulty from task rows wherever task-level evidence is strong enough.
+5. Recompute the upstream wave engine bottom-up from task-derived cluster summaries instead of preserving a separate pre-task wave bundle.
+6. Use the new occupation explanation layer to run another occupation-by-occupation audit and tighten task-to-function weighting where explanations still look generic.
+7. Decide whether to keep or remove the remaining legacy-answer compatibility fallback after external callers are checked.
 
 ## One-Sentence Summary
 
