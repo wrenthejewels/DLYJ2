@@ -43,7 +43,7 @@ Current limitations:
 ### Adoption Context Plausibility
 - strength: `medium`
 - coverage: `32/34`
-- spearman correlation: `0.157`
+- spearman correlation: `0.240`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `0`
 - description: Compares organizational conversion and default adoption pressure to a BTOS adoption-context signal joined from sector-level AI-use estimates through ACS-derived occupation sector mix, then rescaled into the model’s adoption-realization range.
@@ -59,15 +59,15 @@ Current limitations:
 ### Wage Leverage Plausibility
 - strength: `weak`
 - coverage: `34/34`
-- spearman correlation: `0.413`
-- high-priority mismatches: `12`
-- medium-priority mismatches: `5`
+- spearman correlation: `0.429`
+- high-priority mismatches: `11`
+- medium-priority mismatches: `6`
 - description: Compares retained bargaining power to wage-level and wage-dispersion context as a coarse external check.
 
 ### Routine Pressure Plausibility
 - strength: `medium`
 - coverage: `34/34`
-- spearman correlation: `0.540`
+- spearman correlation: `0.570`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `4`
 - description: Compares modeled pressure/compressibility to adaptation-layer routine share, people share, learning intensity, and job-zone complexity.
@@ -75,7 +75,7 @@ Current limitations:
 ### Specialization Resilience Plausibility
 - strength: `medium`
 - coverage: `34/34`
-- spearman correlation: `0.109`
+- spearman correlation: `0.130`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `5`
 - description: Compares retained function/bargaining signals to adaptation-layer learning intensity, transferability, adaptive capacity, and knowledge intensity.
@@ -83,7 +83,7 @@ Current limitations:
 ### Role Heterogeneity Plausibility
 - strength: `medium`
 - coverage: `34/34`
-- spearman correlation: `0.438`
+- spearman correlation: `0.440`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `2`
 - description: Compares modeled role fragmentation risk to an ACS PUMS heterogeneity signal built from wage dispersion, education dispersion, industry dispersion, and worker-mix spread, then scaled by lower people-intensity from the adaptation layer.
@@ -137,14 +137,14 @@ Current limitations:
 | --- | --- | ---: | --- |
 | Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | task_pressure | 0.202 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
 | Office Clerks, General | task_pressure | 0.186 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
-| Editors | role_shape_heterogeneity | 0.154 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Editors | role_shape_heterogeneity | 0.151 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Operations Research Analysts | role_shape_heterogeneity | 0.134 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
-| News Analysts, Reporters, and Journalists | role_shape_heterogeneity | 0.120 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
-| Management Analysts | role_shape_heterogeneity | 0.118 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Management Analysts | role_shape_heterogeneity | 0.129 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Market Research Analysts and Marketing Specialists | role_shape_heterogeneity | 0.124 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| News Analysts, Reporters, and Journalists | role_shape_heterogeneity | 0.117 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Web Developers | role_shape_heterogeneity | 0.113 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
+| Technical Writers | role_shape_heterogeneity | 0.113 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Writers and Authors | task_pressure | 0.109 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
-| Market Research Analysts and Marketing Specialists | role_shape_heterogeneity | 0.103 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
-| Technical Writers | role_shape_heterogeneity | 0.102 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 
 ## Largest Gaps By Check
 
@@ -223,14 +223,14 @@ Current limitations:
 ### Role Heterogeneity Plausibility
 | Occupation | Model | Target | Gap | Confidence | Review |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Editors | 0.196 | 0.386 | 0.190 | 0.810 | medium |
 | Accountants and Auditors | 0.192 | 0.380 | 0.188 | 0.792 | medium |
+| Editors | 0.200 | 0.386 | 0.186 | 0.810 | medium |
 | Bookkeeping, Accounting, and Auditing Clerks | 0.206 | 0.381 | 0.175 | 0.824 | low |
 | Operations Research Analysts | 0.201 | 0.363 | 0.162 | 0.827 | low |
 | Compliance Officers | 0.180 | 0.328 | 0.148 | 0.845 | low |
-| News Analysts, Reporters, and Journalists | 0.206 | 0.351 | 0.145 | 0.831 | low |
+| Management Analysts | 0.193 | 0.340 | 0.147 | 0.880 | low |
+| Market Research Analysts and Marketing Specialists | 0.245 | 0.392 | 0.147 | 0.845 | low |
 | Statistical Assistants | 0.240 | 0.385 | 0.145 | 0.790 | low |
-| Financial and Investment Analysts | 0.193 | 0.337 | 0.144 | 0.848 | low |
 
 ## Interpretation
 

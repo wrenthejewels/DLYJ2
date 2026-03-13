@@ -21,6 +21,9 @@ function main() {
   [
     'v2-composition-headline',
     'v2-composition-summary',
+    'v2-role-variant-panel',
+    'v2-role-variant-select',
+    'v2-role-variant-note',
     'v2-task-add-select',
     'v2-task-add',
     'v2-function-add-select',
@@ -49,6 +52,7 @@ function main() {
   [
     'populateV2RoleComposition',
     'renderV2RoleComposition',
+    'renderV2RoleVariantControls',
     'renderV2DependencyEditor',
     'getDependencyEditsForEngine',
     'getCompositionEditsForEngine',

@@ -100,6 +100,18 @@
                     <h3>Role breakdown</h3>
                     <p id="v2-composition-headline">Select an occupation to load the role breakdown the model will score.</p>
                     <p id="v2-composition-summary">We start with baseline tasks from O*NET, add reviewed tasks from public postings and role review, then keep the main functions that define why the role exists. You can edit that mix before scoring.</p>
+                    <div class="v2-composition-card" id="v2-role-variant-panel" hidden>
+                        <div class="v2-composition-card-header">
+                            <h4 id="v2-role-variant-headline">Choose the closest reviewed version of this occupation</h4>
+                            <p id="v2-role-variant-summary">Some occupations hide a few stable role shapes. When that happens, the model can start from the closest reviewed baseline before you edit tasks directly.</p>
+                        </div>
+                        <div class="v2-composition-add-row">
+                            <select id="v2-role-variant-select" class="plane-dropdown">
+                                <option value="">No reviewed role variants for this occupation yet</option>
+                            </select>
+                        </div>
+                        <p class="r-intake-help" id="v2-role-variant-note"></p>
+                    </div>
                     <div class="v2-structure-guide" id="v2-structure-guide">
                         <div class="v2-structure-guide-item">
                             <strong>1. Tasks</strong>

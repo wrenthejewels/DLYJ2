@@ -52,6 +52,33 @@ function Assert-ForeignKey {
     }
 }
 
+function Assert-PipeForeignKey {
+    param(
+        [Parameter(Mandatory)] [object[]]$Rows,
+        [Parameter(Mandatory)] [string]$Column,
+        [Parameter(Mandatory)] [string[]]$Allowed,
+        [Parameter(Mandatory)] [string]$Label
+    )
+
+    $missing = @()
+    foreach ($row in $Rows) {
+        $values = @()
+        if ($row.$Column) {
+            $values = ($row.$Column -split '\|') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+        }
+        foreach ($value in $values) {
+            if ($value -notin $Allowed) {
+                $missing += $value
+            }
+        }
+    }
+
+    $missing = $missing | Select-Object -Unique
+    if ($missing) {
+        throw "Invalid $Label references: $($missing -join ', ')"
+    }
+}
+
 function Assert-ShareSums {
     param(
         [Parameter(Mandatory)] [object[]]$Rows,
@@ -85,6 +112,7 @@ $headerMap = @{
     'occupation_tasks.csv' = @('occupation_id','onet_task_id','task_statement','task_type','importance','frequency','source_mix','notes')
     'job_description_task_evidence.csv' = @('occupation_id','evidence_id','employer_name','job_title','source_url','source_kind','task_statement','task_family_id','task_type','importance','frequency','review_status','source_confidence','notes')
     'occupation_task_inventory.csv' = @('occupation_id','task_id','onet_task_id','task_statement','task_family_id','task_type','time_share_prior','value_centrality','bargaining_power_weight','role_criticality','ai_support_observability','source_mix','source_confidence','notes')
+    'occupation_role_variants.csv' = @('occupation_id','variant_id','variant_label','variant_summary','variant_order','is_default','task_ids','function_ids','preferred_task_families','preferred_function_ids','questionnaire_signature','source_mix','notes')
     'task_clusters.csv' = @('task_cluster_id','label','label_short','description','default_coupling_class','default_reviewability_class','default_human_advantage_class')
     'occupation_task_clusters.csv' = @('occupation_id','task_cluster_id','share_prior','importance_prior','evidence_confidence','source_mix','notes')
     'task_cluster_membership.csv' = @('occupation_id','onet_task_id','task_cluster_id','membership_weight','mapping_method','mapping_confidence','notes')
@@ -152,6 +180,7 @@ $selector = Import-Csv (Join-Path $normalizedDir 'occupation_selector_index.csv'
 $occupationTasks = Import-Csv (Join-Path $normalizedDir 'occupation_tasks.csv')
 $jobDescriptionEvidence = Import-Csv (Join-Path $normalizedDir 'job_description_task_evidence.csv')
 $occupationTaskInventory = Import-Csv (Join-Path $normalizedDir 'occupation_task_inventory.csv')
+$roleVariants = Import-Csv (Join-Path $normalizedDir 'occupation_role_variants.csv')
 $occTaskClusters = Import-Csv (Join-Path $normalizedDir 'occupation_task_clusters.csv')
 $taskMembership = Import-Csv (Join-Path $normalizedDir 'task_cluster_membership.csv')
 $taskDependencyEdges = Import-Csv (Join-Path $normalizedDir 'task_dependency_edges.csv')
@@ -188,6 +217,9 @@ $sourceIds = Select-String -Path (Join-Path $metadataDir 'source_registry.yaml')
 $secondaryFunctionKeys = $secondaryFunctions | ForEach-Object {
     [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.function_key)" }
 }
+$roleVariantKeys = $roleVariants | ForEach-Object {
+    [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.variant_id)" }
+}
 $industryMixKeys = $industryMix | ForEach-Object {
     [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.acs_industry_code)" }
 }
@@ -203,6 +235,7 @@ Assert-NoDuplicates -Rows $taskClusters -Key 'task_cluster_id' -Label 'task_clus
 Assert-NoDuplicates -Rows $selector -Key 'occupation_id' -Label 'selector occupation_id'
 Assert-NoDuplicates -Rows $jobDescriptionEvidence -Key 'evidence_id' -Label 'job description evidence_id'
 Assert-NoDuplicates -Rows $occupationTaskInventory -Key 'task_id' -Label 'task inventory task_id'
+Assert-NoDuplicates -Rows $roleVariantKeys -Key 'composite_key' -Label 'role variant occupation/variant'
 Assert-NoDuplicates -Rows $roleFunctions -Key 'function_id' -Label 'role function function_id'
 Assert-NoDuplicates -Rows $functionProfiles -Key 'function_id' -Label 'function profile function_id'
 Assert-NoDuplicates -Rows $roleExplanations -Key 'occupation_id' -Label 'role explanations occupation_id'
@@ -224,6 +257,11 @@ Assert-ForeignKey -Rows $jobDescriptionEvidence -Column 'occupation_id' -Allowed
 Assert-ForeignKey -Rows $jobDescriptionEvidence -Column 'task_family_id' -Allowed $taskClusterIds -Label 'job description task_family_id'
 Assert-ForeignKey -Rows $occupationTaskInventory -Column 'occupation_id' -Allowed $occupationIds -Label 'task inventory occupation_id'
 Assert-ForeignKey -Rows $occupationTaskInventory -Column 'task_family_id' -Allowed $taskClusterIds -Label 'task inventory task_family_id'
+Assert-ForeignKey -Rows $roleVariants -Column 'occupation_id' -Allowed $occupationIds -Label 'role variants occupation_id'
+Assert-PipeForeignKey -Rows $roleVariants -Column 'task_ids' -Allowed ($occupationTaskInventory | Select-Object -ExpandProperty task_id) -Label 'role variants task_ids'
+Assert-PipeForeignKey -Rows $roleVariants -Column 'function_ids' -Allowed ($roleFunctions | Select-Object -ExpandProperty function_id) -Label 'role variants function_ids'
+Assert-PipeForeignKey -Rows $roleVariants -Column 'preferred_task_families' -Allowed $taskClusterIds -Label 'role variants preferred_task_families'
+Assert-PipeForeignKey -Rows $roleVariants -Column 'preferred_function_ids' -Allowed ($roleFunctions | Select-Object -ExpandProperty function_id) -Label 'role variants preferred_function_ids'
 Assert-ForeignKey -Rows $occTaskClusters -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation task cluster occupation_id'
 Assert-ForeignKey -Rows $occTaskClusters -Column 'task_cluster_id' -Allowed $taskClusterIds -Label 'occupation task cluster task_cluster_id'
 Assert-ForeignKey -Rows $taskMembership -Column 'occupation_id' -Allowed $occupationIds -Label 'task membership occupation_id'

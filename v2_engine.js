@@ -12,6 +12,7 @@
         selector: 'data/normalized/occupation_selector_index.csv',
         occupationTaskClusters: 'data/normalized/occupation_task_clusters.csv',
         occupationTaskInventory: 'data/normalized/occupation_task_inventory.csv',
+        roleVariants: 'data/normalized/occupation_role_variants.csv',
         taskDependencyEdges: 'data/normalized/task_dependency_edges.csv',
         occupationTaskRoleProfiles: 'data/normalized/occupation_task_role_profiles.csv',
         occupationAdaptationPriors: 'data/normalized/occupation_adaptation_priors.csv',
@@ -1259,6 +1260,174 @@
         return uniqueStrings((functionRows || []).map(function (row) {
             return row.function_id;
         }));
+    }
+
+    function splitPipeList(value) {
+        return uniqueStrings(String(value || '').split('|').map(function (entry) {
+            return String(entry || '').trim();
+        }).filter(Boolean));
+    }
+
+    function questionnaireBandTarget(band) {
+        var normalized = String(band || '').trim().toLowerCase();
+        if (normalized === 'high') {
+            return 0.80;
+        }
+        if (normalized === 'medium') {
+            return 0.50;
+        }
+        if (normalized === 'low') {
+            return 0.20;
+        }
+        return null;
+    }
+
+    function parseQuestionnaireSignature(signatureText) {
+        return splitPipeList(signatureText).map(function (entry) {
+            var parts = entry.split('=');
+            var metricKey = String(parts[0] || '').trim();
+            var band = String(parts[1] || '').trim();
+            var target = questionnaireBandTarget(band);
+            if (!metricKey || target === null) {
+                return null;
+            }
+            return {
+                metric_key: metricKey,
+                band: band,
+                target: target
+            };
+        }).filter(Boolean);
+    }
+
+    function normalizeRoleVariantRow(row) {
+        return {
+            occupation_id: row.occupation_id,
+            variant_id: row.variant_id,
+            variant_label: row.variant_label || slugToLabel(row.variant_id || 'role_variant'),
+            variant_summary: row.variant_summary || '',
+            variant_order: toNumber(row.variant_order, 99),
+            is_default: String(row.is_default || '').trim() === '1',
+            task_ids: splitPipeList(row.task_ids),
+            function_ids: splitPipeList(row.function_ids),
+            preferred_task_families: splitPipeList(row.preferred_task_families),
+            preferred_function_ids: splitPipeList(row.preferred_function_ids),
+            questionnaire_signature: parseQuestionnaireSignature(row.questionnaire_signature),
+            source_mix: row.source_mix || '',
+            notes: row.notes || ''
+        };
+    }
+
+    function summarizeTaskFamilyShare(taskRows) {
+        var familyShare = {};
+        var totalShare = 0;
+
+        (taskRows || []).forEach(function (row) {
+            totalShare += Math.max(0, toNumber(row.time_share_prior, 0));
+        });
+
+        (taskRows || []).forEach(function (row) {
+            var familyId = row.task_family_id;
+            var share = totalShare > 0
+                ? (Math.max(0, toNumber(row.time_share_prior, 0)) / totalShare)
+                : ((taskRows || []).length ? (1 / taskRows.length) : 0);
+            if (!familyId) {
+                return;
+            }
+            familyShare[familyId] = (familyShare[familyId] || 0) + share;
+        });
+
+        return familyShare;
+    }
+
+    function scoreRoleVariant(variantRow, context) {
+        var questionnaireProfile = context && context.questionnaireProfile ? context.questionnaireProfile : null;
+        var taskFamilyShare = context && context.taskFamilyShare ? context.taskFamilyShare : {};
+        var activeFunctionRows = context && context.activeFunctionRows ? context.activeFunctionRows : [];
+        var functionWeightTotal = sum((activeFunctionRows || []).map(function (row) {
+            return Math.max(0, toNumber(row.function_weight, 0));
+        }));
+        var questionnaireScore = null;
+        var taskScore = null;
+        var functionScore = null;
+        var scoreParts = [];
+        var recommendationDrivers = [];
+
+        if (questionnaireProfile && variantRow.questionnaire_signature.length) {
+            var metricScores = variantRow.questionnaire_signature.map(function (metricRow) {
+                var profileValue = toNumber(questionnaireProfile[metricRow.metric_key], null);
+                if (profileValue === null) {
+                    return null;
+                }
+                return clamp(1 - Math.abs(profileValue - metricRow.target), 0, 1);
+            }).filter(function (value) {
+                return value !== null;
+            });
+            if (metricScores.length) {
+                questionnaireScore = average(metricScores);
+                scoreParts.push({ score: questionnaireScore, weight: 0.50 });
+                if (questionnaireScore >= 0.62) {
+                    recommendationDrivers.push('questionnaire profile');
+                }
+            }
+        }
+
+        if (variantRow.preferred_task_families.length) {
+            taskScore = clamp(sum(variantRow.preferred_task_families.map(function (familyId) {
+                return toNumber(taskFamilyShare[familyId], 0);
+            })), 0, 1);
+            scoreParts.push({ score: taskScore, weight: 0.35 });
+            if (taskScore >= 0.34) {
+                recommendationDrivers.push('task mix');
+            }
+        }
+
+        if (variantRow.preferred_function_ids.length) {
+            var matchedFunctionWeight = sum((activeFunctionRows || []).filter(function (row) {
+                return variantRow.preferred_function_ids.indexOf(row.function_id) !== -1;
+            }).map(function (row) {
+                return Math.max(0, toNumber(row.function_weight, 0));
+            }));
+            functionScore = functionWeightTotal > 0
+                ? clamp(matchedFunctionWeight / functionWeightTotal, 0, 1)
+                : 0;
+            scoreParts.push({ score: functionScore, weight: 0.15 });
+            if (functionScore >= 0.30) {
+                recommendationDrivers.push('function mix');
+            }
+        }
+
+        var totalWeight = sum(scoreParts.map(function (part) {
+            return part.weight;
+        }));
+        var recommendationScore = totalWeight
+            ? (sum(scoreParts.map(function (part) {
+                return part.score * part.weight;
+            })) / totalWeight)
+            : (variantRow.is_default ? 0.55 : 0.50);
+        recommendationScore = clamp(recommendationScore + (variantRow.is_default ? 0.02 : 0), 0, 1);
+
+        if (!recommendationDrivers.length && variantRow.is_default) {
+            recommendationDrivers.push('reviewed default baseline');
+        }
+
+        return {
+            variant_id: variantRow.variant_id,
+            variant_label: variantRow.variant_label,
+            variant_summary: variantRow.variant_summary,
+            variant_order: variantRow.variant_order,
+            is_default: variantRow.is_default,
+            task_ids: variantRow.task_ids.slice(),
+            function_ids: variantRow.function_ids.slice(),
+            preferred_task_families: variantRow.preferred_task_families.slice(),
+            preferred_function_ids: variantRow.preferred_function_ids.slice(),
+            recommendation_score: Number(recommendationScore.toFixed(3)),
+            questionnaire_alignment: questionnaireScore === null ? null : Number(questionnaireScore.toFixed(3)),
+            task_alignment: taskScore === null ? null : Number(taskScore.toFixed(3)),
+            function_alignment: functionScore === null ? null : Number(functionScore.toFixed(3)),
+            recommendation_drivers: recommendationDrivers,
+            source_mix: variantRow.source_mix || '',
+            notes: variantRow.notes || ''
+        };
     }
 
     function resolveCompositionSelection(defaultIds, edits, addKey, removeKey) {
@@ -3165,11 +3334,87 @@
             return null;
         }
 
-        function getRoleComposition(occupationId) {
+        function getRoleComposition(occupationId, options) {
+            var opts = options || {};
             var taskRows = (store.taskInventoryByOcc[occupationId] || []).slice();
             var functionMapRows = (store.occupationFunctionMapByOcc[occupationId] || []).slice();
-            var defaultTaskIds = defaultSelectedTaskIds(taskRows);
-            var defaultFunctionIds = defaultSelectedFunctionIds(functionMapRows);
+            var baseDefaultTaskIds = defaultSelectedTaskIds(taskRows);
+            var baseDefaultFunctionIds = defaultSelectedFunctionIds(functionMapRows);
+            var recommendationTaskIds = resolveCompositionSelection(
+                baseDefaultTaskIds,
+                opts.compositionEdits || {},
+                'added_task_ids',
+                'removed_task_ids'
+            );
+            var recommendationFunctionIds = resolveCompositionSelection(
+                baseDefaultFunctionIds,
+                opts.compositionEdits || {},
+                'added_function_ids',
+                'removed_function_ids'
+            );
+            var recommendationTaskLookup = toLookup(recommendationTaskIds.length ? recommendationTaskIds : baseDefaultTaskIds);
+            var recommendationFunctionLookup = toLookup(recommendationFunctionIds.length ? recommendationFunctionIds : baseDefaultFunctionIds);
+            var recommendationTaskRows = taskRows.filter(function (row) {
+                return !!recommendationTaskLookup[row.task_id];
+            });
+            var recommendationFunctionRows = functionMapRows.filter(function (row) {
+                return !!recommendationFunctionLookup[row.function_id];
+            });
+            var roleVariants = (store.roleVariantsByOcc[occupationId] || []).slice().sort(function (left, right) {
+                var orderDiff = toNumber(left.variant_order, 99) - toNumber(right.variant_order, 99);
+                if (orderDiff !== 0) {
+                    return orderDiff;
+                }
+                return String(left.variant_label || '').localeCompare(String(right.variant_label || ''));
+            });
+            var scoredVariants = roleVariants.map(function (row) {
+                return scoreRoleVariant(row, {
+                    questionnaireProfile: opts.questionnaireProfile || null,
+                    taskFamilyShare: summarizeTaskFamilyShare(recommendationTaskRows),
+                    activeFunctionRows: recommendationFunctionRows
+                });
+            }).sort(function (left, right) {
+                if (right.recommendation_score !== left.recommendation_score) {
+                    return right.recommendation_score - left.recommendation_score;
+                }
+                if ((right.is_default ? 1 : 0) !== (left.is_default ? 1 : 0)) {
+                    return (right.is_default ? 1 : 0) - (left.is_default ? 1 : 0);
+                }
+                return toNumber(left.variant_order, 99) - toNumber(right.variant_order, 99);
+            });
+            var explicitVariantId = String(opts.roleVariantId || '').trim();
+            var recommendedVariant = scoredVariants[0] || null;
+            var selectedVariant = explicitVariantId
+                ? (scoredVariants.filter(function (row) {
+                    return row.variant_id === explicitVariantId;
+                })[0] || null)
+                : null;
+            var selectionMode = selectedVariant ? 'manual' : (recommendedVariant ? 'auto' : 'none');
+            if (!selectedVariant) {
+                selectedVariant = recommendedVariant;
+            }
+            var availableTaskLookup = toLookup(taskRows.map(function (row) {
+                return row.task_id;
+            }));
+            var availableFunctionLookup = toLookup(functionMapRows.map(function (row) {
+                return row.function_id;
+            }));
+            var defaultTaskIds = selectedVariant && selectedVariant.task_ids.length
+                ? selectedVariant.task_ids.filter(function (taskId) {
+                    return !!availableTaskLookup[taskId];
+                })
+                : baseDefaultTaskIds;
+            var defaultFunctionIds = selectedVariant && selectedVariant.function_ids.length
+                ? selectedVariant.function_ids.filter(function (functionId) {
+                    return !!availableFunctionLookup[functionId];
+                })
+                : baseDefaultFunctionIds;
+            if (!defaultTaskIds.length) {
+                defaultTaskIds = baseDefaultTaskIds.slice();
+            }
+            if (!defaultFunctionIds.length) {
+                defaultFunctionIds = baseDefaultFunctionIds.slice();
+            }
             var selectedTaskLookup = toLookup(defaultTaskIds);
             var selectedFunctionLookup = toLookup(defaultFunctionIds);
             var groupedTasks = {
@@ -3220,7 +3465,30 @@
                 occupation_id: occupationId,
                 defaults: {
                     task_ids: defaultTaskIds,
-                    function_ids: defaultFunctionIds
+                    function_ids: defaultFunctionIds,
+                    role_variant_id: selectedVariant ? selectedVariant.variant_id : null
+                },
+                variants: scoredVariants.map(function (variantRow) {
+                    return Object.assign({}, variantRow, {
+                        is_selected: !!selectedVariant && selectedVariant.variant_id === variantRow.variant_id,
+                        is_recommended: !!recommendedVariant && recommendedVariant.variant_id === variantRow.variant_id
+                    });
+                }),
+                variant_support: {
+                    enabled: scoredVariants.length > 0,
+                    selection_mode: selectionMode,
+                    selected_variant_id: selectedVariant ? selectedVariant.variant_id : null,
+                    selected_variant_label: selectedVariant ? selectedVariant.variant_label : null,
+                    selected_variant_summary: selectedVariant ? selectedVariant.variant_summary : null,
+                    recommended_variant_id: recommendedVariant ? recommendedVariant.variant_id : null,
+                    recommended_variant_label: recommendedVariant ? recommendedVariant.variant_label : null,
+                    recommended_variant_summary: recommendedVariant ? recommendedVariant.variant_summary : null,
+                    recommendation_score: recommendedVariant ? recommendedVariant.recommendation_score : null,
+                    recommendation_inputs: {
+                        questionnaire_profile_used: !!opts.questionnaireProfile,
+                        composition_used: !!recommendationTaskRows.length
+                    },
+                    recommendation_drivers: recommendedVariant ? recommendedVariant.recommendation_drivers.slice() : []
                 },
                 onet_tasks: groupedTasks.onet_tasks,
                 reviewed_job_posting_tasks: groupedTasks.reviewed_job_posting_tasks,
@@ -3245,8 +3513,13 @@
 
             var occupationId = occupation.occupation_id;
             var roleCategory = input.roleCategory || input.selectedRoleCategory || occupation.role_family;
-            var roleComposition = getRoleComposition(occupationId);
             var compositionEdits = input.compositionEdits || {};
+            var variantQuestionnaireProfile = input.questionnaireProfile || deriveQuestionnaireSignals(input.answers || {}, input || {}).questionnaireProfile;
+            var roleComposition = getRoleComposition(occupationId, {
+                roleVariantId: input.roleVariantId,
+                questionnaireProfile: variantQuestionnaireProfile,
+                compositionEdits: compositionEdits
+            });
             var activeTaskIds = resolveCompositionSelection(
                 roleComposition.defaults.task_ids,
                 compositionEdits,
@@ -4087,13 +4360,24 @@
                 assignment_method: input.occupationId
                     ? 'Using the occupation you explicitly selected from the mapped launch set.'
                     : 'Using the top mapped occupation for the selected launch category.',
-                task_assignment_method: 'The model starts from the editable occupation composition, combining selected O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and active function anchors before it scores pressure, spillover, and retained leverage.',
+                task_assignment_method: roleComposition.variant_support && roleComposition.variant_support.enabled
+                    ? 'The model starts from the selected or recommended reviewed role variant for this occupation, then combines the active O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and active function anchors from that baseline before it scores pressure, spillover, and retained leverage.'
+                    : 'The model starts from the editable occupation composition, combining selected O*NET tasks, reviewed public-posting tasks, reviewed role-review tasks, and active function anchors before it scores pressure, spillover, and retained leverage.',
                 dominant_task_clusters: dominantTaskClusters.map(function (clusterId) {
                     return {
                         task_cluster_id: clusterId,
                         label: slugToLabel(clusterId)
                     };
                 }),
+                selected_variant: roleComposition.variant_support && roleComposition.variant_support.enabled ? {
+                    variant_id: roleComposition.variant_support.selected_variant_id,
+                    variant_label: roleComposition.variant_support.selected_variant_label,
+                    selection_mode: roleComposition.variant_support.selection_mode,
+                    recommended_variant_id: roleComposition.variant_support.recommended_variant_id,
+                    recommended_variant_label: roleComposition.variant_support.recommended_variant_label,
+                    recommendation_score: roleComposition.variant_support.recommendation_score,
+                    recommendation_drivers: roleComposition.variant_support.recommendation_drivers
+                } : null,
                 selected_task_inputs: {
                     dominant_task_ids: dominantTaskIds,
                     critical_task_ids: criticalTaskIds,
@@ -4105,6 +4389,9 @@
                     label: roleDefiningWork.label
                 } : null,
                 selected_composition: {
+                    variant_id: roleComposition.variant_support ? roleComposition.variant_support.selected_variant_id : null,
+                    variant_label: roleComposition.variant_support ? roleComposition.variant_support.selected_variant_label : null,
+                    variant_mode: roleComposition.variant_support ? roleComposition.variant_support.selection_mode : 'none',
                     active_task_count: taskInventoryRows.length,
                     active_function_count: activeFunctionRows.length,
                     added_dependency_count: addedDependencyEdges.length,
@@ -4120,7 +4407,9 @@
                 },
                 direct_task_evidence_count: directTaskEvidenceCount,
                 fallback_task_count: fallbackTaskCount,
-                questionnaire_effect: 'Your composition edits determine which occupation tasks and functions are active in this run. Your role-refinement answers then shape retained function, sign-off burden, substitution pressure, dependency drag, and the wave-based displacement trajectory.'
+                questionnaire_effect: roleComposition.variant_support && roleComposition.variant_support.enabled
+                    ? 'Your role-refinement answers can help the model recommend which reviewed role variant is the best starting baseline for this occupation. Your composition edits still determine which tasks and functions are active in the run, and those answers also shape retained function, sign-off burden, substitution pressure, dependency drag, and the wave-based displacement trajectory.'
+                    : 'Your composition edits determine which occupation tasks and functions are active in this run. Your role-refinement answers then shape retained function, sign-off burden, substitution pressure, dependency drag, and the wave-based displacement trajectory.'
             };
 
             var evidenceSummary = {
@@ -4177,6 +4466,9 @@
                     'Cluster priors are still shrunk toward occupation-level priors using evidence confidence, but clusters with strong resolved task-evidence coverage now receive a task-first baseline blend before task rows are scored. `task_source_evidence.csv` continues to resolve reviewed task estimates, benchmark task labels, and live task evidence before proxy fallback at the task row.',
                     'Wave trajectory: current=' + waveResults.current.state + ', next=' + waveResults.next.state + ', distant=' + waveResults.distant.state + '. Primary displacement wave: ' + primaryDisplacementWave + '.',
                     roleDefiningWork ? ('Role-defining task input: ' + roleDefiningWork.label + ' (wave: ' + roleDefiningWork.wave_assignment + ').') : 'No explicit role-defining task input selected.',
+                    roleComposition.variant_support && roleComposition.variant_support.enabled
+                        ? ('Role variant baseline: ' + roleComposition.variant_support.selected_variant_label + ' (' + roleComposition.variant_support.selection_mode + ' selection).')
+                        : 'Role variant baseline: single occupation baseline.',
                     'Active composition: ' + taskInventoryRows.length + ' tasks and ' + activeFunctionRows.length + ' function anchors after user edits.',
                     'Capability signal=' + Number(signals.capabilitySignal.toFixed(2)) + '; function retention=' + Number(signals.functionRetention.toFixed(2)) + '; adoption pressure=' + Number(signals.adoptionPressure.toFixed(2)) + '.',
                     'Labor-market data is shown as context and does not drive the main role labels.',
@@ -4421,8 +4713,8 @@
 
                 return typeof limit === 'number' && limit > 0 ? rows.slice(0, limit) : rows;
             },
-            getRoleComposition: function (occupationId) {
-                return getRoleComposition(occupationId);
+            getRoleComposition: function (occupationId, options) {
+                return getRoleComposition(occupationId, options);
             },
             computeResult: computeResult,
             getDataSummary: function () {
@@ -4431,7 +4723,10 @@
                     roleCategories: Object.keys(store.uiRoleMapByRole).length,
                     occupationTaskClusterRows: store.occupationTaskClusters.length,
                     taskPriorRows: store.taskPriors.length,
-                    roleFunctionRows: store.roleFunctions.length
+                    roleFunctionRows: store.roleFunctions.length,
+                    roleVariantRows: sum(Object.keys(store.roleVariantsByOcc || {}).map(function (occupationKey) {
+                        return (store.roleVariantsByOcc[occupationKey] || []).length;
+                    }))
                 };
             }
         };
@@ -4461,6 +4756,7 @@
             occupationTaskClusters: loaded.occupationTaskClusters,
             occupationTaskClustersByOcc: groupBy(loaded.occupationTaskClusters, 'occupation_id'),
             taskInventoryByOcc: groupBy(loaded.occupationTaskInventory, 'occupation_id'),
+            roleVariantsByOcc: groupBy(loaded.roleVariants.map(normalizeRoleVariantRow), 'occupation_id'),
             taskDependencyEdgesByOcc: groupBy(loaded.taskDependencyEdges, 'occupation_id'),
             taskRoleProfilesByOcc: indexBy(loaded.occupationTaskRoleProfiles, 'occupation_id'),
             roleFunctions: loaded.roleFunctions,

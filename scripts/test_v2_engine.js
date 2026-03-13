@@ -61,6 +61,78 @@ async function main() {
   if (String(sampleLinkedTask.task_family_label || '').toLowerCase().includes('cluster')) {
     throw new Error('Expected editable task rows to expose plain-English task family labels.');
   }
+  if (roleComposition.variant_support?.enabled) {
+    throw new Error('Did not expect Software Developers to expose reviewed role variants in the baseline engine scenario.');
+  }
+
+  const managementAnalystExecutionProfile = {
+    function_centrality: 0.46,
+    human_signoff_requirement: 0.38,
+    liability_and_regulatory_burden: 0.34,
+    relationship_ownership: 0.29,
+    exception_and_context_load: 0.34,
+    workflow_decomposability: 0.82,
+    organizational_adoption_readiness: 0.71,
+    ai_observability_of_work: 0.79,
+    dependency_bottleneck_strength: 0.35,
+    handoff_and_coordination_complexity: 0.41,
+    external_trust_requirement: 0.24,
+    stakeholder_alignment_burden: 0.46,
+    execution_vs_judgment_mix: 0.78,
+    augmentation_fit: 0.59,
+    substitution_risk_modifier: 0.66
+  };
+  const managementAnalystAdvisoryProfile = {
+    function_centrality: 0.82,
+    human_signoff_requirement: 0.76,
+    liability_and_regulatory_burden: 0.64,
+    relationship_ownership: 0.58,
+    exception_and_context_load: 0.63,
+    workflow_decomposability: 0.38,
+    organizational_adoption_readiness: 0.52,
+    ai_observability_of_work: 0.51,
+    dependency_bottleneck_strength: 0.68,
+    handoff_and_coordination_complexity: 0.74,
+    external_trust_requirement: 0.52,
+    stakeholder_alignment_burden: 0.86,
+    execution_vs_judgment_mix: 0.24,
+    augmentation_fit: 0.66,
+    substitution_risk_modifier: 0.33
+  };
+  const managementAnalystVariantsExecution = engine.getRoleComposition('occ_13_1111_00', {
+    questionnaireProfile: managementAnalystExecutionProfile
+  });
+  const managementAnalystVariantsAdvisory = engine.getRoleComposition('occ_13_1111_00', {
+    questionnaireProfile: managementAnalystAdvisoryProfile
+  });
+  if (!managementAnalystVariantsExecution.variant_support?.enabled || !managementAnalystVariantsExecution.variants?.length) {
+    throw new Error('Expected Management Analysts to expose reviewed role variants.');
+  }
+  if (managementAnalystVariantsExecution.variant_support.selected_variant_id !== 'diagnostic_analyst') {
+    throw new Error(`Expected execution-heavy management-analyst profile to recommend diagnostic_analyst, received ${managementAnalystVariantsExecution.variant_support.selected_variant_id}.`);
+  }
+  if (managementAnalystVariantsAdvisory.variant_support.selected_variant_id !== 'change_enablement_advisor') {
+    throw new Error(`Expected advisory-heavy management-analyst profile to recommend change_enablement_advisor, received ${managementAnalystVariantsAdvisory.variant_support.selected_variant_id}.`);
+  }
+  const manualVariantComposition = engine.getRoleComposition('occ_13_1111_00', {
+    questionnaireProfile: managementAnalystExecutionProfile,
+    roleVariantId: 'change_enablement_advisor'
+  });
+  if (manualVariantComposition.variant_support.selection_mode !== 'manual') {
+    throw new Error('Expected explicit roleVariantId to force manual variant selection mode.');
+  }
+  if (!manualVariantComposition.defaults?.task_ids?.includes('task_occ_13_1111_00_jd_ma_03')) {
+    throw new Error('Expected manual change_enablement_advisor variant defaults to include change-enablement tasks.');
+  }
+  const manualMarketingOpsComposition = engine.getRoleComposition('occ_13_1161_00', {
+    roleVariantId: 'marketing_ops_analyst'
+  });
+  if (!manualMarketingOpsComposition.defaults?.function_ids?.includes('fn_occ_13_1161_00_marketing_ops')) {
+    throw new Error('Expected marketing_ops_analyst defaults to include the reviewed marketing-operations function anchor.');
+  }
+  if (manualMarketingOpsComposition.variant_support?.selection_mode !== 'manual') {
+    throw new Error('Expected explicit marketing_ops_analyst selection to force manual variant mode.');
+  }
 
   if (!result.recomposition_summary) {
     throw new Error('Expected recomposition_summary in result payload.');
@@ -499,6 +571,32 @@ async function main() {
 
   if (legacyCompatibilityResult.questionnaire_profile_source !== 'legacy_answers') {
     throw new Error(`Expected explicit legacy fallback path, received ${legacyCompatibilityResult.questionnaire_profile_source}.`);
+  }
+
+  const managementAnalystResult = engine.computeResult({
+    roleCategory: 'consulting',
+    occupationId: 'occ_13_1111_00',
+    roleVariantId: 'change_enablement_advisor',
+    questionnaireProfile: managementAnalystAdvisoryProfile,
+    seniorityLevel: 4
+  });
+  if (managementAnalystResult.occupation_assignment?.selected_variant?.variant_id !== 'change_enablement_advisor') {
+    throw new Error('Expected computeResult to expose the selected reviewed role variant in occupation_assignment.');
+  }
+  if (managementAnalystResult.occupation_assignment?.selected_composition?.variant_mode !== 'manual') {
+    throw new Error('Expected computeResult selected_composition.variant_mode to report manual role variant selection.');
+  }
+  const marketingOpsResult = engine.computeResult({
+    roleCategory: 'business',
+    occupationId: 'occ_13_1161_00',
+    roleVariantId: 'marketing_ops_analyst',
+    seniorityLevel: 3
+  });
+  if (marketingOpsResult.occupation_assignment?.selected_variant?.variant_id !== 'marketing_ops_analyst') {
+    throw new Error('Expected computeResult to expose the manual marketing_ops_analyst reviewed role variant.');
+  }
+  if ((marketingOpsResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
+    throw new Error('Expected marketing_ops_analyst baseline to activate both reviewed function anchors.');
   }
 
   console.log(JSON.stringify({

@@ -14,6 +14,7 @@ let v2CustomTaskFunctionLinks = [];
 let v2GraphNodePositions = {};
 let v2RoleGraphControllerPromise = null;
 let v2GraphMode = 'move';
+let v2RoleVariantPreference = { mode: 'auto', variantId: null };
 
 // ─── 1b. Card-based breakdown config ────────────────────────────────────────
 
@@ -320,6 +321,40 @@ function buildStructuredQuestionnaireProfile(responses, seniorityLevel) {
         console.warn('[buildStructuredQuestionnaireProfile] Failed to build profile from current refinement responses', error);
         return null;
     }
+}
+
+function buildCurrentQuestionnaireProfile() {
+    const responses = getCurrentRefinementResponses();
+    const seniorityLevel = parseFloat(document.getElementById('hierarchy-select')?.value || '1');
+    return buildStructuredQuestionnaireProfile(responses, seniorityLevel);
+}
+
+function setRoleVariantPreferenceAuto() {
+    v2RoleVariantPreference = { mode: 'auto', variantId: null };
+}
+
+function setsMatch(leftValues, rightValues) {
+    const left = Array.from(leftValues || []);
+    const right = Array.from(rightValues || []);
+    if (left.length !== right.length) {
+        return false;
+    }
+    const rightLookup = new Set(right);
+    return left.every((value) => rightLookup.has(value));
+}
+
+function isCompositionPristineForAutoMode(previousState, previousDependencies, previousTaskFunctionLinks) {
+    if (!previousState?.raw) {
+        return true;
+    }
+    const defaultTaskIds = previousState.raw.defaults?.task_ids || [];
+    const defaultFunctionIds = previousState.raw.defaults?.function_ids || [];
+    const shareOverrideCount = Object.keys(previousState.taskShareOverrides || {}).length;
+    return setsMatch(previousState.selectedTaskIds, defaultTaskIds)
+        && setsMatch(previousState.selectedFunctionIds, defaultFunctionIds)
+        && shareOverrideCount === 0
+        && (previousDependencies || []).length === 0
+        && (previousTaskFunctionLinks || []).length === 0;
 }
 
 function renderQuestionnaireProfileSummary(profile) {
@@ -1549,6 +1584,62 @@ function renderV2RoleFlowMap() {
     renderStudioAddControls();
 }
 
+function renderV2RoleVariantControls(composition) {
+    const panel = document.getElementById('v2-role-variant-panel');
+    const headline = document.getElementById('v2-role-variant-headline');
+    const summary = document.getElementById('v2-role-variant-summary');
+    const select = document.getElementById('v2-role-variant-select');
+    const note = document.getElementById('v2-role-variant-note');
+
+    if (!panel || !headline || !summary || !select || !note) {
+        return;
+    }
+
+    const variantSupport = composition?.variant_support;
+    const variants = Array.isArray(composition?.variants) ? composition.variants : [];
+    if (!variantSupport?.enabled || !variants.length) {
+        panel.hidden = true;
+        select.innerHTML = '<option value="">No reviewed role variants for this occupation yet</option>';
+        note.textContent = '';
+        summary.textContent = 'This occupation currently uses one occupation-wide baseline before you edit tasks and functions.';
+        return;
+    }
+
+    panel.hidden = false;
+    headline.textContent = 'Choose the closest reviewed version of this occupation';
+    summary.textContent = variantSupport.selected_variant_summary
+        ? `Current baseline: ${variantSupport.selected_variant_label}. ${variantSupport.selected_variant_summary}`
+        : 'This occupation has reviewed role variants, and the model can start from the closest baseline before you edit tasks directly.';
+
+    select.innerHTML = '';
+    const autoOption = document.createElement('option');
+    autoOption.value = '__auto__';
+    autoOption.textContent = variantSupport.recommended_variant_label
+        ? `Recommended baseline: ${variantSupport.recommended_variant_label}`
+        : 'Recommended baseline';
+    select.appendChild(autoOption);
+
+    variants.forEach((variant) => {
+        const option = document.createElement('option');
+        option.value = variant.variant_id;
+        option.textContent = variant.variant_label;
+        select.appendChild(option);
+    });
+    select.value = v2RoleVariantPreference.mode === 'manual' && v2RoleVariantPreference.variantId
+        ? v2RoleVariantPreference.variantId
+        : '__auto__';
+
+    if (v2RoleVariantPreference.mode === 'manual' && variantSupport.recommended_variant_label && variantSupport.recommended_variant_id !== variantSupport.selected_variant_id) {
+        note.textContent = `You are using ${variantSupport.selected_variant_label}. Based on your questionnaire and current role mix, the model would currently recommend ${variantSupport.recommended_variant_label}.`;
+        return;
+    }
+
+    const driverText = Array.isArray(variantSupport.recommendation_drivers) && variantSupport.recommendation_drivers.length
+        ? variantSupport.recommendation_drivers.join(', ')
+        : 'your questionnaire and current role mix';
+    note.textContent = `The recommended baseline is inferred from ${driverText}. You can override it here, then keep editing tasks and functions directly.`;
+}
+
 function renderV2RoleComposition(composition) {
     const cards = document.getElementById('v2-composition-cards');
     const headline = document.getElementById('v2-composition-headline');
@@ -1560,6 +1651,7 @@ function renderV2RoleComposition(composition) {
         v2CustomDependencyEdges = [];
         headline.textContent = 'Select a mapped occupation to load the editable role composition.';
         summary.textContent = 'The model starts from the occupation baseline, then lets you edit tasks, workflow links, and functions in one studio before scoring.';
+        renderV2RoleVariantControls(null);
         renderV2RoleFlowMap();
         renderV2DependencyEditor();
         renderV2BreakdownCards();
@@ -1572,7 +1664,8 @@ function renderV2RoleComposition(composition) {
     const functionCount = (composition.functions || []).filter((row) => v2RoleCompositionState.selectedFunctionIds.has(row.function_id)).length;
 
     headline.textContent = 'This is the role composition the model will score next.';
-    summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. Use the studio below to edit the task tree directly.`;
+    summary.textContent = `We start from ${onetCount} O*NET task${onetCount === 1 ? '' : 's'}, ${reviewedPostingCount} reviewed public-posting task${reviewedPostingCount === 1 ? '' : 's'}, ${reviewedManualCount} reviewed role-review task${reviewedManualCount === 1 ? '' : 's'}, and ${functionCount} value-defining function${functionCount === 1 ? '' : 's'}. ${composition.variant_support?.enabled ? `The current reviewed baseline is ${composition.variant_support.selected_variant_label}. ` : ''}Use the studio below to edit the task tree directly.`;
+    renderV2RoleVariantControls(composition);
     renderV2RoleFlowMap();
     renderV2DependencyEditor();
     renderV2BreakdownCards();
@@ -1595,13 +1688,6 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
         return null;
     }
 
-    const composition = engine.getRoleComposition(occupationId);
-    if (!composition) {
-        v2RoleCompositionState = null;
-        renderV2RoleComposition(null);
-        return null;
-    }
-
     const previousState = preserveSelection && v2RoleCompositionState?.occupationId === occupationId
         ? v2RoleCompositionState
         : null;
@@ -1614,6 +1700,17 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
     const previousGraphPositions = preserveSelection && v2RoleCompositionState?.occupationId === occupationId
         ? { ...v2GraphNodePositions }
         : {};
+    const recommendationEdits = previousState ? getCompositionEditsForEngine() : {};
+    const composition = engine.getRoleComposition(occupationId, {
+        roleVariantId: v2RoleVariantPreference.mode === 'manual' ? v2RoleVariantPreference.variantId : null,
+        questionnaireProfile: buildCurrentQuestionnaireProfile(),
+        compositionEdits: recommendationEdits
+    });
+    if (!composition) {
+        v2RoleCompositionState = null;
+        renderV2RoleComposition(null);
+        return null;
+    }
 
     v2RoleCompositionState = {
         raw: composition,
@@ -1623,7 +1720,12 @@ async function populateV2RoleComposition(occupationId, preserveSelection = true)
     v2CustomTaskFunctionLinks = [];
     v2GraphNodePositions = {};
 
-    if (previousState) {
+    const shouldPreserveSelection = previousState && !(
+        v2RoleVariantPreference.mode === 'auto' &&
+        isCompositionPristineForAutoMode(previousState, previousDependencies, previousTaskFunctionLinks)
+    );
+
+    if (shouldPreserveSelection) {
         v2RoleCompositionState.selectedTaskIds = new Set(
             Array.from(previousState.selectedTaskIds || []).filter((taskId) => {
                 return composition.onet_tasks.concat(composition.reviewed_job_posting_tasks, composition.reviewed_role_graph_tasks)
@@ -2124,6 +2226,9 @@ function renderV2OccupationAssignment(assignment) {
         parts.push(`Task coverage means ${directCoveragePct}% of the ${totalCount} mapped role tasks have direct Anthropic task evidence; the remaining ${fallbackCount} rows use task-family fallback estimates.`);
     }
     if (assignment?.selected_composition) {
+        if (assignment.selected_composition.variant_label) {
+            parts.push(`This run starts from the reviewed ${assignment.selected_composition.variant_label.toLowerCase()} baseline for this occupation${assignment.selected_composition.variant_mode === 'manual' ? ', because you selected it explicitly' : ', because the model currently recommends it from your questionnaire and role mix'}.`);
+        }
         parts.push(`This run currently scores ${assignment.selected_composition.active_task_count} active tasks and ${assignment.selected_composition.active_function_count} active functions after your composition edits.`);
         if (Number(assignment.selected_composition.added_dependency_count) > 0) {
             parts.push(`You also added ${assignment.selected_composition.added_dependency_count} custom support link${assignment.selected_composition.added_dependency_count === 1 ? '' : 's'} on top of the default dependency graph.`);
@@ -2388,6 +2493,7 @@ async function updateV2Results(options = {}) {
     const responses = getCurrentRefinementResponses();
     const seniorityLevel = parseFloat(document.getElementById('hierarchy-select')?.value || '1');
     const questionnaireProfile = buildStructuredQuestionnaireProfile(responses, seniorityLevel);
+    await populateV2RoleComposition(selectedOccupationId, preserveSelection);
     const compositionEdits = getCompositionEditsForEngine();
     const dependencyEdits = getDependencyEditsForEngine();
 
@@ -2397,6 +2503,7 @@ async function updateV2Results(options = {}) {
             roleCategory: roleCategory,
             occupationId: selectedOccupationId,
             seniorityLevel: seniorityLevel,
+            roleVariantId: v2RoleVariantPreference.mode === 'manual' ? v2RoleVariantPreference.variantId : null,
             compositionEdits: compositionEdits,
             dependencyEdits: dependencyEdits
         };
@@ -2538,6 +2645,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const v2TaskToggle = document.getElementById('v2-task-toggle');
     const compositionCards = document.getElementById('v2-composition-cards');
     const breakdownCards = document.getElementById('v2-breakdown-cards');
+    const roleVariantSelect = document.getElementById('v2-role-variant-select');
 
     const activate = (el) => el && el.classList.add('active');
     const showBlock = (el) => el && el.classList.remove('hidden-block');
@@ -2627,6 +2735,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Occupation match select change handler
     occupationMatchSelect?.addEventListener('change', () => {
         selectedOccupationId = occupationMatchSelect.value || null;
+        setRoleVariantPreferenceAuto();
         if (topOccupationSelect && topOccupationSelect.value !== selectedOccupationId) {
             topOccupationSelect.value = selectedOccupationId || '';
             topOccupationSelect.classList.toggle('selected', !!selectedOccupationId);
@@ -2644,6 +2753,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Top occupation select change handler
     topOccupationSelect?.addEventListener('change', () => {
         selectedOccupationId = topOccupationSelect.value || null;
+        setRoleVariantPreferenceAuto();
         topOccupationSelect.classList.toggle('selected', !!selectedOccupationId);
         if (occupationMatchSelect && occupationMatchSelect.value !== selectedOccupationId) {
             occupationMatchSelect.value = selectedOccupationId || '';
@@ -2694,6 +2804,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         selectedOccupationId = matchedOccupation.occupation_id;
+        setRoleVariantPreferenceAuto();
 
         if (topOccupationSelect) {
             topOccupationSelect.value = selectedOccupationId;
@@ -2710,6 +2821,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(() => analyzeRole())
             .catch((error) => {
                 console.error('[V2] Failed to update role composition from search selection:', error);
+            });
+    });
+
+    roleVariantSelect?.addEventListener('change', () => {
+        const value = roleVariantSelect.value || '';
+        if (value && value !== '__auto__') {
+            v2RoleVariantPreference = { mode: 'manual', variantId: value };
+        } else {
+            setRoleVariantPreferenceAuto();
+        }
+        populateV2RoleComposition(selectedOccupationId, false)
+            .then(() => updateV2Results({ preserveSelection: false }))
+            .catch((error) => {
+                console.error('[V2] Failed to rerender after role variant change:', error);
             });
     });
 
@@ -2956,6 +3081,7 @@ document.addEventListener('DOMContentLoaded', function() {
         syncLegacyRoleCategory(roleValue);
 
         selectedOccupationId = null;
+        setRoleVariantPreferenceAuto();
 
         try {
             await populateOccupationCandidates(roleValue, false);

@@ -150,6 +150,11 @@ Implemented on `2026-03-13`:
   - this pass turns the heterogeneity queue into a stable candidate list for future multi-variant occupation modeling
   - the current strong candidates match the earlier manual review: `Market Research Analysts and Marketing Specialists`, `Editors`, `Technical Writers`, `News Analysts, Reporters, and Journalists`, and `Management Analysts`
   - the current watchlist is `Web Developers` and `Operations Research Analysts`
+- phase-14 reviewed role-variant runtime support:
+  - `occupation_role_variants.csv` now defines reviewed baseline role variants for the first heterogeneous launch occupations
+  - the live browser scorer can now recommend a reviewed variant from the questionnaire profile plus the current role mix, while still allowing explicit user override
+  - the first reviewed occupations using this path are `Market Research Analysts and Marketing Specialists`, `Editors`, `Technical Writers`, `News Analysts, Reporters, and Journalists`, and `Management Analysts`
+  - task and function editing still remain the final runtime authority after the reviewed variant baseline is chosen
 
 Implemented scripts:
 - `build_job_description_evidence.ps1`
@@ -180,6 +185,7 @@ Current implementation scope:
 - phase-2 task-derived cluster aggregation for exposed/retained cluster surfaces and top-exposed-cluster readouts
 - phase-3 task-derived automation-difficulty and wave recomputation for public wave timing and cluster outputs
 - runtime questionnaire redesign with native role-refinement factors and legacy-answer fallback retained only for compatibility
+- reviewed role-variant baselines for the first heterogeneous occupation subset, with questionnaire-informed recommendation and explicit override in the role studio
 - reviewed public-job-posting task-gap coverage for all `34` modeled occupations
 - reviewed role-transformation calibration for all `34` modeled occupations:
   - `5` function-heavy pilots
@@ -192,6 +198,7 @@ Current implementation scope:
 
 Known current limits:
 - multi-anchor function coverage exists only for a reviewed subset of the most obviously split roles, not yet for every occupation that may need it
+- reviewed role-variant coverage now exists only for the first heterogeneous subset, not yet for every occupation that likely hides multiple stable role shapes
 - transformation scoring still relies on broad role-family defaults and benchmark floors underneath the reviewed overrides
 - thin-coverage occupations still depend heavily on cluster priors for automation difficulty even after proxy down-weighting and the new task-first baseline layers
 - the live engine now has both task-first cluster baselines and task-first task baselines, but low-coverage tasks still inherit a cluster-seeded fallback path
@@ -383,10 +390,10 @@ Directions that are probably weak unless new evidence appears:
 - treating labor-market demand data as if it directly proves task automability
 
 Concrete next build sequence:
-1. Decide whether to promote the strongest `role_shape_review.md` candidates into explicit multi-variant occupation modeling.
-2. Review whether the new BTOS adoption-context queue points to a contained adoption-realization tuning pass or simply confirms that the outer layer should stay observational for now.
+1. Continue reviewing the first reviewed role-variant occupations and add missing secondary function anchors where a split occupation still shares one thin function baseline, next `Editors` or `News Analysts, Reporters, and Journalists`.
+2. Decide whether the BTOS adoption-context queue points to a contained adoption-realization tuning pass or simply confirms that the outer layer should stay observational for now.
 3. Review whether any of those calibration layers are strong enough to be promoted into runtime after at least one full calibration cycle.
-4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers have stabilized.
+4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers and the first reviewed variant layer have stabilized.
 
 ### Immediate ACS Review
 
@@ -404,6 +411,11 @@ Initial review conclusion from the ACS heterogeneity queue:
 Why this matters:
 - these occupations look structurally diverse enough that one default occupation bundle may be hiding materially different stable role shapes
 - the admin-heavy occupations still show more urgent misses in task pressure and bargaining-power calibration than in role-shape heterogeneity
+
+Current status:
+- the first five strong candidates are now implemented as reviewed runtime role variants
+- `Market Research Analysts and Marketing Specialists` now also has a reviewed secondary marketing-operations function anchor, so its marketing-ops variant no longer shares one thin market-sensing-only function baseline
+- the remaining role-shape work is no longer “whether to do variants at all”; it is whether to deepen the function layer for the rest of this first set and expand reviewed variant coverage beyond it
 
 Immediate prep result:
 - the ACS bridge now includes `occupation_btos_sector_mix.csv`, and the BTOS adoption-context layer is live as a calibration-only check rather than still being a planned join path

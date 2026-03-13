@@ -211,8 +211,8 @@ Reason:
 - ACS PUMS gives a real external read on within-occupation spread, but heterogeneity is still not identical to fragmentation, so the current target is deliberately scaled into a lower fragmentation-pressure range and conditioned on people intensity rather than treated as a one-to-one truth label
 
 Current review conclusion:
-- the strongest current multi-variant candidates are content and analysis-heavy occupations where the work bundle is structurally diverse without being primarily people-intense
-- the current shortlist is:
+- the first implemented reviewed role-variant set is concentrated in content and analysis-heavy occupations where the work bundle is structurally diverse without being primarily people-intense
+- the current implemented set is:
   - `Editors`
   - `News Analysts, Reporters, and Journalists`
   - `Management Analysts`
@@ -254,7 +254,7 @@ They exist so calibration disagreements can be routed to the right tuning layer 
 
 The generated markdown report also summarizes which review layers recur most often across occupations so recurring tuning problems are easy to spot.
 It now also separates the strongest medium-strength structural queue from weaker contextual queues so review effort is not dominated by the noisiest proxy.
-The role-shape review pass now also converts the heterogeneity queue into an explicit candidate list for future multi-variant occupation modeling, so that review no longer depends on ad hoc session notes.
+The role-shape review pass now also converts the heterogeneity queue into an explicit candidate list for reviewed role-variant work, so that review no longer depends on ad hoc session notes.
 
 This layer has already informed one runtime tuning pass:
 - repeated bargaining-power mismatches in routine and support-heavy roles led to a recalibration of the live `retained_bargaining_power` formula
@@ -330,9 +330,9 @@ Autoresearch status checked on `2026-03-13`:
 - `O*NET` has moved beyond the repo's current `30.1` footing, but that should be handled as a separate controlled refresh after the next calibration layers are in place.
 
 Recommended build order:
-1. review the new `role_shape_review.md` output and decide whether the strongest candidates warrant explicit multi-variant modeling
+1. review the new `role_shape_review.md` output and decide whether the next occupations warrant reviewed role-variant promotion beyond the first implemented set
 2. review the `BTOS` adoption queue and decide whether any adoption-realization tuning is warranted
-3. `O*NET 30.2` refresh after the stronger calibration layers are stable
+3. `O*NET 30.2` refresh after the stronger calibration layers are stable and the first reviewed role-variant layer has settled
 
 Current BTOS normalized tables:
 - `industry_ai_adoption_context.csv`
@@ -342,9 +342,9 @@ Current BTOS normalized tables:
 
 Current role-shape review outputs:
 - `occupation_role_shape_review.csv`
-  - purpose: generated occupation-level candidate table for future multi-variant modeling
+  - purpose: generated occupation-level candidate table for reviewed role-variant expansion
 - `role_shape_review.md`
-  - purpose: human-readable summary of strong candidates and watchlist occupations
+  - purpose: human-readable summary of strong candidates and watchlist occupations for further reviewed role-variant work
 
 Promotion rule:
 - keep these outer-layer sources in calibration first

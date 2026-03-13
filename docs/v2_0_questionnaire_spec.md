@@ -25,8 +25,9 @@ The live page collects inputs in this order:
 1. broad role category
 2. occupation anchor
 3. hierarchy / seniority
-4. optional role breakdown editing
+4. optional reviewed role-variant baseline selection for occupations that support it
 5. optional role refinement
+6. optional role breakdown editing
 
 ## Current Role Composition Inputs
 
@@ -39,11 +40,12 @@ Current editable elements:
    - reviewed public-posting tasks
    - reviewed role-review tasks
 2. reviewed function anchors for the selected occupation
-3. custom task-to-task support links
-4. custom task-to-function links
-5. optional per-task share overrides in the graph editor
+3. for a small reviewed subset of occupations, a role-variant selector that changes the default baseline task/function bundle
+4. custom task-to-task support links
+5. custom task-to-function links
+6. optional per-task share overrides in the graph editor
 
-The live app starts from an occupation default bundle, then lets the user add/remove tasks and functions, connect nodes, and optionally rebalance task shares before scoring.
+The live app starts from an occupation default bundle, or from the selected/recommended reviewed role variant when one exists, then lets the user add/remove tasks and functions, connect nodes, and optionally rebalance task shares before scoring.
 
 ## Current Runtime Mapping
 
@@ -80,6 +82,8 @@ The engine currently applies composition inputs in four places:
 
 ### 1. Active role bundle selection
 
+For occupations with reviewed role variants, the engine can now first choose a reviewed baseline variant from the current questionnaire profile and current role mix, unless the user explicitly overrides that choice.
+
 Selected task ids determine which inventory rows remain active in the run.
 
 Selected function ids determine which occupation function anchors remain active in the run.
@@ -89,6 +93,7 @@ This changes:
 - the active function summary
 - the default dependency graph
 - the occupation-assignment summary shown in the UI
+- the reviewed baseline variant summary shown in the role studio for supported occupations
 
 ### 2. Task-share reweighting
 
@@ -109,6 +114,7 @@ These composition changes indirectly affect:
 - `fate_drivers`
 - `fate_counterweights`
 - `occupation_assignment.selected_composition`
+- `occupation_assignment.selected_variant`
 - `questionnaire_effect`
 
 ## Current Questionnaire Layer
@@ -241,11 +247,15 @@ These drive:
 
 The live UI now enforces these behaviors:
 - the composition editor is occupation-specific
+- the reviewed role-variant selector only appears for occupations that currently support more than one stable baseline role shape
 - the default role bundle is loaded from `getRoleComposition(...)`
+- when role variants exist, the default role bundle can come from the selected or recommended reviewed variant
 - add/remove controls only show tasks and functions not currently active
 - custom support links only connect currently selected tasks
 - task-to-function links only persist when both the task and function stay selected
 - if the user removes all active tasks or functions, the engine falls back to the occupation defaults rather than scoring an empty role
+- if the user has not edited the composition yet and leaves the variant selector on auto, questionnaire changes can update the recommended baseline variant
+- once the user has started editing the composition, the app preserves those edits instead of silently resetting the graph when the recommendation changes
 - graph edits rerun scoring live on the same occupation
 - the questionnaire is rendered from schema in the client rather than hardcoded page markup
 
@@ -255,7 +265,7 @@ Still missing from the intake relative to the broader redesign:
 - simpler weighted task-share buckets layered on top of the current graph-level share overrides
 - explicit `AI-danger task` or bargaining-break prompt separate from the current composition editor
 - direct residual-role-distinctiveness question
-- deeper role-mode branching for occupations with multiple distinct function paths
+- broader reviewed role-variant coverage for occupations with multiple distinct function paths
 
 ## Next Intake Work
 

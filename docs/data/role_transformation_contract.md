@@ -77,6 +77,7 @@ Current first pass:
 - reviewed supplemental anchors for a targeted multi-anchor subset where one function anchor was too reductive
 - role-family defaults for broad coverage
 - occupation-specific overrides for function-sensitive roles
+- `Market Research Analysts and Marketing Specialists` now includes a reviewed supplemental marketing-operations anchor so its execution-heavy variant is function-distinct as well as task-distinct
 
 ### `occupation_function_map.csv`
 
@@ -84,6 +85,25 @@ Binds each occupation to its function anchors and stores a `delegability_guardra
 
 Interpretation:
 - higher guardrail means exposed tasks are less likely to eliminate the role outright because judgment, trust, authority, or liability still matter
+
+### `occupation_role_variants.csv`
+
+Reviewed role-variant baseline contract for occupations that are too heterogeneous for one default bundle.
+
+Each row stores:
+- an occupation-scoped `variant_id`
+- a reviewed `variant_label` and `variant_summary`
+- explicit default `task_ids`
+- explicit default `function_ids`
+- preferred task-family and function signatures used for recommendation
+- a questionnaire-signature sketch used to recommend the closest variant in the live app
+
+Current live/browser status:
+- this file is now a direct runtime input for a small reviewed subset of launch occupations
+- it does not directly change task pressure formulas
+- it changes which default task/function baseline the role studio starts from before user edits
+- the browser can now recommend a reviewed variant from the current questionnaire profile and current role mix, while still allowing the user to override it explicitly
+- for the stronger reviewed split occupations, variants can now differ at both the task-bundle layer and the function-anchor layer
 
 ### `task_function_edges.csv`
 
@@ -194,23 +214,25 @@ Current reviewed use:
 The current stack now works like this:
 
 1. Start with the richer task inventory.
-2. Attach all available source-specific task evidence.
-3. Compute baseline cluster automation difficulty from cluster priors shrunk toward the occupation exposure prior.
-4. For clusters with strong enough resolved task-evidence coverage, shift that cluster baseline toward a task-first cluster evidence estimate.
-5. Project the resulting cluster read onto active tasks as the fallback task-difficulty model.
-6. Resolve each task's best available task-level evidence from `task_source_evidence.csv` using explicit source precedence.
-7. For tasks with sufficiently reliable resolved task evidence, promote the task baseline itself toward task evidence.
-8. For tasks with remaining reliable resolved task evidence, blend the resolved task evidence signal into final `automation_difficulty`.
-9. Compute baseline task `direct_exposure_pressure` from that task-level difficulty and then blend the resolved task-pressure signal into final `direct_exposure_pressure` when reliability clears the same threshold.
-10. Add indirect pressure through dependency edges.
-11. Compute retained task share and retained leverage per task.
-12. Aggregate the scored task rows back into task-derived cluster summaries.
-13. Recompute cluster absorption, wave assignment, and the public wave engine from those task-derived cluster summaries.
-14. Weight each task by how much it supports the role's function or functions.
-15. Preserve human guardrails through accountability, trust, liability, and authority.
-16. In the live browser scorer, compute function exposure, retained function strength, retained accountability, retained bargaining power, delegation pressure, and displacement pressure from the active edited run.
-17. Produce role-transformation outputs instead of stopping at exposure.
-18. In the offline audit layer, apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
+2. For occupations with reviewed role variants, resolve the selected or recommended baseline variant from `occupation_role_variants.csv`.
+3. Use that reviewed variant to choose the starting default task/function bundle before any user edits are applied.
+4. Attach all available source-specific task evidence.
+5. Compute baseline cluster automation difficulty from cluster priors shrunk toward the occupation exposure prior.
+6. For clusters with strong enough resolved task-evidence coverage, shift that cluster baseline toward a task-first cluster evidence estimate.
+7. Project the resulting cluster read onto active tasks as the fallback task-difficulty model.
+8. Resolve each task's best available task-level evidence from `task_source_evidence.csv` using explicit source precedence.
+9. For tasks with sufficiently reliable resolved task evidence, promote the task baseline itself toward task evidence.
+10. For tasks with remaining reliable resolved task evidence, blend the resolved task evidence signal into final `automation_difficulty`.
+11. Compute baseline task `direct_exposure_pressure` from that task-level difficulty and then blend the resolved task-pressure signal into final `direct_exposure_pressure` when reliability clears the same threshold.
+12. Add indirect pressure through dependency edges.
+13. Compute retained task share and retained leverage per task.
+14. Aggregate the scored task rows back into task-derived cluster summaries.
+15. Recompute cluster absorption, wave assignment, and the public wave engine from those task-derived cluster summaries.
+16. Weight each task by how much it supports the role's function or functions.
+17. Preserve human guardrails through accountability, trust, liability, and authority.
+18. In the live browser scorer, compute function exposure, retained function strength, retained accountability, retained bargaining power, delegation pressure, and displacement pressure from the active edited run.
+19. Produce role-transformation outputs instead of stopping at exposure.
+20. In the offline audit layer, apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
 
 Current bargaining-power rule:
 - `retained_bargaining_power` is no longer driven mainly by static task bargaining weights
@@ -244,6 +266,12 @@ Current live cluster and wave rule:
 - those cluster summaries also expose whether the underlying cluster baseline came from `cluster_priors` or `task_first_cluster_evidence`, plus the task-first blend weight, evidence coverage diagnostics, and task-first task counts
 - the live engine now recomputes the public wave engine from the task-derived cluster bundle rather than preserving a separate pre-task wave bundle
 
+Current live role-variant rule:
+- a reviewed subset of occupations now exposes more than one stable default role shape in the browser scorer
+- the browser recommends the closest reviewed variant from the current questionnaire profile plus the current task/function mix
+- an explicit user variant choice overrides the recommendation until the user returns to auto mode
+- once the baseline is chosen, the normal editable composition flow still has final authority because users can continue adding/removing tasks and functions and changing workflow links
+
 ## Current limitations
 
 - Job-description evidence now covers all `34` modeled occupations.
@@ -252,3 +280,4 @@ Current live cluster and wave rule:
 - Resolved task evidence now affects task-level pressure and task-level difficulty in the live browser scorer, and high-reliability tasks can now use a task-first task baseline, but low-coverage tasks still fall back to the cluster-seeded path.
 - The live explanation layer is now generated from the current run, but it is still a compact summary rather than a full task/source drill-down surface.
 - The live questionnaire layer now writes a native factor-based role-refinement profile in the app, but the engine still retains the legacy-answer fallback for compatibility with external callers and older tests.
+- Reviewed role variants now exist only for a small heterogeneous subset of occupations, so most occupations still use a single default baseline bundle.

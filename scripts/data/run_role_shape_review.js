@@ -92,7 +92,18 @@ function formatMaybe(value) {
     : 'n/a';
 }
 
+const IMPLEMENTED_ROLE_VARIANTS = new Set([
+  'occ_13_1161_00',
+  'occ_27_3041_00',
+  'occ_27_3042_00',
+  'occ_27_3023_00',
+  'occ_13_1111_00'
+]);
+
 function roleShapeStatus(row) {
+  if (IMPLEMENTED_ROLE_VARIANTS.has(row.occupation_id)) {
+    return 'implemented_first_pass';
+  }
   const strongCandidate = row.primary_review_layer === 'role_shape_heterogeneity' && (
     row.role_heterogeneity_review === 'medium' ||
     (row.function_anchor_count >= 2 && row.role_shape_candidate_score >= 0.43) ||
@@ -111,6 +122,9 @@ function roleShapeStatus(row) {
 }
 
 function roleShapeReason(row) {
+  if (row.role_shape_status === 'implemented_first_pass') {
+    return 'Now implemented as a reviewed runtime role-variant occupation; keep reviewing it for deeper function coverage and future expansion.';
+  }
   if (row.role_shape_status === 'strong_candidate') {
     if (row.function_anchor_count <= 1) {
       return 'High heterogeneity signal with role-shape review pressure and too few function anchors for a likely split occupation.';
@@ -197,6 +211,7 @@ function main() {
   const csvLines = [header.join(',')].concat(rows.map((row) => header.map((column) => csvEscape(row[column])).join(',')));
   fs.writeFileSync(csvPath, `${csvLines.join('\n')}\n`, 'utf8');
 
+  const implemented = rows.filter((row) => row.role_shape_status === 'implemented_first_pass');
   const strongCandidates = rows.filter((row) => row.role_shape_status === 'strong_candidate');
   const watchlist = rows.filter((row) => row.role_shape_status === 'watchlist');
 
@@ -205,8 +220,8 @@ function main() {
   lines.push('');
   lines.push('This report is a calibration-driven review artifact for deciding where one occupation likely hides multiple stable role variants.');
   lines.push('');
-  lines.push('It does not change the live runtime score.');
-  lines.push('It exists to tell the repo which occupations are the best candidates for explicit multi-variant modeling later.');
+  lines.push('It does not directly score the live runtime on its own.');
+  lines.push('It exists to tell the repo which occupations are the best candidates for reviewed role-variant expansion beyond the first implemented set.');
   lines.push('');
   lines.push('Generated from:');
   lines.push('- `data/normalized/occupation_structural_calibration_targets.csv`');
@@ -215,9 +230,23 @@ function main() {
   lines.push('## Summary');
   lines.push('');
   lines.push(`- occupations reviewed: \`${rows.length}\``);
+  lines.push(`- implemented first-pass variants: \`${implemented.length}\``);
   lines.push(`- strong candidates: \`${strongCandidates.length}\``);
   lines.push(`- watchlist: \`${watchlist.length}\``);
   lines.push(`- target table: \`data/normalized/occupation_role_shape_review.csv\``);
+  lines.push('');
+
+  lines.push('## Implemented First Pass');
+  lines.push('');
+  if (!implemented.length) {
+    lines.push('- No occupation has been promoted into the reviewed runtime role-variant layer yet.');
+  } else {
+    lines.push('| Occupation | Candidate score | Function anchors | Heterogeneity target | Gap | Why now |');
+    lines.push('| --- | ---: | ---: | ---: | ---: | --- |');
+    implemented.forEach((row) => {
+      lines.push(`| ${row.title} | ${formatMaybe(row.role_shape_candidate_score)} | ${row.function_anchor_count} | ${formatMaybe(row.role_heterogeneity_target)} | ${formatMaybe(row.role_heterogeneity_gap)} | ${row.role_shape_reason} |`);
+    });
+  }
   lines.push('');
 
   lines.push('## Strong Candidates');

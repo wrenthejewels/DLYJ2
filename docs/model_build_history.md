@@ -382,6 +382,7 @@ Each iteration solved a concrete failure mode in the prior version:
 18. The next official external structural source, ACS PUMS, was then integrated into the calibration layer so the repo could compare model fragmentation risk to observed within-occupation heterogeneity rather than only discussing role variety abstractly.
 19. BTOS was then integrated as a calibration-only adoption-context layer so the repo could compare organizational conversion assumptions to observed sector AI uptake without pretending that business AI use is the same thing as task automability.
 20. The heterogeneity review was then formalized into a generated role-shape candidate report so future multi-variant modeling decisions would come from a stable repo artifact instead of a one-off conversation.
+21. The strongest reviewed heterogeneous occupations were then promoted into explicit runtime role variants so the browser could stop pretending that those occupations only had one stable baseline role shape.
 
 So the model has evolved by repeatedly doing the same thing:
 - identify where the current abstraction is too coarse
@@ -447,6 +448,17 @@ The next concrete example was the role-shape review scaffold:
 - a generated review artifact was added so the repo itself could carry that decision surface forward
 - the result is a stable candidate table and markdown review report identifying which occupations are strongest candidates for explicit multi-variant modeling and which ones are still just a watchlist
 
+The next concrete example was the first reviewed runtime role-variant layer:
+- once the review queue stabilized, the repo promoted the strongest candidates into a small live `occupation_role_variants.csv` contract
+- the browser can now recommend a reviewed baseline variant from the questionnaire profile plus the current task/function mix
+- the user can override that choice explicitly
+- after that, the editable role studio still has final authority because tasks, functions, shares, and support links remain directly editable
+
+The next concrete example was deepening one of those reviewed variants so the split was not only cosmetic:
+- `Market Research Analysts and Marketing Specialists` originally had two reviewed variants but both still shared one thin function anchor
+- a reviewed supplemental marketing-operations anchor was then added and its task-to-function edges were redistributed
+- that made the `marketing_ops_analyst` variant distinct at the function layer as well as the task layer, which is closer to the actual role split the review queue was surfacing
+
 ## A Rationalist Summary
 
 The model was built by progressively replacing hidden averages with explicit structure.
@@ -464,6 +476,7 @@ The direction of travel has been:
 - official heterogeneity calibration inputs
 - official adoption-context calibration inputs
 - generated role-shape review artifacts
+- reviewed runtime role variants for occupations that are structurally too split for one baseline bundle
 
 The remaining steps are:
 - keep improving task-first scoring until strong task evidence is the default starting point whenever coverage is high enough

@@ -122,6 +122,21 @@ Current flow:
 
 This means the public cluster layer and public wave engine now reflect task-level difficulty blending, task-level direct-evidence pressure blending, and task-level spillover instead of relying only on the pre-task cluster bundle.
 
+## Current Role-Variant Behavior
+
+For a small reviewed subset of heterogeneous occupations, the live app now supports more than one reviewed baseline role shape.
+
+Current flow:
+1. `getRoleComposition(...)` can expose reviewed role variants for the selected occupation
+2. the browser recommends the closest variant from the current questionnaire profile and current role mix
+3. the user can keep that recommendation or explicitly override it
+4. that selected variant changes the default task/function bundle the role studio starts from
+5. after that, normal task/function editing still has final authority over the active composition used for scoring
+
+This means the runtime is no longer always starting from one occupation-wide default bundle for every occupation.
+
+For the stronger reviewed split occupations, the selected variant can now also change the starting function-anchor mix rather than only swapping tasks under one shared function baseline.
+
 ## Current Narrative Contract
 
 The narrative panel now uses four structured cards:
@@ -212,6 +227,15 @@ type V2Result = {
     occupation_prior_source: string | null
     assignment_method: string
     task_assignment_method: string
+    selected_variant: {
+      variant_id: string
+      variant_label: string
+      selection_mode: 'auto' | 'manual'
+      recommended_variant_id: string | null
+      recommended_variant_label: string | null
+      recommendation_score: number | null
+      recommendation_drivers: string[]
+    } | null
     dominant_task_clusters: Array<{
       task_cluster_id: string
       label: string
@@ -223,6 +247,9 @@ type V2Result = {
       support_task_ids: string[]
     }
     selected_composition: {
+      variant_id: string | null
+      variant_label: string | null
+      variant_mode: 'auto' | 'manual' | 'none'
       active_task_count: number
       active_function_count: number
       added_dependency_count: number
@@ -517,6 +544,7 @@ Current explanation surface:
 - the engine now returns a live explanation summary generated from the current edited run
 - the explanation block is now aligned to the same task/function graph and function metrics that drive the live score
 - the client also surfaces task-to-function links and user-declared support links in the composition flow before scoring
+- for supported occupations, the client also surfaces a reviewed role-variant selector ahead of the graph editor and shows whether the current baseline is recommended or manually overridden
 
 ## Current Acceptance Criteria
 
