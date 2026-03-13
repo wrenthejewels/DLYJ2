@@ -130,6 +130,10 @@ Implemented on `2026-03-13`:
   - the strength-aware calibration queue surfaced a stronger structural miss in routine/admin-heavy occupations
   - the live scorer now uses adaptation-derived routine context to lift routine-task reachability and workflow compression for structurally routine, low-people-intensity roles
   - that lift is concentrated in execution, workflow-admin, documentation, and secondarily drafting-heavy bundles rather than applied uniformly across all work
+- phase-10 official ORS calibration integration:
+  - `scripts/data/normalize_ors.py` now derives `occupation_ors_structural_context.csv` from official BLS ORS `2025` preliminary data with `2023` backstop coverage
+  - the human-guardrail calibration target is now primarily ORS-driven, using autonomy, supervisory responsibility, and pace-control structure rather than the older quality-only proxy
+  - ORS remains calibration-only and is not a direct runtime scoring input
 
 Implemented scripts:
 - `build_job_description_evidence.ps1`
@@ -316,8 +320,7 @@ What is not finished yet:
 - Improve task-to-function weighting where O*NET still overstates generic admin or workflow tasks
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
 - Expand task-first task-baseline coverage so more occupations can leave the cluster-seeded fallback path without becoming noisy
-- Upgrade the calibration layer from BLS / quality-context proxies to stronger empirical sources:
-  - `BLS ORS`
+- Keep upgrading the calibration layer beyond the current ORS-backed human-guardrail check:
   - `ACS PUMS`
   - `BTOS`
 - Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
@@ -342,26 +345,23 @@ Highest-value next research directions:
 - clearer user-facing explanation of why exposed work does or does not destroy the role
 
 Best external data directions to evaluate next:
-- `BLS Occupational Requirements Survey (ORS)` for judgment, decision, interpersonal, and contextual requirements that could sharpen human-retention guardrails
 - `BLS American Time Use Survey (ATUS)` for grounding how broad work categories and time use actually split in practice
 - `Census ACS PUMS` for within-occupation heterogeneity, wage dispersion, and worker-mix analysis
 - `Census Business Trends and Outlook Survey (BTOS)` AI-use modules for organization-level adoption and deployment context
 - `O*NET Technology Skills / Tools and Technology` for task-tool adjacency and more explicit augmentation vs automation routing
 
 Current official-source notes checked during autoresearch on `2026-03-13`:
-- `BLS ORS`: official public-use datasets now span the first wave (`2018`), second wave final (`2023`), and third wave preliminary (`2025`). This is the highest-value next structural calibration source because it directly measures work requirements rather than downstream labor outcomes.
+- `BLS ORS`: official public-use datasets now span the first wave (`2018`), second wave final (`2023`), and third wave preliminary (`2025`). The repo now uses the `2025` preliminary workbook plus `2023` backstop coverage for the calibration-only ORS structural table.
 - `ACS PUMS`: official Census PUMS now includes `2024 ACS 1-year` microdata. This is the best next source for within-occupation heterogeneity, wage dispersion, and industry-mix calibration.
 - `BTOS`: official Census BTOS continues to publish business-condition and AI-use context at the firm/industry layer. This should stay calibration-only first; it is a context signal for adoption realization, not a direct task-automability input.
 - `O*NET`: the official database release line has moved beyond the repo's current `30.1` footing. A controlled `30.2` refresh should be treated as a separate schema/data upgrade, not bundled casually into model tuning.
 
 Ranked next integration order:
-1. `BLS ORS` calibration layer
-2. `ACS PUMS` heterogeneity layer
-3. `BTOS` adoption-context layer
-4. `O*NET 30.2` refresh and schema audit
+1. `ACS PUMS` heterogeneity layer
+2. `BTOS` adoption-context layer
+3. `O*NET 30.2` refresh and schema audit
 
 Why this order:
-- `ORS` most directly improves the strongest structural calibration target: human-retention and accountability constraints.
 - `ACS PUMS` most directly improves fragmentation / polarization / wage-structure realism.
 - `BTOS` is useful, but it belongs outside runtime first because it says more about adoption context than technical task reachability.
 - `O*NET 30.2` matters, but changing the core occupation/task substrate should be done deliberately after the stronger calibration layers are in place.
@@ -372,10 +372,10 @@ Directions that are probably weak unless new evidence appears:
 - treating labor-market demand data as if it directly proves task automability
 
 Concrete next build sequence:
-1. Add `ORS` normalization and an `occupation_ors_structural_context.csv` table for consequence-of-error, public interaction, pace control, decision latitude, and environmental/context burden.
-2. Add `ACS PUMS` normalization and an `occupation_heterogeneity_context.csv` table for wage dispersion, education dispersion, industry dispersion, and worker-mix spread.
-3. Add a `BTOS`-derived industry adoption context table and map occupation exposure to industry-level AI-adoption context through occupation-industry mix, keeping it calibration-only.
-4. Review whether any of those layers are strong enough to be promoted into runtime after at least one full calibration cycle.
+1. Add `ACS PUMS` normalization and an `occupation_heterogeneity_context.csv` table for wage dispersion, education dispersion, industry dispersion, and worker-mix spread.
+2. Add a `BTOS`-derived industry adoption context table and map occupation exposure to industry-level AI-adoption context through occupation-industry mix, keeping it calibration-only.
+3. Review whether either of those layers is strong enough to be promoted into runtime after at least one full calibration cycle.
+4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers have stabilized.
 
 ## Purpose
 

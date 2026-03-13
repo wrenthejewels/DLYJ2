@@ -98,6 +98,28 @@ sources:
     granularity: occupation_group_monthly
     status: active
     notes: 'Official monthly unemployment series used for the last-12-month labor market chart on the v2 page.'
+  - source_id: src_bls_ors_2025_prelim
+    name: BLS Occupational Requirements Survey
+    category: structural_calibration
+    version_label: '2025 preliminary complete dataset'
+    release_date: '2025-09-11'
+    download_url: 'https://www.bls.gov/web/ors/ors-complete-dataset.xlsx'
+    license: public_domain
+    geography: us
+    granularity: occupation_level_structural_context
+    status: active_calibration
+    notes: 'Primary official structural calibration source for human-retention guardrails. Used to derive autonomy, supervision, pace-control, and related occupation-level context in occupation_ors_structural_context.csv.'
+  - source_id: src_bls_ors_2023
+    name: BLS Occupational Requirements Survey
+    category: structural_calibration
+    version_label: '2023 complete dataset'
+    release_date: '2024-09-12'
+    download_url: 'https://www.bls.gov/ors/xlsx/2023-complete-dataset.xlsx'
+    license: public_domain
+    geography: us
+    granularity: occupation_level_structural_context
+    status: active_calibration_backstop
+    notes: 'Backstop ORS wave used when the 2025 preliminary dataset does not cover a launch occupation cleanly.'
   - source_id: src_v2_launch_aggregate_2026_03
     name: V2 launch aggregate prior
     category: occupation_prior

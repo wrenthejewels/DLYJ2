@@ -78,6 +78,21 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+function blendAvailable(pairs, fallback = null) {
+  let numerator = 0;
+  let denominator = 0;
+  pairs.forEach(([value, weight]) => {
+    const numericValue = toNumber(value, null);
+    const numericWeight = toNumber(weight, 0);
+    if (numericValue === null || !numericWeight) {
+      return;
+    }
+    numerator += numericValue * numericWeight;
+    denominator += numericWeight;
+  });
+  return denominator ? (numerator / denominator) : fallback;
+}
+
 function parseNoteMetric(noteText, metricKey) {
   const notes = String(noteText || '');
   const pattern = new RegExp(`${metricKey}=([0-9.]+)`, 'i');
@@ -165,6 +180,13 @@ function formatPct(value) {
   return `${Math.round(value * 100)}%`;
 }
 
+function formatMaybe(value) {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    return 'n/a';
+  }
+  return value.toFixed(3);
+}
+
 function gapTier(gap, confidence) {
   if (confidence >= 0.7 && gap >= 0.22) {
     return 'high';
@@ -192,6 +214,9 @@ function priorityScore(review) {
 }
 
 function calibrationStrengthMultiplier(strength) {
+  if (strength === 'strong') {
+    return 1.15;
+  }
   if (strength === 'medium') {
     return 1.0;
   }
@@ -205,10 +230,10 @@ function recommendReviewLayer(row) {
   const candidates = [
     {
       layer: 'accountability_guardrails',
-      strength: 'medium',
+      strength: 'strong',
       reason: 'Human-constraint mismatch points to function anchors, accountability weights, or trust/liability guardrails.',
       review: row.human_constraint_review,
-      score: row.human_constraint_gap * Math.max(row.human_constraint_confidence, 0.35) * calibrationStrengthMultiplier('medium')
+      score: row.human_constraint_gap * Math.max(row.human_constraint_confidence, 0.35) * calibrationStrengthMultiplier('strong')
     },
     {
       layer: 'demand_and_adoption',
@@ -252,10 +277,12 @@ async function main() {
 
   const occupations = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupations.csv'), 'utf8'))
     .filter((row) => String(row.is_active || '').toLowerCase() !== 'false');
+  const orsRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_ors_structural_context.csv'), 'utf8'));
   const qualityRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_quality_indicators.csv'), 'utf8'));
   const laborRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_labor_market_context.csv'), 'utf8'));
   const adaptationRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_adaptation_priors.csv'), 'utf8'));
 
+  const orsById = Object.fromEntries(orsRows.map((row) => [row.occupation_id, row]));
   const qualityById = Object.fromEntries(qualityRows.map((row) => [row.occupation_id, row]));
   const laborById = Object.fromEntries(laborRows.map((row) => [row.occupation_id, row]));
   const adaptationById = Object.fromEntries(adaptationRows.map((row) => [row.occupation_id, row]));
@@ -293,6 +320,7 @@ async function main() {
 
   occupations.forEach((occupation) => {
     const occupationId = occupation.occupation_id;
+    const ors = orsById[occupationId] || {};
     const quality = qualityById[occupationId] || {};
     const labor = laborById[occupationId] || {};
     const adaptation = adaptationById[occupationId] || {};
@@ -308,14 +336,10 @@ async function main() {
     const jobZone = clamp(toNumber(adaptation.job_zone, 3), 1, 5);
     const normalizedJobZone = (jobZone - 1) / 4;
 
-    const humanConstraintTarget = clamp(
-      (toNumber(quality.autonomy_proxy, 0.5) * 0.45) +
-      (toNumber(quality.social_interaction_intensity, 0.5) * 0.35) +
-      (toNumber(quality.working_environment_quality_proxy, 0.5) * 0.10) +
-      (toNumber(quality.labor_market_security_proxy, 0.5) * 0.10),
-      0,
-      1
-    );
+    const orsHumanConstraintSignal = toNumber(ors.human_constraint_index, null);
+    const humanConstraintTarget = orsHumanConstraintSignal === null
+      ? null
+      : clamp(orsHumanConstraintSignal, 0, 1);
     const demandContextTarget = clamp(
       ((growthRanks.get(laborDerived.projection_growth_pct) ?? 0.5) * 0.55) +
       ((openingsRateRanks.get(laborDerived.openings_rate) ?? 0.5) * 0.25) +
@@ -347,7 +371,14 @@ async function main() {
       1
     );
 
-    const humanConstraintConfidence = toNumber(quality.quality_confidence, 0.4);
+    const humanConstraintConfidence = orsHumanConstraintSignal === null
+      ? 0
+      : clamp(
+        (toNumber(quality.quality_confidence, 0.4) * 0.15) +
+        (toNumber(ors.ors_confidence, 0.7) * 0.85),
+        0,
+        1
+      );
     const demandContextConfidence = toNumber(labor.labor_market_confidence, 0.5);
     const wageLeverageConfidence = toNumber(labor.labor_market_confidence, 0.5);
     const adaptationConfidence = toNumber(adaptation.confidence, 0.5);
@@ -373,11 +404,14 @@ async function main() {
       0,
       1
     );
+    const humanConstraintGap = humanConstraintTarget === null
+      ? null
+      : Math.abs(modelHumanGuardrail - humanConstraintTarget);
 
     rows.push({
       occupation_id: occupationId,
       title: occupation.title,
-      human_constraint_target: Number(humanConstraintTarget.toFixed(3)),
+      human_constraint_target: humanConstraintTarget === null ? null : Number(humanConstraintTarget.toFixed(3)),
       human_constraint_confidence: Number(humanConstraintConfidence.toFixed(3)),
       demand_context_target: Number(demandContextTarget.toFixed(3)),
       demand_context_confidence: Number(demandContextConfidence.toFixed(3)),
@@ -392,17 +426,18 @@ async function main() {
       model_wage_leverage: Number(modelWageLeverage.toFixed(3)),
       model_routine_pressure: Number(modelRoutinePressure.toFixed(3)),
       model_specialization_resilience: Number(modelSpecializationResilience.toFixed(3)),
-      human_constraint_gap: Number(Math.abs(modelHumanGuardrail - humanConstraintTarget).toFixed(3)),
+      human_constraint_gap: humanConstraintGap === null ? null : Number(humanConstraintGap.toFixed(3)),
       demand_context_gap: Number(Math.abs(modelDemandContext - demandContextTarget).toFixed(3)),
       wage_leverage_gap: Number(Math.abs(modelWageLeverage - wageLeverageTarget).toFixed(3)),
       routine_pressure_gap: Number(Math.abs(modelRoutinePressure - routinePressureTarget).toFixed(3)),
       specialization_resilience_gap: Number(Math.abs(modelSpecializationResilience - specializationResilienceTarget).toFixed(3)),
-      human_constraint_review: gapTier(Math.abs(modelHumanGuardrail - humanConstraintTarget), humanConstraintConfidence),
+      human_constraint_review: humanConstraintGap === null ? 'ok' : gapTier(humanConstraintGap, humanConstraintConfidence),
       demand_context_review: gapTier(Math.abs(modelDemandContext - demandContextTarget), demandContextConfidence),
       wage_leverage_review: gapTier(Math.abs(modelWageLeverage - wageLeverageTarget), wageLeverageConfidence),
       routine_pressure_review: gapTier(Math.abs(modelRoutinePressure - routinePressureTarget), adaptationConfidence),
       specialization_resilience_review: gapTier(Math.abs(modelSpecializationResilience - specializationResilienceTarget), adaptationConfidence),
       quality_source_mix: quality.source_mix || '',
+      ors_source_mix: ors.source_mix || '',
       adaptation_source_mix: adaptation.source_mix || '',
       labor_release_year: labor.release_year || '',
       notes: [
@@ -458,6 +493,7 @@ async function main() {
     'routine_pressure_review',
     'specialization_resilience_review',
     'quality_source_mix',
+    'ors_source_mix',
     'adaptation_source_mix',
     'labor_release_year',
     'highest_review_tier',
@@ -475,13 +511,13 @@ async function main() {
   const checks = [
     {
       label: 'Human Guardrail Plausibility',
-      strength: 'medium',
+      strength: 'strong',
       targetKey: 'human_constraint_target',
       modelKey: 'model_human_guardrail',
       gapKey: 'human_constraint_gap',
       reviewKey: 'human_constraint_review',
       confidenceKey: 'human_constraint_confidence',
-      description: 'Compares the model’s retained human/accountability guardrails to autonomy, social-interaction, and work-quality proxies.'
+      description: 'Compares the model’s retained human/accountability guardrails to the normalized ORS structural index where ORS coverage exists. Occupations without usable ORS rows are left unscored for this strongest check.'
     },
     {
       label: 'Demand Context Plausibility',
@@ -534,13 +570,15 @@ async function main() {
   lines.push('It checks whether the model’s structural claims line up directionally with the best local non-runtime context currently present in the repo.');
   lines.push('');
   lines.push('Generated from:');
+  lines.push('- `data/normalized/occupation_ors_structural_context.csv`');
   lines.push('- `data/normalized/occupation_quality_indicators.csv`');
   lines.push('- `data/normalized/occupation_labor_market_context.csv`');
   lines.push('- `data/normalized/occupation_adaptation_priors.csv`');
   lines.push('- live outputs from `v2_engine.js`');
   lines.push('');
   lines.push('Current limitations:');
-  lines.push('- `occupation_quality_indicators.csv` still includes launch-stub quality rows, so guardrail calibration is only medium-confidence right now.');
+  lines.push('- `occupation_ors_structural_context.csv` is now the main structural input for the human-guardrail check, using the normalized ORS structural index.');
+  lines.push('- occupations without usable ORS structural rows are currently left unscored for that strongest check instead of being silently folded back into a weaker proxy.');
   lines.push('- labor-market checks are contextual and should not be treated as proof of AI displacement or demand expansion.');
   lines.push('- this report is for calibration and review, not runtime scoring.');
   lines.push('');
@@ -553,10 +591,12 @@ async function main() {
   lines.push('');
   checks.forEach((check) => {
     const correlation = spearmanCorrelation(rows, check.targetKey, check.modelKey);
+    const coveredRows = rows.filter((row) => typeof row[check.targetKey] === 'number' && !Number.isNaN(row[check.targetKey])).length;
     const highPriority = rows.filter((row) => row[check.reviewKey] === 'high').length;
     const mediumPriority = rows.filter((row) => row[check.reviewKey] === 'medium').length;
     lines.push(`### ${check.label}`);
     lines.push(`- strength: \`${check.strength}\``);
+    lines.push(`- coverage: \`${coveredRows}/${rows.length}\``);
     lines.push(`- spearman correlation: \`${correlation === null ? 'n/a' : correlation.toFixed(3)}\``);
     lines.push(`- high-priority mismatches: \`${highPriority}\``);
     lines.push(`- medium-priority mismatches: \`${mediumPriority}\``);
@@ -604,7 +644,7 @@ async function main() {
     lines.push('| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap |');
     lines.push('| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |');
     priorityRows.slice(0, 10).forEach((row) => {
-      lines.push(`| ${row.title} | ${row.highest_review_tier} | ${row.primary_review_layer} | ${row.primary_review_strength} | ${row.human_constraint_gap.toFixed(3)} (${row.human_constraint_review}) | ${row.demand_context_gap.toFixed(3)} (${row.demand_context_review}) | ${row.wage_leverage_gap.toFixed(3)} (${row.wage_leverage_review}) | ${row.routine_pressure_gap.toFixed(3)} (${row.routine_pressure_review}) | ${row.specialization_resilience_gap.toFixed(3)} (${row.specialization_resilience_review}) |`);
+      lines.push(`| ${row.title} | ${row.highest_review_tier} | ${row.primary_review_layer} | ${row.primary_review_strength} | ${formatMaybe(row.human_constraint_gap)} (${row.human_constraint_review}) | ${formatMaybe(row.demand_context_gap)} (${row.demand_context_review}) | ${formatMaybe(row.wage_leverage_gap)} (${row.wage_leverage_review}) | ${formatMaybe(row.routine_pressure_gap)} (${row.routine_pressure_review}) | ${formatMaybe(row.specialization_resilience_gap)} (${row.specialization_resilience_review}) |`);
     });
   }
   lines.push('');
@@ -657,10 +697,11 @@ async function main() {
     lines.push('| --- | ---: | ---: | ---: | ---: | --- |');
     rows
       .slice()
+      .filter((row) => typeof row[check.gapKey] === 'number' && !Number.isNaN(row[check.gapKey]))
       .sort((left, right) => right[check.gapKey] - left[check.gapKey])
       .slice(0, 8)
       .forEach((row) => {
-        lines.push(`| ${row.title} | ${row[check.modelKey].toFixed(3)} | ${row[check.targetKey].toFixed(3)} | ${row[check.gapKey].toFixed(3)} | ${row[check.confidenceKey].toFixed(3)} | ${row[check.reviewKey]} |`);
+        lines.push(`| ${row.title} | ${formatMaybe(row[check.modelKey])} | ${formatMaybe(row[check.targetKey])} | ${formatMaybe(row[check.gapKey])} | ${formatMaybe(row[check.confidenceKey])} | ${row[check.reviewKey]} |`);
       });
     lines.push('');
   });
@@ -673,7 +714,7 @@ async function main() {
   lines.push('');
   lines.push('## Next Data Upgrades');
   lines.push('');
-  lines.push('- Add `BLS ORS` for better human-constraint calibration.');
+  lines.push('- Extend ORS coverage or mapping so fewer launch occupations remain unscored on the strongest human-guardrail check.');
   lines.push('- Add `ACS PUMS` for within-occupation heterogeneity and wage-structure calibration.');
   lines.push('- Add `BTOS` AI adoption context for a stronger non-runtime adoption calibration layer.');
   lines.push('');

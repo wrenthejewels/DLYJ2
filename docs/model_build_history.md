@@ -378,6 +378,7 @@ Each iteration solved a concrete failure mode in the prior version:
 14. The first repeated calibration finding then fed back into runtime scoring by reducing overstatement in retained bargaining power for routine and support-heavy roles.
 15. The calibration queue was then made strength-aware so weak contextual proxies would not dominate tuning decisions over medium-strength structural checks.
 16. That strength-aware queue then surfaced a stronger structural miss in routine/admin-heavy occupations, which led to a routine-context lift for workflow compression and routine task pressure.
+17. The first official external structural source, BLS ORS, was then integrated into the calibration layer so the human-guardrail check relied mainly on observed autonomy, supervisory responsibility, and pace-control structure instead of lighter quality proxies.
 
 So the model has evolved by repeatedly doing the same thing:
 - identify where the current abstraction is too coarse
@@ -421,6 +422,11 @@ The next concrete example was the routine-pressure layer:
 - the model was not changed by feeding the calibration target directly into scoring
 - instead, the live scorer was updated to read existing adaptation-layer routine context more directly when estimating routine reachability and workflow compression
 
+The next concrete example was the ORS integration:
+- the earlier human-guardrail check depended too much on an internal quality proxy layer
+- official ORS work-requirement data was added as a calibration-only table instead of being pushed straight into runtime
+- the human-guardrail target now leans mainly on ORS autonomy, supervisory responsibility, and pace-control structure, and occupations without usable ORS rows are left unscored for that strongest check until coverage improves
+
 ## A Rationalist Summary
 
 The model was built by progressively replacing hidden averages with explicit structure.
@@ -434,6 +440,7 @@ The direction of travel has been:
 - task-derived public outputs
 - source-resolved task evidence
 - non-runtime structural calibration
+- official structural calibration inputs
 
 The remaining step is:
 - make task evidence not only an adjustment layer, but the default starting point whenever coverage is strong enough

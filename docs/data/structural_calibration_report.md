@@ -6,13 +6,15 @@ It does not validate AI-driven job loss directly.
 It checks whether the model’s structural claims line up directionally with the best local non-runtime context currently present in the repo.
 
 Generated from:
+- `data/normalized/occupation_ors_structural_context.csv`
 - `data/normalized/occupation_quality_indicators.csv`
 - `data/normalized/occupation_labor_market_context.csv`
 - `data/normalized/occupation_adaptation_priors.csv`
 - live outputs from `v2_engine.js`
 
 Current limitations:
-- `occupation_quality_indicators.csv` still includes launch-stub quality rows, so guardrail calibration is only medium-confidence right now.
+- `occupation_ors_structural_context.csv` is now the main structural input for the human-guardrail check, using the normalized ORS structural index.
+- occupations without usable ORS structural rows are currently left unscored for that strongest check instead of being silently folded back into a weaker proxy.
 - labor-market checks are contextual and should not be treated as proof of AI displacement or demand expansion.
 - this report is for calibration and review, not runtime scoring.
 
@@ -24,14 +26,16 @@ Current limitations:
 ## Check Strengths
 
 ### Human Guardrail Plausibility
-- strength: `medium`
-- spearman correlation: `0.300`
-- high-priority mismatches: `0`
-- medium-priority mismatches: `0`
-- description: Compares the model’s retained human/accountability guardrails to autonomy, social-interaction, and work-quality proxies.
+- strength: `strong`
+- coverage: `23/34`
+- spearman correlation: `0.494`
+- high-priority mismatches: `5`
+- medium-priority mismatches: `7`
+- description: Compares the model’s retained human/accountability guardrails to the normalized ORS structural index where ORS coverage exists. Occupations without usable ORS rows are left unscored for this strongest check.
 
 ### Demand Context Plausibility
 - strength: `weak`
+- coverage: `34/34`
 - spearman correlation: `0.861`
 - high-priority mismatches: `2`
 - medium-priority mismatches: `3`
@@ -39,6 +43,7 @@ Current limitations:
 
 ### Wage Leverage Plausibility
 - strength: `weak`
+- coverage: `34/34`
 - spearman correlation: `0.413`
 - high-priority mismatches: `12`
 - medium-priority mismatches: `5`
@@ -46,6 +51,7 @@ Current limitations:
 
 ### Routine Pressure Plausibility
 - strength: `medium`
+- coverage: `34/34`
 - spearman correlation: `0.540`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `4`
@@ -53,6 +59,7 @@ Current limitations:
 
 ### Specialization Resilience Plausibility
 - strength: `medium`
+- coverage: `34/34`
 - spearman correlation: `0.109`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `5`
@@ -62,26 +69,26 @@ Current limitations:
 
 | Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Customer Service Representatives | high | bargaining_power | weak | 0.033 (ok) | 0.088 (ok) | 0.526 (high) | 0.039 (ok) | 0.205 (medium) |
-| Bookkeeping, Accounting, and Auditing Clerks | high | bargaining_power | weak | 0.028 (ok) | 0.075 (ok) | 0.448 (high) | 0.207 (medium) | 0.159 (low) |
-| Statistical Assistants | high | bargaining_power | weak | 0.104 (ok) | 0.129 (low) | 0.430 (high) | 0.068 (ok) | 0.025 (ok) |
-| Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | high | task_pressure | medium | 0.032 (ok) | 0.046 (ok) | 0.342 (high) | 0.381 (medium) | 0.205 (medium) |
-| Office Clerks, General | high | task_pressure | medium | 0.039 (ok) | 0.047 (ok) | 0.333 (high) | 0.365 (medium) | 0.182 (medium) |
-| Data Scientists | high | bargaining_power | weak | 0.089 (ok) | 0.194 (medium) | 0.347 (high) | 0.170 (low) | 0.205 (medium) |
-| Software Developers | high | bargaining_power | weak | 0.093 (ok) | 0.142 (low) | 0.343 (high) | 0.158 (low) | 0.207 (medium) |
-| Advertising Sales Agents | high | demand_and_adoption | weak | 0.089 (ok) | 0.311 (high) | 0.226 (high) | 0.074 (ok) | 0.067 (ok) |
-| Paralegals and Legal Assistants | high | bargaining_power | weak | 0.029 (ok) | 0.122 (low) | 0.265 (high) | 0.081 (ok) | 0.103 (ok) |
-| Logisticians | high | demand_and_adoption | weak | 0.013 (ok) | 0.254 (high) | 0.096 (ok) | 0.019 (ok) | 0.031 (ok) |
+| Customer Service Representatives | high | bargaining_power | weak | 0.073 (ok) | 0.088 (ok) | 0.526 (high) | 0.039 (ok) | 0.205 (medium) |
+| Bookkeeping, Accounting, and Auditing Clerks | high | bargaining_power | weak | 0.218 (medium) | 0.075 (ok) | 0.448 (high) | 0.207 (medium) | 0.159 (low) |
+| Statistical Assistants | high | bargaining_power | weak | n/a (ok) | 0.129 (low) | 0.430 (high) | 0.068 (ok) | 0.025 (ok) |
+| Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | high | task_pressure | medium | 0.217 (medium) | 0.046 (ok) | 0.342 (high) | 0.381 (medium) | 0.205 (medium) |
+| Office Clerks, General | high | task_pressure | medium | 0.181 (medium) | 0.047 (ok) | 0.333 (high) | 0.365 (medium) | 0.182 (medium) |
+| Data Scientists | high | bargaining_power | weak | n/a (ok) | 0.194 (medium) | 0.347 (high) | 0.170 (low) | 0.205 (medium) |
+| Software Developers | high | bargaining_power | weak | 0.164 (low) | 0.142 (low) | 0.343 (high) | 0.158 (low) | 0.207 (medium) |
+| Advertising Sales Agents | high | demand_and_adoption | weak | n/a (ok) | 0.311 (high) | 0.226 (high) | 0.074 (ok) | 0.067 (ok) |
+| Paralegals and Legal Assistants | high | accountability_guardrails | strong | 0.306 (high) | 0.122 (low) | 0.265 (high) | 0.081 (ok) | 0.103 (ok) |
+| Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel | high | accountability_guardrails | strong | 0.278 (high) | 0.054 (ok) | 0.218 (medium) | 0.029 (ok) | 0.260 (low) |
 
 ## Most Common Review Layers
 
 | Review layer | Occupations flagged |
 | --- | ---: |
-| bargaining_power | 15 |
-| demand_and_adoption | 7 |
-| task_pressure | 5 |
-| specialization_resilience | 4 |
-| accountability_guardrails | 1 |
+| accountability_guardrails | 14 |
+| bargaining_power | 8 |
+| demand_and_adoption | 5 |
+| task_pressure | 3 |
+| specialization_resilience | 2 |
 
 ## Review Queue
 
@@ -95,10 +102,10 @@ Current limitations:
 | Data Scientists | bargaining_power | weak | high | Wage-leverage mismatch points to retained bargaining-power weights or function-level leverage assumptions. |
 | Software Developers | bargaining_power | weak | high | Wage-leverage mismatch points to retained bargaining-power weights or function-level leverage assumptions. |
 | Advertising Sales Agents | demand_and_adoption | weak | high | Demand-context mismatch points to demand-expansion or adoption-realization assumptions rather than core task reachability. |
-| Paralegals and Legal Assistants | bargaining_power | weak | high | Wage-leverage mismatch points to retained bargaining-power weights or function-level leverage assumptions. |
-| Logisticians | demand_and_adoption | weak | high | Demand-context mismatch points to demand-expansion or adoption-realization assumptions rather than core task reachability. |
-| General and Operations Managers | bargaining_power | weak | high | Wage-leverage mismatch points to retained bargaining-power weights or function-level leverage assumptions. |
-| Lawyers | bargaining_power | weak | high | Wage-leverage mismatch points to retained bargaining-power weights or function-level leverage assumptions. |
+| Paralegals and Legal Assistants | accountability_guardrails | strong | high | Human-constraint mismatch points to function anchors, accountability weights, or trust/liability guardrails. |
+| Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel | accountability_guardrails | strong | high | Human-constraint mismatch points to function anchors, accountability weights, or trust/liability guardrails. |
+| General and Operations Managers | accountability_guardrails | strong | high | Human-constraint mismatch points to function anchors, accountability weights, or trust/liability guardrails. |
+| Computer Systems Analysts | accountability_guardrails | strong | high | Human-constraint mismatch points to function anchors, accountability weights, or trust/liability guardrails. |
 
 ## Strongest Structural Queue
 
@@ -106,28 +113,23 @@ Current limitations:
 | --- | --- | ---: | --- |
 | Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | task_pressure | 0.202 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
 | Office Clerks, General | task_pressure | 0.186 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
-| Graphic Designers | task_pressure | 0.126 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
-| Executive Secretaries and Executive Administrative Assistants | task_pressure | 0.118 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
 | Writers and Authors | task_pressure | 0.109 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
-| Compliance Officers | specialization_resilience | 0.083 | Specialization-resilience mismatch points to retained-function weighting, knowledge intensity assumptions, or adaptation priors. |
-| Accountants and Auditors | specialization_resilience | 0.079 | Specialization-resilience mismatch points to retained-function weighting, knowledge intensity assumptions, or adaptation priors. |
 | Market Research Analysts and Marketing Specialists | specialization_resilience | 0.078 | Specialization-resilience mismatch points to retained-function weighting, knowledge intensity assumptions, or adaptation priors. |
 | Project Management Specialists | specialization_resilience | 0.076 | Specialization-resilience mismatch points to retained-function weighting, knowledge intensity assumptions, or adaptation priors. |
-| Business Operations Specialists, All Other | accountability_guardrails | 0.064 | Human-constraint mismatch points to function anchors, accountability weights, or trust/liability guardrails. |
 
 ## Largest Gaps By Check
 
 ### Human Guardrail Plausibility
 | Occupation | Model | Target | Gap | Confidence | Review |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Business Operations Specialists, All Other | 0.584 | 0.737 | 0.153 | 0.420 | low |
-| Project Management Specialists | 0.624 | 0.769 | 0.145 | 0.420 | low |
-| Market Research Analysts and Marketing Specialists | 0.539 | 0.684 | 0.145 | 0.420 | low |
-| Lawyers | 0.810 | 0.665 | 0.144 | 0.420 | low |
-| General and Operations Managers | 0.636 | 0.769 | 0.133 | 0.420 | low |
-| Graphic Designers | 0.504 | 0.635 | 0.131 | 0.420 | low |
-| Writers and Authors | 0.523 | 0.635 | 0.113 | 0.420 | ok |
-| Management Analysts | 0.626 | 0.737 | 0.111 | 0.420 | ok |
+| Paralegals and Legal Assistants | 0.636 | 0.330 | 0.306 | 0.763 | high |
+| Mechanical Engineers | 0.660 | 0.359 | 0.301 | 0.636 | medium |
+| Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel | 0.651 | 0.373 | 0.278 | 0.763 | high |
+| Financial and Investment Analysts | 0.658 | 0.381 | 0.277 | 0.678 | medium |
+| General and Operations Managers | 0.636 | 0.893 | 0.257 | 0.763 | high |
+| Computer Systems Analysts | 0.583 | 0.328 | 0.255 | 0.721 | high |
+| Lawyers | 0.810 | 0.571 | 0.239 | 0.763 | high |
+| Bookkeeping, Accounting, and Auditing Clerks | 0.641 | 0.423 | 0.218 | 0.806 | medium |
 
 ### Demand Context Plausibility
 | Occupation | Model | Target | Gap | Confidence | Review |
@@ -185,7 +187,7 @@ Current limitations:
 
 ## Next Data Upgrades
 
-- Add `BLS ORS` for better human-constraint calibration.
+- Extend ORS coverage or mapping so fewer launch occupations remain unscored on the strongest human-guardrail check.
 - Add `ACS PUMS` for within-occupation heterogeneity and wage-structure calibration.
 - Add `BTOS` AI adoption context for a stronger non-runtime adoption calibration layer.
 

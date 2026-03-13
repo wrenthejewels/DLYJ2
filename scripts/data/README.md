@@ -9,6 +9,7 @@ Current script categories:
 - normalize O*NET raw exports
 - normalize BLS labor extracts
 - normalize BLS unemployment by occupation group
+- normalize BLS ORS structural context
 - normalize Anthropic task evidence
 - normalize AIOE benchmark extracts
 - compare Anthropic release outputs before promoting a new release into the live priors
@@ -29,9 +30,16 @@ Current script categories:
 - build selector index
 - validate normalized joins
 - generate structural calibration targets and reports from non-runtime BLS / quality-context / adaptation inputs, including strength-aware review-layer recommendations
+- generate ORS-backed structural calibration targets and reports from non-runtime BLS / quality-context / adaptation inputs, including strength-aware review-layer recommendations
 
 Planned next script families:
-- normalize `BLS ORS` structural-requirements extracts into occupation-level calibration tables
 - normalize `ACS PUMS` occupation heterogeneity and dispersion summaries
 - normalize `BTOS` industry AI-adoption context for calibration-only joins
 - perform a controlled `O*NET 30.2` refresh after schema review rather than as an incidental source bump
+
+Current official calibration script:
+- `normalize_ors.py`
+  - reads official BLS ORS `2025` preliminary and `2023` backstop workbooks
+  - maps launch occupations onto BLS SOC codes
+  - writes `data/normalized/occupation_ors_structural_context.csv`
+  - this table is calibration-only and currently feeds the human-guardrail check in `run_structural_calibration_report.js`
