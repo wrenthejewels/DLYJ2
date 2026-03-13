@@ -99,6 +99,13 @@
         cluster_execution_routine: 0.05
     };
 
+    var ROUTINE_REACHABILITY_CLUSTERS = {
+        cluster_execution_routine: 1.00,
+        cluster_workflow_admin: 0.92,
+        cluster_documentation: 0.86,
+        cluster_drafting: 0.48
+    };
+
     var CLUSTER_FRICTION_PROFILES = {
         cluster_drafting: { exception_burden: 0.25, accountability_load: 0.35, judgment_requirement: 0.30, document_intensity: 1.00, tacit_context_dependence: 0.20 },
         cluster_analysis: { exception_burden: 0.45, accountability_load: 0.55, judgment_requirement: 0.55, document_intensity: 0.80, tacit_context_dependence: 0.35 },
@@ -243,6 +250,45 @@
         var pattern = new RegExp('(?:^|\\|)' + metricKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^|]+)');
         var match = notes.match(pattern);
         return match ? toNumber(match[1], null) : null;
+    }
+
+    function deriveRoutineExecutionContext(adaptationPrior) {
+        var notes = adaptationPrior && adaptationPrior.notes ? adaptationPrior.notes : '';
+        var routineShareValue = parseNoteMetric(notes, 'routine_share');
+        var peopleShareValue = parseNoteMetric(notes, 'people_share');
+        var routineShare = clamp(routineShareValue !== null ? routineShareValue : 0.20, 0, 1);
+        var peopleShare = clamp(peopleShareValue !== null ? peopleShareValue : 0.30, 0, 1);
+        var jobZone = clamp(toNumber(adaptationPrior && adaptationPrior.job_zone, 3), 1, 5);
+        var normalizedJobZone = (jobZone - 1) / 4;
+
+        return clamp(
+            (routineShare * 0.58) +
+            ((1 - peopleShare) * 0.27) +
+            ((1 - normalizedJobZone) * 0.15),
+            0,
+            1
+        );
+    }
+
+    function computeRoutineCompressionSignal(bundle, adaptationPrior) {
+        var routineExecutionContext = deriveRoutineExecutionContext(adaptationPrior);
+        var routineBundleSignal = weightedAverage((bundle || []).filter(function (row) {
+            return !!ROUTINE_REACHABILITY_CLUSTERS[row.task_cluster_id];
+        }), function (row) {
+            return clamp(
+                toNumber(row.direct_exposure_pressure, 0) *
+                ROUTINE_REACHABILITY_CLUSTERS[row.task_cluster_id],
+                0,
+                1
+            );
+        }, 'share_of_role');
+
+        return clamp(
+            (routineExecutionContext * 0.65) +
+            (routineBundleSignal * 0.35),
+            0,
+            1
+        );
     }
 
     function estimatePriorReliability(prior) {
@@ -1117,9 +1163,26 @@
     }
 
     function computeTaskFirstTaskWeight(reliability) {
-        var threshold = clamp(toNumber(SCORING_CONFIG.taskFirstTaskReliabilityThreshold, 0.45), 0, 0.95);
-        var maxWeight = clamp(toNumber(SCORING_CONFIG.maxTaskFirstTaskWeight, 1.00), 0, 1);
+        var sourceRole = arguments.length > 1 ? arguments[1] : null;
+        var mappingConfidence = arguments.length > 2 ? arguments[2] : null;
+        var baseThreshold = clamp(toNumber(SCORING_CONFIG.taskFirstTaskReliabilityThreshold, 0.45), 0, 0.95);
+        var baseMaxWeight = clamp(toNumber(SCORING_CONFIG.maxTaskFirstTaskWeight, 1.00), 0, 1);
         var normalizedReliability = clamp(toNumber(reliability, 0), 0, 1);
+        var normalizedMappingConfidence = clamp(toNumber(mappingConfidence, 0.45), 0, 1);
+        var threshold = sourceRole === 'live_task_evidence'
+            ? Math.max(0, baseThreshold - 0.07)
+            : sourceRole === 'reviewed_task_estimate'
+                ? Math.max(0, baseThreshold - 0.03)
+                : sourceRole === 'benchmark_task_label'
+                    ? Math.min(0.95, baseThreshold + 0.10)
+                    : 0.99;
+        var maxWeight = sourceRole === 'live_task_evidence'
+            ? baseMaxWeight
+            : sourceRole === 'reviewed_task_estimate'
+                ? Math.min(baseMaxWeight, 0.95)
+                : sourceRole === 'benchmark_task_label'
+                    ? Math.min(baseMaxWeight, 0.65)
+                    : 0;
 
         if (normalizedReliability <= threshold) {
             return 0;
@@ -1129,7 +1192,7 @@
             ((normalizedReliability - threshold) / Math.max(0.0001, 1 - threshold)) * maxWeight,
             0,
             maxWeight
-        );
+        ) * (0.55 + (normalizedMappingConfidence * 0.45));
     }
 
     function dependencyEdgeKey(fromTaskId, toTaskId) {
@@ -1843,6 +1906,7 @@
         var weightedFunctionPressure = 0;
         var functionWeightTotal = 0;
         var weightedBargaining = 0;
+        var weightedRetainedLeverage = 0;
         var weightedAiSupport = 0;
         var supportHighPressureShare = 0;
         var routineHighPressureShare = 0;
@@ -1866,6 +1930,7 @@
             weightedDirectPressure += share * directPressure;
             weightedIndirectPressure += share * indirectPressure;
             weightedBargaining += share * bargainingWeight;
+            weightedRetainedLeverage += share * retainedLeverage;
             weightedAiSupport += share * aiSupportObservability;
 
             if (task.role_criticality !== 'core' && directPressure >= 0.60) {
@@ -1938,10 +2003,15 @@
             0,
             1
         );
+        var functionBargainingRetention = clamp(toNumber(functionSummary.bargaining_power_retention, guardrail), 0, 1);
         var retainedBargainingPower = clamp(
-            (weightedBargaining * 0.52) +
-            (guardrail * 0.28) +
-            ((1 - weightedDirectPressure) * 0.20),
+            (weightedRetainedLeverage * 0.42) +
+            (functionBargainingRetention * 0.22) +
+            (guardrail * 0.18) +
+            (weightedBargaining * 0.10) +
+            ((1 - weightedDirectPressure) * 0.08) -
+            (supportHighPressureShare * 0.10) -
+            (routineHighPressureShare * 0.08),
             0,
             1
         );
@@ -2177,6 +2247,7 @@
         var taskSourceEvidenceByTaskId = options.taskSourceEvidenceByTaskId || {};
         var taskEvidenceByKey = options.taskEvidenceByKey || {};
         var taskMembershipByKey = options.taskMembershipByKey || {};
+        var adaptationPrior = options.adaptationPrior || null;
         var dominantTaskSet = toLookup(options.dominantTaskIds || []);
         var criticalTaskSet = toLookup(options.criticalTaskIds || []);
         var aiSupportTaskSet = toLookup(options.aiSupportTaskIds || []);
@@ -2187,6 +2258,7 @@
         }
 
         var adoptionRealization = clamp(toNumber(options.adoptionRealization, SCORING_CONFIG.adoptionRealizationBase), 0, 1.2);
+        var routineExecutionContext = deriveRoutineExecutionContext(adaptationPrior);
         var clusterInventorySummary = summarizeTaskInventoryByCluster(taskInventoryRows);
         var rows = [];
         var rowsById = {};
@@ -2256,11 +2328,18 @@
             var hasLiveTaskEvidence = !!sourceResolution.has_live_task_evidence;
             var taskEvidenceReliability = toNumber(sourceResolution.direct_evidence_reliability, 0);
             var resolvedEvidence = sourceResolution.evidence || null;
+            var taskMappingConfidence = membership
+                ? toNumber(membership.mapping_confidence, toNumber(task.source_confidence, 0.45))
+                : toNumber(task.source_confidence, 0.45);
             var taskEvidenceDifficultySignal = hasDirectEvidence
                 ? (1 - computeTaskEvidenceAutomationEase(resolvedEvidence, clusterSeedTaskEase))
                 : null;
             var taskFirstTaskWeight = hasDirectEvidence
-                ? computeTaskFirstTaskWeight(taskEvidenceReliability)
+                ? computeTaskFirstTaskWeight(
+                    taskEvidenceReliability,
+                    sourceResolution.primary_source_role,
+                    taskMappingConfidence
+                )
                 : 0;
             var baselineTaskDifficulty = taskFirstTaskWeight > 0
                 ? clamp(
@@ -2289,10 +2368,15 @@
                 ? computeDirectTaskEvidenceSignal(resolvedEvidence, clusterSeedDirectPressure)
                 : null;
             var directTaskEvidenceWeight = toNumber(sourceResolution.evidence_blend_weight, 0);
+            var routineReachabilityWeight = toNumber(ROUTINE_REACHABILITY_CLUSTERS[task.task_family_id], 0);
+            var routineReachabilityLift = routineReachabilityWeight > 0
+                ? routineExecutionContext * routineReachabilityWeight * (task.role_criticality === 'core' ? 0.55 : 1.00)
+                : 0;
             var baselineDirectPressure = clamp(
                 ((1 - taskAutomationDifficulty) * 0.68) +
                 (clusterResult.absorption_rate * 0.20) +
-                (aiSupportObservability * 0.12),
+                (aiSupportObservability * 0.12) +
+                (routineReachabilityLift * 0.12),
                 0, 1
             );
             var directPressure = clamp(
@@ -3638,6 +3722,7 @@
             // --- Recomposition summary (derived from wave data) ---
             var selector = store.selectorByOcc[occupationId] || {};
             var bundleFriction = summarizeBundleFriction(currentBundle);
+            var routineCompressionSignal = computeRoutineCompressionSignal(currentBundle, adaptationPrior);
             var currentWaveAbsorbed = 0;
             waveGroups.current.forEach(function (c) {
                 currentWaveAbsorbed += c.absorbed_share;
@@ -3645,7 +3730,8 @@
             var workflowCompression = clamp(
                 currentWaveAbsorbed *
                 (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)) *
-                (1 - (signals.functionRetention * 0.10)),
+                (1 - (signals.functionRetention * 0.10)) +
+                (routineCompressionSignal * 0.14),
                 0, 1
             );
             var organizationalConversion = clamp(
@@ -3677,6 +3763,7 @@
                 taskSourceEvidenceByTaskId: store.taskSourceEvidenceByTaskId,
                 taskEvidenceByKey: store.taskEvidenceByKey,
                 taskMembershipByKey: store.taskMembershipByKey,
+                adaptationPrior: adaptationPrior,
                 adoptionRealization: adoptionRealization,
                 dependencyBottleneckStrength: signals.questionnaireProfile.dependency_bottleneck_strength,
                 humanSignoffRequirement: signals.questionnaireProfile.human_signoff_requirement,
@@ -3748,10 +3835,12 @@
             );
 
             bundleFriction = summarizeBundleFriction(currentBundle);
+            routineCompressionSignal = computeRoutineCompressionSignal(currentBundle, adaptationPrior);
             workflowCompression = clamp(
                 currentWaveAbsorbed *
                 (1 - (signals.couplingProtection * SCORING_CONFIG.recompositionCouplingPenalty)) *
-                (1 - (signals.functionRetention * 0.10)),
+                (1 - (signals.functionRetention * 0.10)) +
+                (routineCompressionSignal * 0.14),
                 0, 1
             );
             organizationalConversion = clamp(
@@ -3801,7 +3890,8 @@
                 workflowCompression = clamp(
                     (workflowCompression * 0.75) +
                     (taskGraphSummary.direct_exposure_pressure * 0.20) -
-                    (taskGraphSummary.indirect_dependency_pressure * 0.05),
+                    (taskGraphSummary.indirect_dependency_pressure * 0.05) +
+                    (routineCompressionSignal * 0.10),
                     0, 1
                 );
                 organizationalConversion = clamp(

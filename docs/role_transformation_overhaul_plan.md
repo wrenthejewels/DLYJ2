@@ -14,6 +14,7 @@ Supporting docs:
 - `docs/README.md` = documentation entrypoint and source-of-truth routing
 - `docs/v2_0_questionnaire_spec.md` = current intake and questionnaire contract
 - `docs/v2_0_results_spec.md` = current result object and UI/result contract
+- `docs/data/calibration_framework.md` = current empirical calibration / validation framework
 - `docs/model_build_history.md` = plain-speak history of how the model evolved
 
 ## Documentation Structure
@@ -25,6 +26,7 @@ Recommended doc roles:
 - `docs/role_transformation_overhaul_plan.md` = canonical current-state, roadmap, and next-steps document
 - `docs/v2_0_questionnaire_spec.md` = supporting intake and questionnaire reference
 - `docs/v2_0_results_spec.md` = supporting output/result contract reference
+- `docs/data/calibration_framework.md` = canonical calibration-layer reference
 - `docs/model_build_history.md` = plain-speak history and future writing input
 
 Recommended merge decision:
@@ -113,6 +115,21 @@ Implemented on `2026-03-13`:
   - high-reliability task rows can now promote into `task_first_resolved_evidence` instead of only inheriting a cluster-seeded baseline
   - task-level baseline promotion now reduces the remaining task-evidence blend weight so the same evidence is not double-counted
   - public diagnostics now report how many task rows used this task-first task path
+  - the promotion gate is now source-aware and mapping-confidence-aware so reviewed/live evidence can promote more readily than benchmark-only evidence
+- phase-7 structural calibration scaffold:
+  - `scripts/data/run_structural_calibration_report.js` now generates a non-runtime structural calibration target table and disagreement report
+  - the first calibration layer compares live outputs against local quality-context, BLS labor-context, and adaptation-prior structural proxies
+  - the generated calibration table and report now also recommend which model layer to review first when an occupation shows a meaningful mismatch
+  - the review routing is now strength-aware so medium-strength structural mismatches can outrank weaker contextual proxies when triaging next tuning work
+  - this layer is for review and tuning only, not direct runtime scoring
+- phase-8 calibration-informed bargaining-power tuning:
+  - the structural calibration queue surfaced a repeated overstatement in retained bargaining power for routine and support-heavy roles
+  - the live scorer now derives `retained_bargaining_power` more from pressure-adjusted retained task leverage and less from raw bargaining-weight averages
+  - support-heavy and routine-heavy work under high pressure now explicitly drags that metric down
+- phase-9 calibration-informed routine-pressure tuning:
+  - the strength-aware calibration queue surfaced a stronger structural miss in routine/admin-heavy occupations
+  - the live scorer now uses adaptation-derived routine context to lift routine-task reachability and workflow compression for structurally routine, low-people-intensity roles
+  - that lift is concentrated in execution, workflow-admin, documentation, and secondarily drafting-heavy bundles rather than applied uniformly across all work
 
 Implemented scripts:
 - `build_job_description_evidence.ps1`
@@ -135,6 +152,11 @@ Current implementation scope:
 - task-row direct-evidence blending for both automation difficulty and direct pressure
 - coverage-aware task-first cluster baselines, where strong resolved task evidence can now shift the cluster baseline before that baseline is projected onto task rows
 - task-first task baselines, where high-reliability task rows can now promote into their own task-level baseline before any residual task-evidence blend is applied
+- source-aware task-first task promotion, where live and reviewed evidence can promote more readily than benchmark labels and low-confidence task mappings are damped
+- a first non-runtime empirical calibration layer with structural calibration targets and a generated disagreement report
+- a first actionable non-runtime empirical calibration layer that also emits review-layer recommendations for disagreement triage
+- a first calibration-informed runtime tuning pass on the repeated bargaining-power overstatement surfaced by that review queue
+- a second calibration-informed runtime tuning pass on routine-pressure underestimation in admin-heavy occupations
 - phase-2 task-derived cluster aggregation for exposed/retained cluster surfaces and top-exposed-cluster readouts
 - phase-3 task-derived automation-difficulty and wave recomputation for public wave timing and cluster outputs
 - runtime questionnaire redesign with native role-refinement factors and legacy-answer fallback retained only for compatibility
@@ -168,6 +190,8 @@ Known current limits:
 - Added a first live direct-task-evidence runtime blend so sufficiently reliable task evidence can move task-level direct pressure and task-level automation difficulty without replacing the baseline cluster-prior layer
 - Added a coverage-aware task-first cluster-baseline blend so clusters with enough resolved task evidence can shift the baseline difficulty path before task-row scoring
 - Added a task-first task-baseline path so high-reliability task rows can now use their own resolved task evidence as the main baseline source rather than only adjusting a cluster-seeded baseline
+- Tightened the task-first task-baseline path so source role and task-mapping confidence both affect whether a task actually promotes into that baseline
+- Added a first structural calibration scaffold so live model outputs can now be compared against local non-runtime guardrail, labor-context, and wage-context targets before any future data is promoted into runtime
 - Added task-derived cluster aggregation so the public cluster summaries and `top_exposed_work` now reflect scored task rows rather than only the pre-task cluster bundle
 - Recomputed the live wave engine from the task-derived cluster bundle so public wave timing now follows the same bottom-up task stack as the public cluster layer
 - Added a reviewed task-scoring layer for the highest-proxy occupation gap so Business Operations Specialists no longer reads as pure proxy coverage
@@ -292,6 +316,10 @@ What is not finished yet:
 - Improve task-to-function weighting where O*NET still overstates generic admin or workflow tasks
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
 - Expand task-first task-baseline coverage so more occupations can leave the cluster-seeded fallback path without becoming noisy
+- Upgrade the calibration layer from BLS / quality-context proxies to stronger empirical sources:
+  - `BLS ORS`
+  - `ACS PUMS`
+  - `BTOS`
 - Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
 - Add simple task-weight controls so users can mark selected work as major, medium, or minor rather than only in/out
 - Add clearer result deltas that tell users exactly what their composition edits changed in the current run

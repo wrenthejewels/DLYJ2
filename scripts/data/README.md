@@ -28,3 +28,4 @@ Current script categories:
 - normalize GPTs-are-GPTs benchmark files
 - build selector index
 - validate normalized joins
+- generate structural calibration targets and reports from non-runtime BLS / quality-context / adaptation inputs, including strength-aware review-layer recommendations

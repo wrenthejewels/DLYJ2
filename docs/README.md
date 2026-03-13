@@ -23,10 +23,12 @@ Read these files in this order:
 4. `docs/v2_0_questionnaire_spec.md`
 5. `docs/data/role_transformation_contract.md`
 6. `docs/data/task_role_graph_contract.md`
-7. `docs/model_build_history.md`
+7. `docs/data/calibration_framework.md`
+8. `docs/model_build_history.md`
 
 Use `docs/data/schema_overview.md` when you need the data-layer map.
 Use `docs/data/source_priority.md` when you need source precedence or fallback rules.
+Use `docs/data/calibration_framework.md` when you need the empirical calibration / validation layer.
 
 ## What Each File Is For
 
@@ -52,6 +54,9 @@ Use `docs/data/source_priority.md` when you need source precedence or fallback r
   - normalized data inventory
 - `docs/data/source_priority.md`
   - evidence precedence and fallback logic
+- `docs/data/calibration_framework.md`
+  - empirical calibration and validation framework
+  - non-runtime tuning and disagreement review
 
 ### Context, Not Canon
 
@@ -71,6 +76,7 @@ These are useful, but they are not source-of-truth docs:
 - `docs/data/launch_coverage.md`
 - `docs/data/occupation_role_explanations.md`
 - `docs/data/task_cluster_design.md`
+- `docs/data/structural_calibration_report.md`
 
 They should be treated as review artifacts, calibration notes, or design references unless one of the canonical docs explicitly promotes them.
 

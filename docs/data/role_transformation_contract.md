@@ -212,9 +212,23 @@ The current stack now works like this:
 17. Produce role-transformation outputs instead of stopping at exposure.
 18. In the offline audit layer, apply reviewed calibration overrides only where a manual review pass has explicitly justified them.
 
+Current bargaining-power rule:
+- `retained_bargaining_power` is no longer driven mainly by static task bargaining weights
+- the live scorer now leans primarily on pressure-adjusted retained task leverage, then blends in function-level bargaining retention and guardrails
+- support-heavy and routine-heavy work that is already under high pressure now pulls retained bargaining power down instead of being over-credited by raw task weights alone
+
+Current routine-pressure rule:
+- the live scorer now reads the adaptation layer's structural routine context more directly when estimating routine-task pressure and workflow compression
+- occupations with high derived `routine_share`, low `people_share`, and lower job-zone complexity now get an extra routine-reachability lift, concentrated in `cluster_execution_routine`, `cluster_workflow_admin`, `cluster_documentation`, and secondarily `cluster_drafting`
+- this does not replace task scoring with occupation-level priors; it only lifts the pressure/compression path for task bundles that are already structurally routine-like
+
 Current live direct-evidence rule:
 - `direct_evidence_reliability` must exceed `0.20` before resolved task evidence changes task difficulty or task pressure
-- `direct_evidence_reliability` must exceed `0.45` before a task row can promote into the `task_first_resolved_evidence` baseline path
+- the `task_first_resolved_evidence` baseline path is source-aware:
+  - `live_task_evidence` promotes earlier than the generic threshold
+  - `reviewed_task_estimate` promotes somewhat earlier than the generic threshold
+  - `benchmark_task_label` is held to a stricter threshold and lower max baseline weight
+- task mapping confidence damps task-first baseline promotion so weaker task-cluster mappings do not over-promote
 - blend weight is capped at `0.85`
 - when a task row promotes into the task-first baseline path, the remaining task-evidence blend weight is reduced by the portion already consumed by that baseline promotion
 - when multiple promoted task-level sources exist for the same task, the runtime resolves a weighted task-level consensus using source reliability, `evidence_weight`, and source-role multipliers before blending

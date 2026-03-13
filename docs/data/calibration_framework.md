@@ -1,0 +1,244 @@
+# Calibration Framework
+
+## Scope
+
+This document is the canonical reference for the empirical calibration layer.
+
+It does not define the live runtime score.
+
+It defines how external or non-runtime data should be used to check, pressure-test, and tune the live model.
+
+## Why This Layer Exists
+
+The live model makes forward-looking claims about role transformation.
+
+Those claims should not be "validated" directly against current job loss or raw employment changes because those outcomes are heavily confounded by:
+- macroeconomic cycles
+- industry-specific demand
+- hiring freezes
+- firm strategy
+- measurement lag
+- non-AI productivity changes
+
+So the calibration layer is aimed at structural plausibility, not direct labor-displacement proof.
+
+## Current Principle
+
+Use external or non-runtime data in three ways:
+
+1. structural calibration
+   - checks whether the model's retained-human and role-shape logic is directionally plausible
+2. contextual calibration
+   - checks whether demand and labor-market context strongly disagree with the model
+3. review prioritization
+   - identifies occupations where the model likely needs manual review or data upgrades
+
+Do not use this layer to directly drive runtime task scores unless a source is later promoted into the live scoring stack.
+
+## Current Calibration Checks
+
+### 1. Human Guardrail Plausibility
+
+Purpose:
+- check whether the model's retained human/accountability layer is directionally plausible
+
+Current target:
+- `human_constraint_target`
+
+Current data:
+- `data/normalized/occupation_quality_indicators.csv`
+
+Current formula:
+- `0.45 * autonomy_proxy`
+- `0.35 * social_interaction_intensity`
+- `0.10 * working_environment_quality_proxy`
+- `0.10 * labor_market_security_proxy`
+
+Compared against:
+- `0.60 * retained_accountability_strength`
+- `0.40 * retained_function_strength`
+
+Current strength:
+- medium
+
+Reason:
+- this is the closest current non-runtime structural check, but the quality indicators still include launch-stub rows and need better source grounding
+
+### 2. Demand Context Plausibility
+
+Purpose:
+- check whether the model's demand-expansion layer looks directionally implausible relative to current labor-market context
+
+Current target:
+- `demand_context_target`
+
+Current data:
+- `data/normalized/occupation_labor_market_context.csv`
+
+Current formula:
+- `0.55 * projection_growth_percentile`
+- `0.25 * openings_rate_percentile`
+- `0.20 * inverse_unemployment_percentile`
+
+Compared against:
+- `demand_expansion_signal`
+
+Current strength:
+- weak
+
+Reason:
+- these are context variables, not causal evidence of AI-driven demand effects
+
+### 3. Wage Leverage Plausibility
+
+Purpose:
+- check whether the model's retained bargaining-power layer is obviously out of line with broad wage context
+
+Current target:
+- `wage_leverage_target`
+
+Current data:
+- `data/normalized/occupation_labor_market_context.csv`
+
+Current formula:
+- `0.75 * median_wage_percentile`
+- `0.25 * wage_dispersion_percentile`
+
+Compared against:
+- `retained_bargaining_power`
+
+Current strength:
+- weak
+
+Reason:
+- wage level is only a coarse proxy for bargaining power and should never be treated as direct proof
+
+### 4. Routine Pressure Plausibility
+
+Purpose:
+- check whether the model's pressure and compressibility layers are directionally plausible relative to routine share and occupational complexity
+
+Current target:
+- `routine_pressure_target`
+
+Current data:
+- `data/normalized/occupation_adaptation_priors.csv`
+
+Current formula:
+- `0.55 * routine_share`
+- `0.20 * inverse_job_zone`
+- `0.15 * inverse_people_share`
+- `0.10 * inverse_learning_intensity`
+
+Compared against:
+- `0.60 * direct_exposure_pressure`
+- `0.40 * workflow_compression`
+
+Current strength:
+- medium
+
+Reason:
+- this is still a derived target, but it is much closer to the model's structural claim about routine/compressible work than labor-market outcome proxies
+
+### 5. Specialization Resilience Plausibility
+
+Purpose:
+- check whether the model's retained-function and retained-bargaining layers are directionally plausible relative to occupational complexity and knowledge intensity
+
+Current target:
+- `specialization_resilience_target`
+
+Current data:
+- `data/normalized/occupation_adaptation_priors.csv`
+
+Current formula:
+- `0.30 * adaptive_capacity_score`
+- `0.25 * learning_intensity_score`
+- `0.20 * transferability_score`
+- `0.10 * normalized_job_zone`
+- `0.15 * knowledge_share`
+
+Compared against:
+- `0.45 * retained_function_strength`
+- `0.35 * retained_bargaining_power`
+- `0.20 * function_retention`
+
+Current strength:
+- medium
+
+Reason:
+- this is not a pure external benchmark, but it is structurally closer to retained-role resilience than wage level alone
+
+## Current Outputs
+
+The calibration scaffold currently writes:
+- `data/normalized/occupation_structural_calibration_targets.csv`
+- `docs/data/structural_calibration_report.md`
+
+Generated by:
+- `scripts/data/run_structural_calibration_report.js`
+
+The generated target table now also includes:
+- `highest_review_tier`
+- `primary_review_layer`
+- `primary_review_strength`
+- `primary_review_score`
+- `primary_review_reason`
+
+Those fields are not runtime inputs.
+They exist so calibration disagreements can be routed to the right tuning layer instead of being handled as generic "the model seems off" feedback.
+
+The generated markdown report also summarizes which review layers recur most often across occupations so recurring tuning problems are easy to spot.
+It now also separates the strongest medium-strength structural queue from weaker contextual queues so review effort is not dominated by the noisiest proxy.
+
+This layer has already informed one runtime tuning pass:
+- repeated bargaining-power mismatches in routine and support-heavy roles led to a recalibration of the live `retained_bargaining_power` formula
+- the calibration data still stays outside runtime; it was used to diagnose the layer, not piped in as a direct score input
+
+It has now informed a second runtime tuning pass:
+- once the queue became strength-aware, routine/admin-heavy occupations surfaced as the strongest medium-strength structural mismatch
+- that led to a recalibration of routine-task reachability and workflow compression using the existing adaptation layer's routine context
+
+## How To Use This Layer
+
+1. run the calibration report
+2. inspect rank correlations and largest disagreements
+3. use the generated review-layer recommendation to decide which model layer to inspect first
+4. review occupations with repeated high-priority mismatches
+5. tune the layer that likely caused the mismatch
+
+Likely tuning layers:
+- function anchors
+- accountability guardrails
+- task evidence coverage
+- task-to-function weights
+- role-shape assumptions
+
+Do not jump straight to changing top-level labels without finding the causal layer underneath.
+
+## What Is Not Yet Honest To Claim
+
+Do not claim that this framework currently validates:
+- direct AI-caused headcount reduction
+- realized AI displacement by occupation
+- net demand effects from AI
+- exact future role collapse timing
+
+That is outside the scope of the current empirical layer.
+
+## Best Next Data Upgrades
+
+Priority upgrades:
+- `BLS ORS` for better judgment, interaction, and consequence-of-error calibration
+- `ACS PUMS` for within-occupation heterogeneity and wage-structure checks
+- `BTOS` for organization-level AI adoption context
+
+Until those are integrated, the current calibration layer should be treated as:
+- useful
+- honest
+- partial
+
+not:
+- definitive
+- outcome-validating
+- final

@@ -45,6 +45,7 @@ Current role-fate extension:
 23. `function_accountability_profiles.csv` (judgment, trust, liability, authority profiles)
 24. `occupation_role_transformation.csv` (offline occupation-level audit/reference outputs from the broader transformation pipeline)
 25. `occupation_role_explanations.csv` (offline occupation-level explanation summaries derived from the audit/reference outputs)
+26. `occupation_structural_calibration_targets.csv` (non-runtime structural calibration targets comparing live model metrics to local BLS, quality-context, and adaptation-prior proxies, plus strength-aware review-layer recommendations for mismatch triage)
 
 ## Purpose of the normalized layer
 
@@ -66,6 +67,8 @@ Current live scoring note:
 - `task_exposure_evidence.csv` now primarily feeds the `live_task_evidence` tier inside that resolver and preserves Anthropic-specific observation metadata such as usage share
 - task-level evidence rows continue to feed evidence confidence and `direct_coverage_ratio` even when they do not clear that threshold
 - task-derived cluster summaries now drive the public cluster layer and the live wave trajectory
+- `occupation_structural_calibration_targets.csv` is not a runtime input; it exists only for calibration, disagreement reporting, and tuning review
 
 See `docs/data/task_role_graph_contract.md` for the first-step contract behind the role-fate redesign.
 See `docs/data/role_transformation_contract.md` for the first-pass function and role-transformation layer.
+See `docs/data/calibration_framework.md` for the empirical calibration scaffold.

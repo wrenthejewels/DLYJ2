@@ -373,6 +373,11 @@ Each iteration solved a concrete failure mode in the prior version:
 9. Task-derived cluster summaries removed a public/runtime mismatch.
 10. Task-derived wave timing removed another public/runtime mismatch.
 11. The task-source resolver made the evidence path less brittle and less proxy-dependent.
+12. The structural calibration scaffold kept external checks outside runtime instead of turning every new dataset into a score input.
+13. The calibration scaffold was then made actionable by routing each mismatch toward a likely tuning layer instead of just printing gap tables.
+14. The first repeated calibration finding then fed back into runtime scoring by reducing overstatement in retained bargaining power for routine and support-heavy roles.
+15. The calibration queue was then made strength-aware so weak contextual proxies would not dominate tuning decisions over medium-strength structural checks.
+16. That strength-aware queue then surfaced a stronger structural miss in routine/admin-heavy occupations, which led to a routine-context lift for workflow compression and routine task pressure.
 
 So the model has evolved by repeatedly doing the same thing:
 - identify where the current abstraction is too coarse
@@ -381,6 +386,40 @@ So the model has evolved by repeatedly doing the same thing:
 - aggregate upward only after lower-level scoring is coherent
 
 That is the central design pattern in the whole system.
+
+## Why Calibration Stayed Outside Runtime
+
+Once the model became task-first enough to produce meaningful disagreements, the next obvious question was:
+
+"Why not just pour more outside data directly into the live score?"
+
+The answer is that some data is better for calibration than for runtime.
+
+That is why the repo now has a structural calibration scaffold outside the live browser score.
+
+The intended separation is:
+- runtime scoring uses task, function, and evidence layers directly tied to the role model
+- calibration uses external or non-runtime context to pressure-test those layers
+
+That keeps the score more interpretable and avoids blurring:
+- task automability
+- organizational adoption
+- labor-market demand
+- broad occupational quality context
+
+In other words, calibration exists to tune the model without contaminating the core runtime stack with noisy downstream indicators.
+
+That separation still allows calibration to change the runtime indirectly.
+
+The first concrete example in this repo was the bargaining-power layer:
+- the calibration queue kept flagging routine and support-heavy roles as having implausibly high retained bargaining power
+- instead of piping wage context directly into runtime scoring, the model was adjusted by changing the bargaining-power formula itself
+- the live scorer now leans more on pressure-adjusted retained leverage and less on static bargaining-weight averages
+
+The next concrete example was the routine-pressure layer:
+- once the queue became strength-aware, admin-heavy occupations like office clerks and secretaries moved to the top of the structural review list
+- the model was not changed by feeding the calibration target directly into scoring
+- instead, the live scorer was updated to read existing adaptation-layer routine context more directly when estimating routine reachability and workflow compression
 
 ## A Rationalist Summary
 
@@ -394,6 +433,7 @@ The direction of travel has been:
 - task scoring
 - task-derived public outputs
 - source-resolved task evidence
+- non-runtime structural calibration
 
 The remaining step is:
 - make task evidence not only an adjustment layer, but the default starting point whenever coverage is strong enough

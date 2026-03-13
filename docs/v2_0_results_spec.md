@@ -78,7 +78,11 @@ Current blend rule:
 - resolved task evidence only affects task difficulty or task pressure when `direct_evidence_reliability > 0.20`
 - the evidence blend weight is capped at `0.85`
 - the cluster-baseline task-first path only activates when cluster-level task evidence clears the runtime coverage and reliability thresholds
-- the task-baseline task-first path only activates when task-level evidence reliability exceeds `0.45`
+- the task-baseline task-first path is source-aware:
+  - `live_task_evidence` can promote earlier than the generic threshold
+  - `reviewed_task_estimate` can promote somewhat earlier than the generic threshold
+  - `benchmark_task_label` is held to a stricter threshold and lower max baseline weight
+- task mapping confidence also damps the task-first baseline weight so ambiguous mappings do not over-promote
 - the task-level source precedence is:
   - `live_task_evidence`
   - `reviewed_task_estimate`
@@ -487,6 +491,11 @@ Public wording rule:
 - keep `residual_role_integrity`
 - do not expose `coherence` as the primary public label
 - when wave cards still display wave connectivity, label it as `retained integrity`
+
+Current metric note:
+- `retained_bargaining_power` in the live engine now leans more on pressure-adjusted retained task leverage and less on raw task bargaining-weight averages alone
+- routine-heavy or support-heavy work that is already under high pressure now drags this metric down more than it did in earlier builds
+- `workflow_compression` and the routine-pressure path now also incorporate an adaptation-derived routine-context lift for structurally routine, low-people-intensity occupations, concentrated in execution/admin/documentation-heavy task bundles
 
 ## Current Gaps Between Spec And Implementation
 

@@ -180,6 +180,11 @@ async function main() {
   if (!benchmarkResolvedTask) {
     throw new Error('Expected benchmark task labels to participate in the task-evidence resolver for at least one active task.');
   }
+  if (result.task_breakdown.tasks.some((task) =>
+    task.resolved_evidence_source_role === 'benchmark_task_label' &&
+    task.automation_difficulty_baseline_source === 'task_first_resolved_evidence')) {
+    throw new Error('Expected benchmark task labels to remain below the stricter task-first task-baseline gate in the software-developer scenario.');
+  }
   if ((result.diagnostics.task_first_task_count || 0) < 1) {
     throw new Error('Expected diagnostics.task_first_task_count to report at least one task-first task baseline.');
   }
@@ -330,6 +335,11 @@ async function main() {
   if (!reviewedEvidenceResult.task_breakdown.tasks.some((task) => task.automation_difficulty_baseline_source === 'task_first_resolved_evidence')) {
     throw new Error('Expected reviewed evidence scenario to promote at least one task into the task-first task baseline path.');
   }
+  if (!reviewedEvidenceResult.task_breakdown.tasks.some((task) =>
+    task.resolved_evidence_source_role === 'reviewed_task_estimate' &&
+    task.automation_difficulty_baseline_source === 'task_first_resolved_evidence')) {
+    throw new Error('Expected reviewed task estimates to clear the source-aware task-first task-baseline gate.');
+  }
   if (!reviewedEvidenceResult.transformation_map.current_bundle.some((cluster) => cluster.automation_difficulty_source === 'task_aggregated_task_first_resolved_evidence')) {
     throw new Error('Expected reviewed evidence scenario to expose task_aggregated_task_first_resolved_evidence at the cluster summary layer.');
   }
@@ -426,6 +436,24 @@ async function main() {
   }
   assertBounded('businessOps.diagnostics.direct_exposure_pressure', businessOps.diagnostics.direct_exposure_pressure);
   assertBounded('businessOps.diagnostics.indirect_dependency_pressure', businessOps.diagnostics.indirect_dependency_pressure);
+
+  const lawyerResult = engine.computeResult({
+    occupationId: 'occ_23_1011_00',
+    seniorityLevel: 3
+  });
+  const officeClerkResult = engine.computeResult({
+    occupationId: 'occ_43_9061_00',
+    seniorityLevel: 3
+  });
+  if (Number(lawyerResult.function_metrics?.retained_bargaining_power || 0) <= Number(officeClerkResult.function_metrics?.retained_bargaining_power || 0)) {
+    throw new Error('Expected Lawyers to retain more bargaining power than Office Clerks, General in the live scoring path.');
+  }
+  if (Number(officeClerkResult.function_metrics?.retained_bargaining_power || 1) >= 0.50) {
+    throw new Error('Expected Office Clerks, General to stay below the bargaining-power overstatement threshold.');
+  }
+  if (Number(officeClerkResult.recomposition_summary?.workflow_compression || 0) <= 0.18) {
+    throw new Error('Expected Office Clerks, General to retain the stronger routine-compression signal in the live scoring path.');
+  }
 
   const structuredProfileResult = engine.computeResult({
     occupationId: result.selected_occupation_id,
