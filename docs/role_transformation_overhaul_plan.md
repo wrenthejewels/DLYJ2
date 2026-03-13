@@ -348,10 +348,34 @@ Best external data directions to evaluate next:
 - `Census Business Trends and Outlook Survey (BTOS)` AI-use modules for organization-level adoption and deployment context
 - `O*NET Technology Skills / Tools and Technology` for task-tool adjacency and more explicit augmentation vs automation routing
 
+Current official-source notes checked during autoresearch on `2026-03-13`:
+- `BLS ORS`: official public-use datasets now span the first wave (`2018`), second wave final (`2023`), and third wave preliminary (`2025`). This is the highest-value next structural calibration source because it directly measures work requirements rather than downstream labor outcomes.
+- `ACS PUMS`: official Census PUMS now includes `2024 ACS 1-year` microdata. This is the best next source for within-occupation heterogeneity, wage dispersion, and industry-mix calibration.
+- `BTOS`: official Census BTOS continues to publish business-condition and AI-use context at the firm/industry layer. This should stay calibration-only first; it is a context signal for adoption realization, not a direct task-automability input.
+- `O*NET`: the official database release line has moved beyond the repo's current `30.1` footing. A controlled `30.2` refresh should be treated as a separate schema/data upgrade, not bundled casually into model tuning.
+
+Ranked next integration order:
+1. `BLS ORS` calibration layer
+2. `ACS PUMS` heterogeneity layer
+3. `BTOS` adoption-context layer
+4. `O*NET 30.2` refresh and schema audit
+
+Why this order:
+- `ORS` most directly improves the strongest structural calibration target: human-retention and accountability constraints.
+- `ACS PUMS` most directly improves fragmentation / polarization / wage-structure realism.
+- `BTOS` is useful, but it belongs outside runtime first because it says more about adoption context than technical task reachability.
+- `O*NET 30.2` matters, but changing the core occupation/task substrate should be done deliberately after the stronger calibration layers are in place.
+
 Directions that are probably weak unless new evidence appears:
 - adding more benchmark score vendors without improving outcome calibration
 - inventing more top-level labels before the current label set is externally stress-tested
 - treating labor-market demand data as if it directly proves task automability
+
+Concrete next build sequence:
+1. Add `ORS` normalization and an `occupation_ors_structural_context.csv` table for consequence-of-error, public interaction, pace control, decision latitude, and environmental/context burden.
+2. Add `ACS PUMS` normalization and an `occupation_heterogeneity_context.csv` table for wage dispersion, education dispersion, industry dispersion, and worker-mix spread.
+3. Add a `BTOS`-derived industry adoption context table and map occupation exposure to industry-level AI-adoption context through occupation-industry mix, keeping it calibration-only.
+4. Review whether any of those layers are strong enough to be promoted into runtime after at least one full calibration cycle.
 
 ## Purpose
 

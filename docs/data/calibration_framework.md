@@ -242,3 +242,29 @@ not:
 - definitive
 - outcome-validating
 - final
+
+## Next Official Integrations
+
+Autoresearch status checked on `2026-03-13`:
+- `BLS ORS` official public-use data is available in multiple waves through a `2025` preliminary release and remains the best next source for structural human-retention calibration.
+- `ACS PUMS` official `2024 ACS 1-year` microdata is available and is the best next source for heterogeneity and dispersion checks.
+- `BTOS` official AI/business-condition context remains useful as an outer calibration layer, not a direct runtime score input.
+- `O*NET` has moved beyond the repo's current `30.1` footing, but that should be handled as a separate controlled refresh after the next calibration layers are in place.
+
+Recommended build order:
+1. `ORS` first
+2. `ACS PUMS` second
+3. `BTOS` third
+4. `O*NET 30.2` refresh fourth
+
+Recommended new normalized tables:
+- `occupation_ors_structural_context.csv`
+  - purpose: direct structural calibration for accountability, public interaction, decision latitude, pace/control, and consequence-of-error burden
+- `occupation_heterogeneity_context.csv`
+  - purpose: calibration for fragmentation / polarization / role-shape heterogeneity using wage, education, industry, and worker-mix spread
+- `industry_ai_adoption_context.csv`
+  - purpose: outer-layer calibration for adoption realization and demand/adoption disagreement review
+
+Promotion rule:
+- keep all three of these sources in calibration first
+- do not promote them into runtime scoring until at least one full review cycle shows that they improve disagreement triage without collapsing interpretability
