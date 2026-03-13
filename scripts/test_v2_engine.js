@@ -133,6 +133,12 @@ async function main() {
   if (manualMarketingOpsComposition.variant_support?.selection_mode !== 'manual') {
     throw new Error('Expected explicit marketing_ops_analyst selection to force manual variant mode.');
   }
+  const manualAnchorProducerComposition = engine.getRoleComposition('occ_27_3023_00', {
+    roleVariantId: 'anchor_producer'
+  });
+  if (!manualAnchorProducerComposition.defaults?.function_ids?.includes('fn_occ_27_3023_00_broadcast_orchestration')) {
+    throw new Error('Expected anchor_producer defaults to include the reviewed broadcast-orchestration function anchor.');
+  }
 
   if (!result.recomposition_summary) {
     throw new Error('Expected recomposition_summary in result payload.');
@@ -597,6 +603,18 @@ async function main() {
   }
   if ((marketingOpsResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
     throw new Error('Expected marketing_ops_analyst baseline to activate both reviewed function anchors.');
+  }
+  const anchorProducerResult = engine.computeResult({
+    roleCategory: 'creative',
+    occupationId: 'occ_27_3023_00',
+    roleVariantId: 'anchor_producer',
+    seniorityLevel: 3
+  });
+  if (anchorProducerResult.occupation_assignment?.selected_variant?.variant_id !== 'anchor_producer') {
+    throw new Error('Expected computeResult to expose the manual anchor_producer reviewed role variant.');
+  }
+  if ((anchorProducerResult.occupation_assignment?.selected_composition?.active_function_count || 0) < 2) {
+    throw new Error('Expected anchor_producer baseline to activate both reviewed function anchors.');
   }
 
   console.log(JSON.stringify({

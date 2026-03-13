@@ -70,13 +70,13 @@ The live model currently outputs:
 - an editable role composition layer built from source-bucketed tasks and function anchors
 
 Current live role-fate labels:
-- `Reinforced`
-- `Shrinking`
-- `Narrowed upward`
-- `Polarized`
-- `Growing`
-- `Hollowed out`
-- `Unclear trajectory`
+- `AI-supported role stays intact`
+- `Same work, fewer people`
+- `Less execution, more judgment`
+- `Splits into execution and oversight tiers`
+- `AI increases demand for the role`
+- `Core role breaks down`
+- `Mixed signals, path still unclear`
 
 ## First-Pass Implementation Status
 
@@ -351,13 +351,13 @@ What is not finished yet:
 - Decide whether to keep or remove the remaining legacy-answer compatibility fallback in the engine
 - Expand beyond the current `34` modeled occupations once the reviewed workflow is stable
 - Evaluate whether the current output taxonomy needs refinement beyond:
-  - `Reinforced`
-  - `Shrinking`
-  - `Narrowed upward`
-  - `Polarized`
-  - `Growing`
-  - `Hollowed out`
-  - `Unclear trajectory`
+  - `AI-supported role stays intact`
+  - `Same work, fewer people`
+  - `Less execution, more judgment`
+  - `Splits into execution and oversight tiers`
+  - `AI increases demand for the role`
+  - `Core role breaks down`
+  - `Mixed signals, path still unclear`
 
 ### Autoresearch Agenda
 
@@ -390,7 +390,7 @@ Directions that are probably weak unless new evidence appears:
 - treating labor-market demand data as if it directly proves task automability
 
 Concrete next build sequence:
-1. Continue reviewing the first reviewed role-variant occupations and add missing secondary function anchors where a split occupation still shares one thin function baseline, next `Editors` or `News Analysts, Reporters, and Journalists`.
+1. Continue reviewing the first reviewed role-variant occupations and add missing secondary function anchors where a split occupation still shares one thin function baseline, next `Editors` or a tighter pass on `Technical Writers`.
 2. Decide whether the BTOS adoption-context queue points to a contained adoption-realization tuning pass or simply confirms that the outer layer should stay observational for now.
 3. Review whether any of those calibration layers are strong enough to be promoted into runtime after at least one full calibration cycle.
 4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers and the first reviewed variant layer have stabilized.
@@ -415,6 +415,7 @@ Why this matters:
 Current status:
 - the first five strong candidates are now implemented as reviewed runtime role variants
 - `Market Research Analysts and Marketing Specialists` now also has a reviewed secondary marketing-operations function anchor, so its marketing-ops variant no longer shares one thin market-sensing-only function baseline
+- `News Analysts, Reporters, and Journalists` now also has a reviewed broadcast-orchestration function anchor, so its anchor/producer variant no longer borrows the field-reporter source-development function baseline
 - the remaining role-shape work is no longer “whether to do variants at all”; it is whether to deepen the function layer for the rest of this first set and expand reviewed variant coverage beyond it
 
 Immediate prep result:

@@ -43,7 +43,7 @@ Current limitations:
 ### Adoption Context Plausibility
 - strength: `medium`
 - coverage: `32/34`
-- spearman correlation: `0.240`
+- spearman correlation: `0.279`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `0`
 - description: Compares organizational conversion and default adoption pressure to a BTOS adoption-context signal joined from sector-level AI-use estimates through ACS-derived occupation sector mix, then rescaled into the model’s adoption-realization range.
@@ -59,15 +59,15 @@ Current limitations:
 ### Wage Leverage Plausibility
 - strength: `weak`
 - coverage: `34/34`
-- spearman correlation: `0.429`
+- spearman correlation: `0.458`
 - high-priority mismatches: `11`
-- medium-priority mismatches: `6`
+- medium-priority mismatches: `5`
 - description: Compares retained bargaining power to wage-level and wage-dispersion context as a coarse external check.
 
 ### Routine Pressure Plausibility
 - strength: `medium`
 - coverage: `34/34`
-- spearman correlation: `0.570`
+- spearman correlation: `0.575`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `4`
 - description: Compares modeled pressure/compressibility to adaptation-layer routine share, people share, learning intensity, and job-zone complexity.
@@ -75,7 +75,7 @@ Current limitations:
 ### Specialization Resilience Plausibility
 - strength: `medium`
 - coverage: `34/34`
-- spearman correlation: `0.130`
+- spearman correlation: `0.143`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `5`
 - description: Compares retained function/bargaining signals to adaptation-layer learning intensity, transferability, adaptive capacity, and knowledge intensity.
@@ -83,7 +83,7 @@ Current limitations:
 ### Role Heterogeneity Plausibility
 - strength: `medium`
 - coverage: `34/34`
-- spearman correlation: `0.440`
+- spearman correlation: `0.446`
 - high-priority mismatches: `0`
 - medium-priority mismatches: `2`
 - description: Compares modeled role fragmentation risk to an ACS PUMS heterogeneity signal built from wage dispersion, education dispersion, industry dispersion, and worker-mix spread, then scaled by lower people-intensity from the adaptation layer.
@@ -141,10 +141,10 @@ Current limitations:
 | Operations Research Analysts | role_shape_heterogeneity | 0.134 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Management Analysts | role_shape_heterogeneity | 0.129 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Market Research Analysts and Marketing Specialists | role_shape_heterogeneity | 0.124 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
-| News Analysts, Reporters, and Journalists | role_shape_heterogeneity | 0.117 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Web Developers | role_shape_heterogeneity | 0.113 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Technical Writers | role_shape_heterogeneity | 0.113 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 | Writers and Authors | task_pressure | 0.109 | Routine-pressure mismatch points to task-pressure weighting, routine-share assumptions, or cluster/task mapping. |
+| News Analysts, Reporters, and Journalists | role_shape_heterogeneity | 0.106 | Role-heterogeneity mismatch points to occupation shape assumptions, missing multi-anchor variants, or overstated uniformity within the occupation. |
 
 ## Largest Gaps By Check
 

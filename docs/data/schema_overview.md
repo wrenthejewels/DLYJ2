@@ -76,6 +76,7 @@ Current live scoring note:
 - task-derived cluster summaries now drive the public cluster layer and the live wave trajectory
 - `occupation_role_variants.csv` is now a runtime input for a small reviewed subset of heterogeneous occupations; it does not score anything by itself, but it changes which default task/function baseline the model starts from before user edits
 - the stronger reviewed split occupations can now differ at the function-anchor layer too, not only by task bundle
+- journalism now follows that stronger split pattern as well: the anchor/producer baseline activates a reviewed broadcast-orchestration anchor instead of reusing the reporter-side source-development anchor
 - `occupation_structural_calibration_targets.csv` is not a runtime input; it exists only for calibration, disagreement reporting, and tuning review
 - `occupation_ors_structural_context.csv` is also not a runtime input; it currently feeds the calibration layer’s human-guardrail target using ORS autonomy, supervision, and pace-control structure
 - `occupation_heterogeneity_context.csv` is also not a runtime input; it currently feeds the calibration layer’s role-heterogeneity target using ACS wage dispersion, education dispersion, industry dispersion, and worker-mix spread

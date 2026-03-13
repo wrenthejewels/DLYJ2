@@ -48,6 +48,15 @@ The live headline surface shows:
 - personalization-fit tier
 - occupation anchor
 
+Current live `role_fate_label` values:
+- `AI-supported role stays intact`
+- `Same work, fewer people`
+- `Less execution, more judgment`
+- `Splits into execution and oversight tiers`
+- `AI increases demand for the role`
+- `Core role breaks down`
+- `Mixed signals, path still unclear`
+
 ## Current Role Fate Map
 
 The live `Role Fate Map` is rendered in the client from `task_breakdown.tasks`.

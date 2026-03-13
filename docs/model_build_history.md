@@ -459,6 +459,11 @@ The next concrete example was deepening one of those reviewed variants so the sp
 - a reviewed supplemental marketing-operations anchor was then added and its task-to-function edges were redistributed
 - that made the `marketing_ops_analyst` variant distinct at the function layer as well as the task layer, which is closer to the actual role split the review queue was surfacing
 
+The next concrete example repeated that pattern for journalism:
+- `News Analysts, Reporters, and Journalists` already had a meaningful task split between field reporting and anchor/producer work
+- but the anchor/producer side was still borrowing the reporter-side source-development anchor
+- a reviewed broadcast-orchestration anchor was added so the anchor/producer variant could start from a distinct function baseline that better matches program shaping, segment coordination, and live delivery
+
 ## A Rationalist Summary
 
 The model was built by progressively replacing hidden averages with explicit structure.

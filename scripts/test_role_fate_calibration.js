@@ -8,13 +8,13 @@ const NEUTRAL_ANSWERS = {
 };
 
 const EXPECTATIONS = [
-  { occupationId: 'occ_15_1252_00', title: 'Software Developers', expected: 'Split' },
-  { occupationId: 'occ_11_1021_00', title: 'General and Operations Managers', expected: 'Elevated' },
-  { occupationId: 'occ_13_1111_00', title: 'Management Analysts', expected: 'Elevated' },
-  { occupationId: 'occ_23_1011_00', title: 'Lawyers', expected: 'Augmented' },
-  { occupationId: 'occ_41_3091_00', title: 'Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel', expected: 'Augmented' },
-  { occupationId: 'occ_43_4051_00', title: 'Customer Service Representatives', expected: 'Split' },
-  { occupationId: 'occ_15_2031_00', title: 'Operations Research Analysts', expected: 'Expanded' }
+  { occupationId: 'occ_15_1252_00', title: 'Software Developers', expected: 'Splits into execution and oversight tiers' },
+  { occupationId: 'occ_11_1021_00', title: 'General and Operations Managers', expected: 'AI-supported role stays intact' },
+  { occupationId: 'occ_13_1111_00', title: 'Management Analysts', expected: 'AI increases demand for the role' },
+  { occupationId: 'occ_23_1011_00', title: 'Lawyers', expected: 'AI-supported role stays intact' },
+  { occupationId: 'occ_41_3091_00', title: 'Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel', expected: 'AI-supported role stays intact' },
+  { occupationId: 'occ_43_4051_00', title: 'Customer Service Representatives', expected: 'Splits into execution and oversight tiers' },
+  { occupationId: 'occ_15_2031_00', title: 'Operations Research Analysts', expected: 'AI-supported role stays intact' }
 ];
 
 async function main() {

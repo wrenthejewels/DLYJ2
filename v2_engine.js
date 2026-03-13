@@ -40,13 +40,13 @@
     };
 
     var ROLE_FATE_LABELS = {
-        augmented: 'Reinforced',
-        compressed: 'Shrinking',
-        elevated: 'Narrowed upward',
-        split: 'Polarized',
-        expanded: 'Growing',
-        collapsed: 'Hollowed out',
-        mixed_transition: 'Unclear trajectory'
+        augmented: 'AI-supported role stays intact',
+        compressed: 'Same work, fewer people',
+        elevated: 'Less execution, more judgment',
+        split: 'Splits into execution and oversight tiers',
+        expanded: 'AI increases demand for the role',
+        collapsed: 'Core role breaks down',
+        mixed_transition: 'Mixed signals, path still unclear'
     };
 
     var ROLE_TRANSFORMATION_TYPE_LABELS = {

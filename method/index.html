@@ -363,13 +363,13 @@
                     <h2>How the final fate label is chosen</h2>
                     <p>Once the model knows what work is exposed, what work spills over, and what work still carries leverage, it maps the role into one of seven organizational outcomes:</p>
                     <ul>
-                        <li><strong><code>Growing</code></strong> &mdash; AI creates more demand for this role than it displaces.</li>
-                        <li><strong><code>Reinforced</code></strong> &mdash; AI slots in as a productivity layer, not a structural threat. The role stays intact.</li>
-                        <li><strong><code>Narrowed upward</code></strong> &mdash; the execution layer shrinks and the retained role becomes more senior and judgment-heavy.</li>
-                        <li><strong><code>Polarized</code></strong> &mdash; the role fractures into a cheaper execution tier and a smaller, higher-judgment oversight tier.</li>
-                        <li><strong><code>Shrinking</code></strong> &mdash; the work stays, but fewer people are needed to cover it.</li>
-                        <li><strong><code>Hollowed out</code></strong> &mdash; AI reaches the core of what justifies this role existing as a distinct position.</li>
-                        <li><strong><code>Unclear trajectory</code></strong> &mdash; competing pressures with no dominant path yet.</li>
+                        <li><strong><code>AI increases demand for the role</code></strong> &mdash; AI creates more demand for this role than it displaces.</li>
+                        <li><strong><code>AI-supported role stays intact</code></strong> &mdash; AI slots in as a productivity layer, not a structural threat. The role stays intact.</li>
+                        <li><strong><code>Less execution, more judgment</code></strong> &mdash; the execution layer shrinks and the retained role becomes more senior and judgment-heavy.</li>
+                        <li><strong><code>Splits into execution and oversight tiers</code></strong> &mdash; the role fractures into a cheaper execution tier and a smaller, higher-judgment oversight tier.</li>
+                        <li><strong><code>Same work, fewer people</code></strong> &mdash; the work stays, but fewer people are needed to cover it.</li>
+                        <li><strong><code>Core role breaks down</code></strong> &mdash; AI reaches the core of what justifies this role existing as a distinct position.</li>
+                        <li><strong><code>Mixed signals, path still unclear</code></strong> &mdash; competing pressures with no dominant path yet.</li>
                     </ul>
                     <p>The live classifier is a rule-based tree rather than a trained neural model. It mainly looks at direct exposure pressure, dependency spillover, retained leverage, residual role integrity, exposed versus retained core share, next-wave retained share and coherence, and a simple demand modifier from BLS growth.</p>
                     <p>Alongside that headline classifier, the live run now also computes a function-level transformation layer: function exposure pressure, retained function strength, retained accountability strength, retained bargaining power, delegation likelihood, and headcount displacement risk. Those function metrics do not replace the task graph; they sit above it and help explain whether exposed work is weakening the role's human-owned purpose or only changing how that purpose gets delivered.</p>
@@ -379,7 +379,7 @@
                         <div class="r-equation-label">Demand modifier</div>
                         <div class="equation-display">$$M_{\text{demand}} = \operatorname{clamp}\!\left(\frac{\text{projectionGrowthPct}+2}{10},\,0,\,1\right)$$</div>
                     </div>
-                    <p>High retained leverage, strong next-wave coherence, and low direct pressure push roles toward <code>Reinforced</code> or <code>Narrowed upward</code>. High demand growth can push some roles into <code>Growing</code>. Large exposed core share and weak retained integrity pull the model toward <code>Shrinking</code>, <code>Polarized</code>, or in the most severe cases <code>Hollowed out</code>. When the signals conflict, the model falls back to <code>Unclear trajectory</code>.</p>
+                    <p>High retained leverage, strong next-wave coherence, and low direct pressure push roles toward <code>AI-supported role stays intact</code> or <code>Less execution, more judgment</code>. High demand growth can push some roles into <code>AI increases demand for the role</code>. Large exposed core share and weak retained integrity pull the model toward <code>Same work, fewer people</code>, <code>Splits into execution and oversight tiers</code>, or in the most severe cases <code>Core role breaks down</code>. When the signals conflict, the model falls back to <code>Mixed signals, path still unclear</code>.</p>
                 </section>
 
                 <!-- 9. Recomposition -->
@@ -455,7 +455,7 @@
                 </div>
                 <div class="r-margin-note">
                     <strong>Fate labels</strong>
-                    Growing, Reinforced, Narrowed upward, Polarized, Shrinking, Hollowed out, Unclear trajectory
+                    AI increases demand for the role, AI-supported role stays intact, Less execution, more judgment, Splits into execution and oversight tiers, Same work, fewer people, Core role breaks down, Mixed signals, path still unclear
                 </div>
             </aside>
         </div>

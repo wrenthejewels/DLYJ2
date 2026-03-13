@@ -155,6 +155,7 @@ Current live scoring status:
 - task rows are now individually scored in the browser task graph
 - a small reviewed subset of heterogeneous occupations can now start from more than one reviewed role-variant baseline before users edit the task graph
 - `Market Research Analysts and Marketing Specialists` now uses a reviewed secondary marketing-operations function anchor, so its ops-heavy variant starts from a distinct function mix rather than a task-only split
+- `News Analysts, Reporters, and Journalists` now uses a reviewed broadcast-orchestration function anchor, so its anchor/producer baseline no longer inherits the field-reporter source-development function mix
 - task difficulty now starts from a hybrid baseline stack: cluster priors still seed the fallback baseline, clusters with strong enough resolved task-evidence coverage can shift toward a task-first cluster evidence estimate, and high-reliability task rows can promote into a task-first task baseline before residual task-evidence blending
 - `task_source_evidence.csv` now resolves task rows through explicit source precedence before scoring
 - reliable resolved task evidence can now blend into both task-level `automation_difficulty` and task-level `direct_exposure_pressure`

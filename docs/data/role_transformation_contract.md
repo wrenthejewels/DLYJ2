@@ -78,6 +78,7 @@ Current first pass:
 - role-family defaults for broad coverage
 - occupation-specific overrides for function-sensitive roles
 - `Market Research Analysts and Marketing Specialists` now includes a reviewed supplemental marketing-operations anchor so its execution-heavy variant is function-distinct as well as task-distinct
+- `News Analysts, Reporters, and Journalists` now includes a reviewed broadcast-orchestration anchor so its anchor/producer variant is function-distinct from the field-reporter source-development path
 
 ### `occupation_function_map.csv`
 

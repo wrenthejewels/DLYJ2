@@ -21,7 +21,7 @@ Generated from:
 
 | Occupation | Candidate score | Function anchors | Heterogeneity target | Gap | Why now |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Market Research Analysts and Marketing Specialists | 0.512 | 1 | 0.392 | 0.144 | Now implemented as a reviewed runtime role-variant occupation; keep reviewing it for deeper function coverage and future expansion. |
+| Market Research Analysts and Marketing Specialists | 0.513 | 1 | 0.392 | 0.147 | Now implemented as a reviewed runtime role-variant occupation; keep reviewing it for deeper function coverage and future expansion. |
 | Editors | 0.465 | 2 | 0.386 | 0.186 | Now implemented as a reviewed runtime role-variant occupation; keep reviewing it for deeper function coverage and future expansion. |
 | Technical Writers | 0.446 | 2 | 0.369 | 0.140 | Now implemented as a reviewed runtime role-variant occupation; keep reviewing it for deeper function coverage and future expansion. |
 | News Analysts, Reporters, and Journalists | 0.438 | 2 | 0.351 | 0.141 | Now implemented as a reviewed runtime role-variant occupation; keep reviewing it for deeper function coverage and future expansion. |
