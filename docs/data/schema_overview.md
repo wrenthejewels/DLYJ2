@@ -47,8 +47,11 @@ Current role-fate extension:
 25. `occupation_role_explanations.csv` (offline occupation-level explanation summaries derived from the audit/reference outputs)
 26. `occupation_ors_structural_context.csv` (official BLS ORS-derived structural context used for calibration-only human-retention checks)
 27. `occupation_heterogeneity_context.csv` (official Census ACS PUMS-derived heterogeneity context used for calibration-only fragmentation / role-shape checks)
-28. `occupation_industry_mix.csv` (official Census ACS PUMS-derived occupation-by-industry mix used to prepare the BTOS adoption-context join path)
-29. `occupation_structural_calibration_targets.csv` (non-runtime structural calibration targets comparing live model metrics to local BLS, Census, quality-context, and adaptation-prior proxies, plus strength-aware review-layer recommendations for mismatch triage)
+28. `occupation_industry_mix.csv` (official Census ACS PUMS-derived occupation-by-industry mix kept as a general occupation industry context table)
+29. `occupation_btos_sector_mix.csv` (official Census ACS PUMS-derived occupation-by-BTOS-sector bridge used to join BTOS industry AI context back to occupations)
+30. `industry_ai_adoption_context.csv` (official Census BTOS-derived sector AI adoption context used for calibration-only adoption-realization checks)
+31. `occupation_structural_calibration_targets.csv` (non-runtime structural calibration targets comparing live model metrics to local BLS, Census, quality-context, and adaptation-prior proxies, plus strength-aware review-layer recommendations for mismatch triage)
+32. `occupation_role_shape_review.csv` (non-runtime role-shape candidate review table derived from the structural calibration layer to identify occupations most likely to need explicit multi-variant modeling)
 
 ## Purpose of the normalized layer
 
@@ -73,7 +76,10 @@ Current live scoring note:
 - `occupation_structural_calibration_targets.csv` is not a runtime input; it exists only for calibration, disagreement reporting, and tuning review
 - `occupation_ors_structural_context.csv` is also not a runtime input; it currently feeds the calibration layer’s human-guardrail target using ORS autonomy, supervision, and pace-control structure
 - `occupation_heterogeneity_context.csv` is also not a runtime input; it currently feeds the calibration layer’s role-heterogeneity target using ACS wage dispersion, education dispersion, industry dispersion, and worker-mix spread
-- `occupation_industry_mix.csv` is also not a runtime input; it currently exists as the preparatory bridge from ACS occupations to future BTOS industry adoption context
+- `occupation_industry_mix.csv` is also not a runtime input; it remains a general ACS occupation-by-industry context table
+- `occupation_btos_sector_mix.csv` is also not a runtime input; it currently bridges ACS occupation sector mix into the BTOS adoption-context calibration layer
+- `industry_ai_adoption_context.csv` is also not a runtime input; it currently feeds the calibration layer’s adoption-context target using BTOS sector AI-use and deployment-change estimates
+- `occupation_role_shape_review.csv` is also not a runtime input; it currently turns the ACS/structural heterogeneity queue into a concrete candidate list for future multi-variant occupation modeling
 
 See `docs/data/task_role_graph_contract.md` for the first-step contract behind the role-fate redesign.
 See `docs/data/role_transformation_contract.md` for the first-pass function and role-transformation layer.

@@ -380,6 +380,8 @@ Each iteration solved a concrete failure mode in the prior version:
 16. That strength-aware queue then surfaced a stronger structural miss in routine/admin-heavy occupations, which led to a routine-context lift for workflow compression and routine task pressure.
 17. The first official external structural source, BLS ORS, was then integrated into the calibration layer so the human-guardrail check relied mainly on observed autonomy, supervisory responsibility, and pace-control structure instead of lighter quality proxies.
 18. The next official external structural source, ACS PUMS, was then integrated into the calibration layer so the repo could compare model fragmentation risk to observed within-occupation heterogeneity rather than only discussing role variety abstractly.
+19. BTOS was then integrated as a calibration-only adoption-context layer so the repo could compare organizational conversion assumptions to observed sector AI uptake without pretending that business AI use is the same thing as task automability.
+20. The heterogeneity review was then formalized into a generated role-shape candidate report so future multi-variant modeling decisions would come from a stable repo artifact instead of a one-off conversation.
 
 So the model has evolved by repeatedly doing the same thing:
 - identify where the current abstraction is too coarse
@@ -434,6 +436,17 @@ The next concrete example was the ACS PUMS integration:
 - the resulting heterogeneity layer summarizes wage dispersion, education dispersion, industry dispersion, and worker-mix spread
 - because heterogeneity is broader than fragmentation, that signal is scaled into a lower fragmentation-pressure target and conditioned on lower people intensity before being compared to the model
 
+The next concrete example was the BTOS integration:
+- the repo needed a direct external read on whether industries surrounding an occupation were actually using AI and changing workflows around it
+- official Census BTOS AI supplement data was added as a calibration-only table instead of being pushed into the runtime score
+- the resulting sector layer summarizes current AI use, planned AI use, task-substitution intensity, workflow-change intensity, and LLM use
+- because those are business-use prevalence signals rather than model-native adoption scores, the BTOS signal is mapped into the model’s organizational-conversion range before being compared to the live adoption surface
+
+The next concrete example was the role-shape review scaffold:
+- the ACS heterogeneity queue was useful, but it still lived mostly as a report and a memory of which occupations looked split
+- a generated review artifact was added so the repo itself could carry that decision surface forward
+- the result is a stable candidate table and markdown review report identifying which occupations are strongest candidates for explicit multi-variant modeling and which ones are still just a watchlist
+
 ## A Rationalist Summary
 
 The model was built by progressively replacing hidden averages with explicit structure.
@@ -449,11 +462,14 @@ The direction of travel has been:
 - non-runtime structural calibration
 - official structural calibration inputs
 - official heterogeneity calibration inputs
+- official adoption-context calibration inputs
+- generated role-shape review artifacts
 
-The remaining step is:
-- make task evidence not only an adjustment layer, but the default starting point whenever coverage is strong enough
+The remaining steps are:
+- keep improving task-first scoring until strong task evidence is the default starting point whenever coverage is high enough
+- review whether any calibration layer is strong enough to justify a narrow runtime promotion without collapsing interpretability
 
-That would be the cleanest version of the model so far.
+That would be the cleanest next version of the model so far.
 
 ## Suggested Blog-Post Spine
 

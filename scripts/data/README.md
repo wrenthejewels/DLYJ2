@@ -11,7 +11,8 @@ Current script categories:
 - normalize BLS unemployment by occupation group
 - normalize BLS ORS structural context
 - normalize ACS PUMS occupation heterogeneity context
-- derive ACS occupation-industry mix for downstream BTOS joins
+- derive ACS occupation-industry and BTOS-sector mix for downstream BTOS joins
+- normalize BTOS industry AI-adoption context
 - normalize Anthropic task evidence
 - normalize AIOE benchmark extracts
 - compare Anthropic release outputs before promoting a new release into the live priors
@@ -32,11 +33,11 @@ Current script categories:
 - build selector index
 - validate normalized joins
 - generate structural calibration targets and reports from non-runtime BLS / quality-context / adaptation inputs, including strength-aware review-layer recommendations
+- generate role-shape candidate review outputs from the structural calibration layer
 - generate ORS-backed structural calibration targets and reports from non-runtime BLS / quality-context / adaptation inputs, including strength-aware review-layer recommendations
-- generate ORS- and ACS-backed structural calibration targets and reports from non-runtime BLS, Census, quality-context, and adaptation inputs, including strength-aware review-layer recommendations
+- generate ORS-, ACS-, and BTOS-backed structural calibration targets and reports from non-runtime BLS, Census, quality-context, and adaptation inputs, including strength-aware review-layer recommendations
 
 Planned next script families:
-- normalize `BTOS` industry AI-adoption context for calibration-only joins
 - perform a controlled `O*NET 30.2` refresh after schema review rather than as an incidental source bump
 
 Current official calibration script:
@@ -49,4 +50,14 @@ Current official calibration script:
   - queries the official Census `2024 ACS 1-year PUMS` API for the launch occupations
   - writes `data/normalized/occupation_heterogeneity_context.csv`
   - writes `data/normalized/occupation_industry_mix.csv`
-  - this table is calibration-only and currently feeds the role-heterogeneity / fragmentation check in `run_structural_calibration_report.js`
+  - writes `data/normalized/occupation_btos_sector_mix.csv`
+  - these tables are calibration-only and currently feed the role-heterogeneity / fragmentation check plus the BTOS adoption-context join path in `run_structural_calibration_report.js`
+- `normalize_btos.py`
+  - reads the official Census BTOS `AI_Supplement_Table.xlsx` download
+  - writes `data/normalized/industry_ai_adoption_context.csv`
+  - this table is calibration-only and currently feeds the adoption-context check in `run_structural_calibration_report.js`
+- `run_role_shape_review.js`
+  - reads the generated structural calibration targets and role explanation table
+  - writes `data/normalized/occupation_role_shape_review.csv`
+  - writes `docs/data/role_shape_review.md`
+  - this review artifact is calibration-only and currently identifies the strongest candidates for future multi-variant occupation modeling

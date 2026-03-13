@@ -139,7 +139,17 @@ Implemented on `2026-03-13`:
   - the calibration layer now includes a role-heterogeneity / fragmentation check built from ACS wage dispersion, education dispersion, industry dispersion, and worker-mix spread
   - that ACS signal is scaled into a lower fragmentation-pressure target and conditioned on lower people intensity before it is compared with `role_fragmentation_risk`
   - ACS remains calibration-only and is not a direct runtime scoring input
-  - the same ACS pass now also derives `occupation_industry_mix.csv` as the planned bridge into the next BTOS adoption-context layer
+  - the same ACS pass now also derives `occupation_industry_mix.csv` and `occupation_btos_sector_mix.csv` so BTOS sector context can join back to occupations through observed ACS worker mix
+- phase-12 official BTOS adoption-context integration:
+  - `scripts/data/normalize_btos.py` now derives `industry_ai_adoption_context.csv` from the official Census `AI_Supplement_Table.xlsx` download
+  - the structural calibration layer now includes an adoption-context check built from BTOS sector AI-use and deployment-change estimates, joined back to occupations through `occupation_btos_sector_mix.csv`
+  - that BTOS signal is rescaled into the model’s organizational-conversion range before it is compared to the live adoption-realization surface
+  - BTOS remains calibration-only and is not a direct runtime scoring input
+- phase-13 role-shape review scaffold:
+  - `scripts/data/run_role_shape_review.js` now derives `occupation_role_shape_review.csv` and `docs/data/role_shape_review.md` from the structural calibration layer
+  - this pass turns the heterogeneity queue into a stable candidate list for future multi-variant occupation modeling
+  - the current strong candidates match the earlier manual review: `Market Research Analysts and Marketing Specialists`, `Editors`, `Technical Writers`, `News Analysts, Reporters, and Journalists`, and `Management Analysts`
+  - the current watchlist is `Web Developers` and `Operations Research Analysts`
 
 Implemented scripts:
 - `build_job_description_evidence.ps1`
@@ -327,7 +337,7 @@ What is not finished yet:
 - Replace more cluster-proxy dependence with direct task evidence or reviewed benchmark promotion
 - Expand task-first task-baseline coverage so more occupations can leave the cluster-seeded fallback path without becoming noisy
 - Keep upgrading the calibration layer beyond the current ORS-backed human-guardrail check:
-  - `BTOS`
+  - review and tune against the new BTOS adoption-realization queue
 - Promote the new occupation explanation layer into a more user-facing explanation surface and use it during review/calibration
 - Add simple task-weight controls so users can mark selected work as major, medium, or minor rather than only in/out
 - Add clearer result deltas that tell users exactly what their composition edits changed in the current run
@@ -351,21 +361,20 @@ Highest-value next research directions:
 
 Best external data directions to evaluate next:
 - `BLS American Time Use Survey (ATUS)` for grounding how broad work categories and time use actually split in practice
-- `Census Business Trends and Outlook Survey (BTOS)` AI-use modules for organization-level adoption and deployment context
 - `O*NET Technology Skills / Tools and Technology` for task-tool adjacency and more explicit augmentation vs automation routing
 
 Current official-source notes checked during autoresearch on `2026-03-13`:
 - `BLS ORS`: official public-use datasets now span the first wave (`2018`), second wave final (`2023`), and third wave preliminary (`2025`). The repo now uses the `2025` preliminary workbook plus `2023` backstop coverage for the calibration-only ORS structural table.
 - `ACS PUMS`: official Census PUMS `2024 ACS 1-year` microdata is now integrated through the Census API for the launch occupation set and feeds the calibration-only heterogeneity table.
-- `BTOS`: official Census BTOS continues to publish business-condition and AI-use context at the firm/industry layer. This should stay calibration-only first; it is a context signal for adoption realization, not a direct task-automability input.
+- `BTOS`: official Census BTOS AI/business-condition context is now integrated as a calibration-only sector adoption layer. It remains a context signal for adoption realization, not a direct task-automability input.
 - `O*NET`: the official database release line has moved beyond the repo's current `30.1` footing. A controlled `30.2` refresh should be treated as a separate schema/data upgrade, not bundled casually into model tuning.
 
 Ranked next integration order:
-1. `BTOS` adoption-context layer
+1. review the `BTOS` adoption-realization queue and decide whether a contained adoption-parameter tuning pass is warranted
 2. `O*NET 30.2` refresh and schema audit
 
 Why this order:
-- `BTOS` is useful, but it belongs outside runtime first because it says more about adoption context than technical task reachability.
+- `BTOS` is now in the right place: outside runtime, where it can audit adoption realization without contaminating task reachability.
 - `O*NET 30.2` matters, but changing the core occupation/task substrate should be done deliberately after the stronger calibration layers are in place.
 
 Directions that are probably weak unless new evidence appears:
@@ -374,8 +383,8 @@ Directions that are probably weak unless new evidence appears:
 - treating labor-market demand data as if it directly proves task automability
 
 Concrete next build sequence:
-1. Add a `BTOS`-derived industry adoption context table and map occupation exposure to industry-level AI-adoption context through occupation-industry mix, keeping it calibration-only.
-2. Review whether the ORS and ACS layers together are strong enough to justify future multi-variant occupation modeling rather than one default role shape per occupation.
+1. Decide whether to promote the strongest `role_shape_review.md` candidates into explicit multi-variant occupation modeling.
+2. Review whether the new BTOS adoption-context queue points to a contained adoption-realization tuning pass or simply confirms that the outer layer should stay observational for now.
 3. Review whether any of those calibration layers are strong enough to be promoted into runtime after at least one full calibration cycle.
 4. Run a controlled `O*NET 30.2` refresh only after the stronger calibration layers have stabilized.
 
@@ -396,8 +405,8 @@ Why this matters:
 - these occupations look structurally diverse enough that one default occupation bundle may be hiding materially different stable role shapes
 - the admin-heavy occupations still show more urgent misses in task pressure and bargaining-power calibration than in role-shape heterogeneity
 
-Immediate prep for the next step:
-- `occupation_industry_mix.csv` now exists specifically so the BTOS adoption-context layer can join industry AI-use context back to occupations through observed ACS industry mix rather than a loose occupation-level proxy
+Immediate prep result:
+- the ACS bridge now includes `occupation_btos_sector_mix.csv`, and the BTOS adoption-context layer is live as a calibration-only check rather than still being a planned join path
 
 ## Purpose
 

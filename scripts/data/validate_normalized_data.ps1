@@ -108,11 +108,14 @@ $headerMap = @{
     'occupation_labor_market_context.csv' = @('occupation_id','employment_us','annual_openings','median_wage_usd','wage_p25_usd','wage_p75_usd','projection_growth_pct','unemployment_group_id','unemployment_group_label','unemployment_series_id','latest_unemployment_rate','latest_unemployment_period','labor_market_confidence','release_year')
     'occupation_heterogeneity_context.csv' = @('occupation_id','onet_soc_code','acs_reference_year','acs_release_label','acs_socp_code','acs_query_mode','sample_record_count','employed_record_count','weighted_worker_count','wage_record_count','median_wage_usd','wage_p25_usd','wage_p75_usd','wage_dispersion_ratio','wage_dispersion_percentile','education_dispersion','industry_dispersion','class_of_worker_dispersion','age_band_dispersion','sex_mix_balance','worker_mix_dispersion','heterogeneity_index','acs_confidence','source_mix','notes')
     'occupation_industry_mix.csv' = @('occupation_id','onet_soc_code','acs_reference_year','acs_release_label','acs_socp_code','acs_query_mode','acs_industry_code','industry_rank','industry_weighted_worker_count','industry_share','source_mix','notes')
+    'occupation_btos_sector_mix.csv' = @('occupation_id','onet_soc_code','acs_reference_year','acs_release_label','acs_socp_code','acs_query_mode','btos_sector_code','btos_sector_label','sector_rank','sector_weighted_worker_count','sector_share','covered_sector_share','covered_sector_share_normalized','source_mix','notes')
+    'industry_ai_adoption_context.csv' = @('btos_reference_date','btos_release_label','btos_sector_code','btos_sector_label','current_ai_use_share','current_ai_use_se','current_llm_use_share','current_llm_use_se','current_task_substitution_share_conditional','current_task_substitution_se','current_workflow_change_share_conditional','current_workflow_change_se','planned_ai_use_share','planned_ai_use_se','planned_llm_use_share','planned_llm_use_se','planned_task_substitution_share_conditional','planned_task_substitution_se','planned_workflow_change_share_conditional','planned_workflow_change_se','current_task_substitution_intensity','planned_task_substitution_intensity','workflow_change_intensity','adoption_context_index','btos_confidence','source_mix','notes')
     'occupation_unemployment_monthly.csv' = @('unemployment_group_id','unemployment_group_label','unemployment_series_id','year','month','period','month_label','unemployment_rate','is_missing','source_id','notes')
     'occupation_task_role_profiles.csv' = @('occupation_id','core_task_share','support_task_share','mean_value_centrality','mean_bargaining_power_weight','dependency_density','coverage_gap_flag','review_status','notes')
     'occupation_role_transformation.csv' = @('occupation_id','direct_task_pressure','indirect_dependency_pressure','function_exposure_pressure','retained_function_strength','retained_accountability_strength','retained_bargaining_power','role_fragmentation_risk','role_compressibility','demand_expansion_signal','delegation_likelihood','headcount_displacement_risk','role_transformation_type','confidence','source_mix','notes')
     'occupation_ors_structural_context.csv' = @('occupation_id','onet_soc_code','bls_occ_code','ors_reference_year','ors_reference_wave','interaction_intensity','external_interaction_intensity','internal_interaction_intensity','people_skill_intensity','speaking_intensity','autonomy_intensity','review_intensity','pause_control_share','self_paced_share','supervisor_present_share','supervising_others_share','pace_constraint_intensity','people_control_share','software_control_share','target_control_share','fast_pace_share','telework_ability_share','work_schedule_variability_share','human_constraint_index','ors_confidence','source_mix','notes')
-    'occupation_structural_calibration_targets.csv' = @('occupation_id','title','human_constraint_target','human_constraint_confidence','demand_context_target','demand_context_confidence','wage_leverage_target','wage_leverage_confidence','routine_pressure_target','routine_pressure_confidence','specialization_resilience_target','specialization_resilience_confidence','role_heterogeneity_target','role_heterogeneity_confidence','model_human_guardrail','model_demand_context','model_wage_leverage','model_routine_pressure','model_specialization_resilience','model_role_fragmentation','human_constraint_gap','demand_context_gap','wage_leverage_gap','routine_pressure_gap','specialization_resilience_gap','role_heterogeneity_gap','human_constraint_review','demand_context_review','wage_leverage_review','routine_pressure_review','specialization_resilience_review','role_heterogeneity_review','quality_source_mix','ors_source_mix','heterogeneity_source_mix','adaptation_source_mix','labor_release_year','highest_review_tier','primary_review_layer','primary_review_strength','primary_review_score','primary_review_reason','notes')
+    'occupation_structural_calibration_targets.csv' = @('occupation_id','title','human_constraint_target','human_constraint_confidence','adoption_context_target','adoption_context_confidence','demand_context_target','demand_context_confidence','wage_leverage_target','wage_leverage_confidence','routine_pressure_target','routine_pressure_confidence','specialization_resilience_target','specialization_resilience_confidence','role_heterogeneity_target','role_heterogeneity_confidence','model_human_guardrail','model_adoption_context','model_demand_context','model_wage_leverage','model_routine_pressure','model_specialization_resilience','model_role_fragmentation','human_constraint_gap','adoption_context_gap','demand_context_gap','wage_leverage_gap','routine_pressure_gap','specialization_resilience_gap','role_heterogeneity_gap','human_constraint_review','adoption_context_review','demand_context_review','wage_leverage_review','routine_pressure_review','specialization_resilience_review','role_heterogeneity_review','quality_source_mix','ors_source_mix','heterogeneity_source_mix','btos_source_mix','adaptation_source_mix','labor_release_year','highest_review_tier','primary_review_layer','primary_review_strength','primary_review_score','primary_review_reason','notes')
+    'occupation_role_shape_review.csv' = @('occupation_id','title','function_anchor_count','role_heterogeneity_target','role_heterogeneity_gap','role_heterogeneity_review','primary_review_layer','role_shape_candidate_score','role_shape_status','role_shape_reason','source_mix','notes')
     'occupation_transition_adjacency.csv' = @('from_occupation_id','to_occupation_id','adjacency_score','adjacency_type','source','confidence','notes')
     'crosswalk_onet_to_bls.csv' = @('onet_soc_code','bls_occ_code','title_onet','title_bls','match_type','confidence')
     'crosswalk_onet_to_isco.csv' = @('onet_soc_code','isco_code','title_onet','title_isco','match_type','confidence')
@@ -171,8 +174,11 @@ $quality = Import-Csv (Join-Path $normalizedDir 'occupation_quality_indicators.c
 $labor = Import-Csv (Join-Path $normalizedDir 'occupation_labor_market_context.csv')
 $heterogeneity = Import-Csv (Join-Path $normalizedDir 'occupation_heterogeneity_context.csv')
 $industryMix = Import-Csv (Join-Path $normalizedDir 'occupation_industry_mix.csv')
+$btosSectorMix = Import-Csv (Join-Path $normalizedDir 'occupation_btos_sector_mix.csv')
+$btosAdoption = Import-Csv (Join-Path $normalizedDir 'industry_ai_adoption_context.csv')
 $taskRoleProfiles = Import-Csv (Join-Path $normalizedDir 'occupation_task_role_profiles.csv')
 $roleTransformation = Import-Csv (Join-Path $normalizedDir 'occupation_role_transformation.csv')
+$roleShapeReview = Import-Csv (Join-Path $normalizedDir 'occupation_role_shape_review.csv')
 $transitions = Import-Csv (Join-Path $normalizedDir 'occupation_transition_adjacency.csv')
 $launchSeed = Import-Csv (Join-Path $metadataDir 'launch_occupation_seed.csv')
 $secondaryFunctions = Import-Csv (Join-Path $metadataDir 'occupation_secondary_function_overrides.csv')
@@ -184,6 +190,9 @@ $secondaryFunctionKeys = $secondaryFunctions | ForEach-Object {
 }
 $industryMixKeys = $industryMix | ForEach-Object {
     [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.acs_industry_code)" }
+}
+$btosSectorMixKeys = $btosSectorMix | ForEach-Object {
+    [PSCustomObject]@{ composite_key = "$($_.occupation_id)|$($_.btos_sector_code)" }
 }
 
 $occupationIds = $occupations | Select-Object -ExpandProperty occupation_id
@@ -200,8 +209,11 @@ Assert-NoDuplicates -Rows $roleExplanations -Key 'occupation_id' -Label 'role ex
 Assert-NoDuplicates -Rows $labor -Key 'occupation_id' -Label 'labor occupation_id'
 Assert-NoDuplicates -Rows $heterogeneity -Key 'occupation_id' -Label 'heterogeneity occupation_id'
 Assert-NoDuplicates -Rows $industryMixKeys -Key 'composite_key' -Label 'occupation industry mix occupation/industry'
+Assert-NoDuplicates -Rows $btosSectorMixKeys -Key 'composite_key' -Label 'occupation BTOS sector mix occupation/sector'
+Assert-NoDuplicates -Rows $btosAdoption -Key 'btos_sector_code' -Label 'BTOS adoption sector code'
 Assert-NoDuplicates -Rows $taskRoleProfiles -Key 'occupation_id' -Label 'task role profile occupation_id'
 Assert-NoDuplicates -Rows $roleTransformation -Key 'occupation_id' -Label 'role transformation occupation_id'
+Assert-NoDuplicates -Rows $roleShapeReview -Key 'occupation_id' -Label 'role shape review occupation_id'
 Assert-NoDuplicates -Rows $launchSeed -Key 'launch_rank' -Label 'launch_rank'
 Assert-NoDuplicates -Rows $secondaryFunctionKeys -Key 'composite_key' -Label 'secondary function occupation/function'
 Assert-NoDuplicates -Rows $reviewedTaskOverrides -Key 'task_id' -Label 'reviewed task override task_id'
@@ -222,7 +234,9 @@ Assert-ForeignKey -Rows $roleFunctions -Column 'occupation_id' -Allowed $occupat
 Assert-ForeignKey -Rows $occupationFunctionMap -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation function map occupation_id'
 Assert-ForeignKey -Rows $functionProfiles -Column 'occupation_id' -Allowed $occupationIds -Label 'function profile occupation_id'
 Assert-ForeignKey -Rows $roleExplanations -Column 'occupation_id' -Allowed $occupationIds -Label 'role explanations occupation_id'
+Assert-ForeignKey -Rows $roleShapeReview -Column 'occupation_id' -Allowed $occupationIds -Label 'role shape review occupation_id'
 Assert-ForeignKey -Rows $taskFunctionEdges -Column 'occupation_id' -Allowed $occupationIds -Label 'task function edge occupation_id'
+Assert-ForeignKey -Rows $btosSectorMix -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation BTOS sector mix occupation_id'
 Assert-ForeignKey -Rows $exposurePriors -Column 'occupation_id' -Allowed $occupationIds -Label 'occupation exposure occupation_id'
 Assert-ForeignKey -Rows $exposurePriors -Column 'source_id' -Allowed $sourceIds -Label 'occupation exposure source_id'
 Assert-ForeignKey -Rows $taskEvidence -Column 'occupation_id' -Allowed $occupationIds -Label 'task evidence occupation_id'

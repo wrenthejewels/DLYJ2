@@ -10,8 +10,29 @@ from pathlib import Path
 
 
 API_BASE = "https://api.census.gov/data/2024/acs/acs1/pums"
-REQUEST_VARS = ["PWGTP", "WAGP", "SCHL", "INDP", "COW", "AGEP", "SEX", "ESR"]
+REQUEST_VARS = ["PWGTP", "WAGP", "SCHL", "INDP", "NAICSP", "COW", "AGEP", "SEX", "ESR"]
 EMPLOYED_STATUSES = {"1", "2", "4", "5"}
+BTOS_SECTOR_LABELS = {
+    "11": "Agriculture, Forestry, Fishing and Hunting",
+    "21": "Mining, Quarrying, and Oil and Gas Extraction",
+    "22": "Utilities",
+    "23": "Construction",
+    "31": "Manufacturing",
+    "42": "Wholesale Trade",
+    "44": "Retail Trade",
+    "48": "Transportation and Warehousing",
+    "51": "Information",
+    "52": "Finance and Insurance",
+    "53": "Real Estate and Rental and Leasing",
+    "54": "Professional, Scientific, and Technical Services",
+    "55": "Management of Companies and Enterprises",
+    "56": "Administrative and Support and Waste Management Services",
+    "61": "Educational Services",
+    "62": "Health Care and Social Assistance",
+    "71": "Arts, Entertainment, and Recreation",
+    "72": "Accommodation and Food Services",
+    "81": "Other Services",
+}
 
 
 def clamp(value, low=0.0, high=1.0):
@@ -23,6 +44,29 @@ def normalize_socp(onet_soc_code):
     if len(digits) >= 6:
         return digits[:6]
     return ""
+
+
+def normalize_naicsp(value):
+    return str(value or "").strip().upper()
+
+
+def map_naicsp_to_btos_sector(naicsp_code):
+    code = normalize_naicsp(naicsp_code)
+    if not code:
+        return None
+    match = re.match(r"^(\d{2})", code)
+    if not match:
+        return None
+    sector = match.group(1)
+    if sector in {"32", "33"}:
+        sector = "31"
+    elif sector == "45":
+        sector = "44"
+    elif sector == "49":
+        sector = "48"
+    if sector not in BTOS_SECTOR_LABELS:
+        return None
+    return sector
 
 
 def try_float(value):
@@ -191,6 +235,7 @@ def derive_metrics(records):
     age_pairs = []
     sex_weights = {"male": 0.0, "female": 0.0}
     industry_weights = {}
+    btos_sector_weights = {}
 
     for row in employed:
         weight = try_float(row.get("PWGTP"))
@@ -207,6 +252,9 @@ def derive_metrics(records):
         industry_pairs.append((industry_code, weight))
         if industry_code:
             industry_weights[industry_code] = industry_weights.get(industry_code, 0.0) + weight
+        btos_sector = map_naicsp_to_btos_sector(row.get("NAICSP"))
+        if btos_sector:
+            btos_sector_weights[btos_sector] = btos_sector_weights.get(btos_sector, 0.0) + weight
         class_pairs.append((str(row.get("COW", "")).strip() or None, weight))
         age_pairs.append((age_band(try_float(row.get("AGEP"))), weight))
 
@@ -276,6 +324,7 @@ def derive_metrics(records):
         "sex_mix_balance": sex_mix_balance,
         "worker_mix_dispersion": worker_mix_dispersion,
         "industry_weights": industry_weights,
+        "btos_sector_weights": btos_sector_weights,
         "confidence": confidence,
         "wage_record_share": wage_record_share,
     }
@@ -287,6 +336,7 @@ def main():
     normalized_dir = repo_root / "data" / "normalized"
     output_path = normalized_dir / "occupation_heterogeneity_context.csv"
     industry_mix_path = normalized_dir / "occupation_industry_mix.csv"
+    sector_mix_path = normalized_dir / "occupation_btos_sector_mix.csv"
 
     metrics_by_socp = {}
     for socp_code in sorted({row["socp"] for row in occupations}):
@@ -339,6 +389,23 @@ def main():
         "industry_rank",
         "industry_weighted_worker_count",
         "industry_share",
+        "source_mix",
+        "notes",
+    ]
+    sector_mix_fieldnames = [
+        "occupation_id",
+        "onet_soc_code",
+        "acs_reference_year",
+        "acs_release_label",
+        "acs_socp_code",
+        "acs_query_mode",
+        "btos_sector_code",
+        "btos_sector_label",
+        "sector_rank",
+        "sector_weighted_worker_count",
+        "sector_share",
+        "covered_sector_share",
+        "covered_sector_share_normalized",
         "source_mix",
         "notes",
     ]
@@ -426,11 +493,51 @@ def main():
                     }
                 )
 
+    with sector_mix_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=sector_mix_fieldnames)
+        writer.writeheader()
+        for occupation in occupations:
+            metrics = metrics_by_socp[occupation["socp"]]
+            total_weight = metrics["weighted_worker_count"]
+            covered_weight = sum(metrics["btos_sector_weights"].values())
+            ranked_sectors = sorted(
+                metrics["btos_sector_weights"].items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )
+            for index, (sector_code, sector_weight) in enumerate(ranked_sectors, start=1):
+                sector_share = None if not total_weight else (sector_weight / total_weight)
+                normalized_share = None if not covered_weight else (sector_weight / covered_weight)
+                writer.writerow(
+                    {
+                        "occupation_id": occupation["occupation_id"],
+                        "onet_soc_code": occupation["onet_soc_code"],
+                        "acs_reference_year": "2024",
+                        "acs_release_label": "acs_1yr_pums",
+                        "acs_socp_code": metrics["resolved_code"],
+                        "acs_query_mode": metrics["query_mode"],
+                        "btos_sector_code": sector_code,
+                        "btos_sector_label": BTOS_SECTOR_LABELS.get(sector_code, ""),
+                        "sector_rank": index,
+                        "sector_weighted_worker_count": format_num(sector_weight),
+                        "sector_share": format_num(sector_share),
+                        "covered_sector_share": format_num(covered_weight / total_weight) if total_weight else "",
+                        "covered_sector_share_normalized": format_num(normalized_share),
+                        "source_mix": "src_census_acs_2024_1yr_pums_api",
+                        "notes": (
+                            f"acs_api_records={int(metrics['sample_record_count'])}|"
+                            f"employed_records={int(metrics['employed_record_count'])}|"
+                            f"query_mode={metrics['query_mode']}"
+                        ),
+                    }
+                )
+
     print(
         {
             "rows": len(occupations),
             "output_path": str(output_path),
             "industry_mix_path": str(industry_mix_path),
+            "sector_mix_path": str(sector_mix_path),
             "source": "src_census_acs_2024_1yr_pums_api",
         }
     )

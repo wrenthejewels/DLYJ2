@@ -236,6 +236,13 @@ function recommendReviewLayer(row) {
       score: row.human_constraint_gap * Math.max(row.human_constraint_confidence, 0.35) * calibrationStrengthMultiplier('strong')
     },
     {
+      layer: 'adoption_realization',
+      strength: 'medium',
+      reason: 'BTOS adoption-context mismatch points to organizational conversion or adoption-realization assumptions rather than core task reachability.',
+      review: row.adoption_context_review,
+      score: row.adoption_context_gap * Math.max(row.adoption_context_confidence, 0.35) * calibrationStrengthMultiplier('medium')
+    },
+    {
       layer: 'demand_and_adoption',
       strength: 'weak',
       reason: 'Demand-context mismatch points to demand-expansion or adoption-realization assumptions rather than core task reachability.',
@@ -286,15 +293,25 @@ async function main() {
     .filter((row) => String(row.is_active || '').toLowerCase() !== 'false');
   const orsRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_ors_structural_context.csv'), 'utf8'));
   const heterogeneityRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_heterogeneity_context.csv'), 'utf8'));
+  const btosRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'industry_ai_adoption_context.csv'), 'utf8'));
+  const btosSectorMixRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_btos_sector_mix.csv'), 'utf8'));
   const qualityRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_quality_indicators.csv'), 'utf8'));
   const laborRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_labor_market_context.csv'), 'utf8'));
   const adaptationRows = parseCsv(fs.readFileSync(path.join(normalizedDir, 'occupation_adaptation_priors.csv'), 'utf8'));
 
   const orsById = Object.fromEntries(orsRows.map((row) => [row.occupation_id, row]));
   const heterogeneityById = Object.fromEntries(heterogeneityRows.map((row) => [row.occupation_id, row]));
+  const btosBySector = Object.fromEntries(btosRows.map((row) => [row.btos_sector_code, row]));
   const qualityById = Object.fromEntries(qualityRows.map((row) => [row.occupation_id, row]));
   const laborById = Object.fromEntries(laborRows.map((row) => [row.occupation_id, row]));
   const adaptationById = Object.fromEntries(adaptationRows.map((row) => [row.occupation_id, row]));
+  const btosSectorMixById = btosSectorMixRows.reduce((map, row) => {
+    if (!map[row.occupation_id]) {
+      map[row.occupation_id] = [];
+    }
+    map[row.occupation_id].push(row);
+    return map;
+  }, {});
 
   const wageDispersionRows = occupations.map((occupation) => {
     const labor = laborById[occupation.occupation_id] || {};
@@ -323,6 +340,43 @@ async function main() {
   const openingsRateRanks = percentileRanks(wageDispersionRows.map((row) => row.openings_rate));
   const growthRanks = percentileRanks(wageDispersionRows.map((row) => row.projection_growth_pct));
   const unemploymentInverseRanks = percentileRanks(wageDispersionRows.map((row) => row.unemployment_rate), true);
+  const btosAdoptionSignals = occupations.map((occupation) => {
+    const sectorMix = btosSectorMixById[occupation.occupation_id] || [];
+    const coveredShare = sectorMix.length
+      ? clamp(Math.max(...sectorMix.map((row) => toNumber(row.covered_sector_share, 0))), 0, 1)
+      : 0;
+    const rawSignal = sectorMix.length
+      ? blendAvailable(
+        sectorMix.map((row) => {
+          const sector = btosBySector[row.btos_sector_code];
+          return [sector ? sector.adoption_context_index : null, row.covered_sector_share_normalized];
+        }),
+        null
+      )
+      : null;
+    const rawConfidence = rawSignal === null
+      ? 0
+      : clamp(
+        (blendAvailable(
+          sectorMix.map((row) => {
+            const sector = btosBySector[row.btos_sector_code];
+            return [sector ? sector.btos_confidence : null, row.covered_sector_share_normalized];
+          }),
+          0.5
+        ) * 0.70) +
+        (coveredShare * 0.30),
+        0,
+        1
+      );
+    return {
+      occupation_id: occupation.occupation_id,
+      raw_signal: rawSignal,
+      covered_share: coveredShare,
+      confidence: rawConfidence
+    };
+  });
+  const btosAdoptionSignalById = Object.fromEntries(btosAdoptionSignals.map((row) => [row.occupation_id, row]));
+  const btosAdoptionRanks = percentileRanks(btosAdoptionSignals.map((row) => row.raw_signal));
 
   const engine = await DLYJV2.create({ basePath: repoRoot });
   const rows = [];
@@ -331,6 +385,8 @@ async function main() {
     const occupationId = occupation.occupation_id;
     const ors = orsById[occupationId] || {};
     const heterogeneity = heterogeneityById[occupationId] || {};
+    const btosSectorMix = btosSectorMixById[occupationId] || [];
+    const btosAdoption = btosAdoptionSignalById[occupationId] || {};
     const quality = qualityById[occupationId] || {};
     const labor = laborById[occupationId] || {};
     const adaptation = adaptationById[occupationId] || {};
@@ -357,6 +413,14 @@ async function main() {
       0,
       1
     );
+    const btosCoveredShare = clamp(toNumber(btosAdoption.covered_share, 0), 0, 1);
+    const adoptionContextSignal = btosAdoption.raw_signal;
+    const adoptionContextPercentile = adoptionContextSignal === null
+      ? null
+      : (btosAdoptionRanks.get(adoptionContextSignal) ?? 0.5);
+    const adoptionContextTarget = adoptionContextPercentile === null
+      ? null
+      : clamp(0.24 + (adoptionContextPercentile * 0.22), 0, 1);
     const wageLeverageTarget = clamp(
       ((medianWageRanks.get(laborDerived.median_wage_usd) ?? 0.5) * 0.75) +
       ((wageDispersionRanks.get(laborDerived.wage_dispersion_ratio) ?? 0.5) * 0.25),
@@ -400,6 +464,15 @@ async function main() {
         0,
         1
       );
+    const adoptionContextConfidence = adoptionContextTarget === null
+      ? 0
+      : clamp(
+        (toNumber(btosAdoption.confidence, 0.5) * 0.70) +
+        (btosCoveredShare * 0.15) +
+        (0.15 * 0.5),
+        0,
+        1
+      );
     const demandContextConfidence = toNumber(labor.labor_market_confidence, 0.5);
     const wageLeverageConfidence = toNumber(labor.labor_market_confidence, 0.5);
     const adaptationConfidence = toNumber(adaptation.confidence, 0.5);
@@ -416,6 +489,10 @@ async function main() {
       0,
       1
     );
+    const modelAdoptionContext = clamp(blendAvailable([
+      [result.recomposition_summary?.organizational_conversion, 0.65],
+      [result.diagnostics?.adoption_pressure, 0.35]
+    ], 0.5), 0, 1);
     const modelDemandContext = clamp(toNumber(result.function_metrics?.demand_expansion_signal, 0.5), 0, 1);
     const modelWageLeverage = clamp(toNumber(result.function_metrics?.retained_bargaining_power, 0.5), 0, 1);
     const modelRoutinePressure = clamp(
@@ -439,6 +516,9 @@ async function main() {
     const humanConstraintGap = humanConstraintTarget === null
       ? null
       : Math.abs(modelHumanGuardrail - humanConstraintTarget);
+    const adoptionContextGap = adoptionContextTarget === null
+      ? null
+      : Math.abs(modelAdoptionContext - adoptionContextTarget);
     const roleHeterogeneityGap = Math.abs(modelRoleFragmentation - roleHeterogeneityTarget);
 
     rows.push({
@@ -446,6 +526,8 @@ async function main() {
       title: occupation.title,
       human_constraint_target: humanConstraintTarget === null ? null : Number(humanConstraintTarget.toFixed(3)),
       human_constraint_confidence: Number(humanConstraintConfidence.toFixed(3)),
+      adoption_context_target: adoptionContextTarget === null ? null : Number(adoptionContextTarget.toFixed(3)),
+      adoption_context_confidence: Number(adoptionContextConfidence.toFixed(3)),
       demand_context_target: Number(demandContextTarget.toFixed(3)),
       demand_context_confidence: Number(demandContextConfidence.toFixed(3)),
       wage_leverage_target: Number(wageLeverageTarget.toFixed(3)),
@@ -457,18 +539,21 @@ async function main() {
       role_heterogeneity_target: Number(roleHeterogeneityTarget.toFixed(3)),
       role_heterogeneity_confidence: Number(roleHeterogeneityConfidence.toFixed(3)),
       model_human_guardrail: Number(modelHumanGuardrail.toFixed(3)),
+      model_adoption_context: Number(modelAdoptionContext.toFixed(3)),
       model_demand_context: Number(modelDemandContext.toFixed(3)),
       model_wage_leverage: Number(modelWageLeverage.toFixed(3)),
       model_routine_pressure: Number(modelRoutinePressure.toFixed(3)),
       model_specialization_resilience: Number(modelSpecializationResilience.toFixed(3)),
       model_role_fragmentation: Number(modelRoleFragmentation.toFixed(3)),
       human_constraint_gap: humanConstraintGap === null ? null : Number(humanConstraintGap.toFixed(3)),
+      adoption_context_gap: adoptionContextGap === null ? null : Number(adoptionContextGap.toFixed(3)),
       demand_context_gap: Number(Math.abs(modelDemandContext - demandContextTarget).toFixed(3)),
       wage_leverage_gap: Number(Math.abs(modelWageLeverage - wageLeverageTarget).toFixed(3)),
       routine_pressure_gap: Number(Math.abs(modelRoutinePressure - routinePressureTarget).toFixed(3)),
       specialization_resilience_gap: Number(Math.abs(modelSpecializationResilience - specializationResilienceTarget).toFixed(3)),
       role_heterogeneity_gap: Number(roleHeterogeneityGap.toFixed(3)),
       human_constraint_review: humanConstraintGap === null ? 'ok' : gapTier(humanConstraintGap, humanConstraintConfidence),
+      adoption_context_review: adoptionContextGap === null ? 'ok' : gapTier(adoptionContextGap, adoptionContextConfidence),
       demand_context_review: gapTier(Math.abs(modelDemandContext - demandContextTarget), demandContextConfidence),
       wage_leverage_review: gapTier(Math.abs(modelWageLeverage - wageLeverageTarget), wageLeverageConfidence),
       routine_pressure_review: gapTier(Math.abs(modelRoutinePressure - routinePressureTarget), adaptationConfidence),
@@ -477,10 +562,15 @@ async function main() {
       quality_source_mix: quality.source_mix || '',
       ors_source_mix: ors.source_mix || '',
       heterogeneity_source_mix: heterogeneity.source_mix || '',
+      btos_source_mix: btosSectorMix.map((row) => {
+        const sector = btosBySector[row.btos_sector_code];
+        return sector ? sector.source_mix : '';
+      }).filter(Boolean).join('|'),
       adaptation_source_mix: adaptation.source_mix || '',
       labor_release_year: labor.release_year || '',
       notes: [
         String(quality.notes || '').trim(),
+        adoptionContextTarget === null ? '' : `btos_covered_share=${btosCoveredShare.toFixed(3)}|btos_percentile=${adoptionContextPercentile.toFixed(3)}`,
         String(adaptation.notes || '').trim(),
         labor.release_year ? `labor_context_${labor.release_year}` : ''
       ].filter(Boolean).join('|')
@@ -492,6 +582,7 @@ async function main() {
     row.highest_review_tier = ['high', 'medium', 'low', 'ok']
       .find((tier) => (
         row.human_constraint_review === tier ||
+        row.adoption_context_review === tier ||
         row.demand_context_review === tier ||
         row.wage_leverage_review === tier ||
         row.routine_pressure_review === tier ||
@@ -509,6 +600,8 @@ async function main() {
     'title',
     'human_constraint_target',
     'human_constraint_confidence',
+    'adoption_context_target',
+    'adoption_context_confidence',
     'demand_context_target',
     'demand_context_confidence',
     'wage_leverage_target',
@@ -520,18 +613,21 @@ async function main() {
     'role_heterogeneity_target',
     'role_heterogeneity_confidence',
     'model_human_guardrail',
+    'model_adoption_context',
     'model_demand_context',
     'model_wage_leverage',
     'model_routine_pressure',
     'model_specialization_resilience',
     'model_role_fragmentation',
     'human_constraint_gap',
+    'adoption_context_gap',
     'demand_context_gap',
     'wage_leverage_gap',
     'routine_pressure_gap',
     'specialization_resilience_gap',
     'role_heterogeneity_gap',
     'human_constraint_review',
+    'adoption_context_review',
     'demand_context_review',
     'wage_leverage_review',
     'routine_pressure_review',
@@ -540,6 +636,7 @@ async function main() {
     'quality_source_mix',
     'ors_source_mix',
     'heterogeneity_source_mix',
+    'btos_source_mix',
     'adaptation_source_mix',
     'labor_release_year',
     'highest_review_tier',
@@ -564,6 +661,16 @@ async function main() {
       reviewKey: 'human_constraint_review',
       confidenceKey: 'human_constraint_confidence',
       description: 'Compares the model’s retained human/accountability guardrails to the normalized ORS structural index where ORS coverage exists. Occupations without usable ORS rows are left unscored for this strongest check.'
+    },
+    {
+      label: 'Adoption Context Plausibility',
+      strength: 'medium',
+      targetKey: 'adoption_context_target',
+      modelKey: 'model_adoption_context',
+      gapKey: 'adoption_context_gap',
+      reviewKey: 'adoption_context_review',
+      confidenceKey: 'adoption_context_confidence',
+      description: 'Compares organizational conversion and default adoption pressure to a BTOS adoption-context signal joined from sector-level AI-use estimates through ACS-derived occupation sector mix, then rescaled into the model’s adoption-realization range.'
     },
     {
       label: 'Demand Context Plausibility',
@@ -628,6 +735,8 @@ async function main() {
   lines.push('Generated from:');
   lines.push('- `data/normalized/occupation_ors_structural_context.csv`');
   lines.push('- `data/normalized/occupation_heterogeneity_context.csv`');
+  lines.push('- `data/normalized/industry_ai_adoption_context.csv`');
+  lines.push('- `data/normalized/occupation_btos_sector_mix.csv`');
   lines.push('- `data/normalized/occupation_quality_indicators.csv`');
   lines.push('- `data/normalized/occupation_labor_market_context.csv`');
   lines.push('- `data/normalized/occupation_adaptation_priors.csv`');
@@ -638,6 +747,8 @@ async function main() {
   lines.push('- occupations without usable ORS structural rows are currently left unscored for that strongest check instead of being silently folded back into a weaker proxy.');
   lines.push('- `occupation_heterogeneity_context.csv` is calibration-only context. It is useful for checking whether the model is overstating role uniformity, but it is still an external structural proxy rather than a runtime role-definition input.');
   lines.push('- the heterogeneity check is not raw ACS alone; the target is scaled into a fragmentation-pressure range and conditioned on lower people-intensity so it stays closer to the model’s actual role-splitting claim.');
+  lines.push('- `industry_ai_adoption_context.csv` is also calibration-only context. It measures observed sector AI use and deployment change, not direct task automability.');
+  lines.push('- the BTOS adoption check is not compared on raw business-use percentages; the BTOS signal is mapped into the model’s organizational-conversion range so it behaves as a directional review target rather than a literal prevalence label.');
   lines.push('- labor-market checks are contextual and should not be treated as proof of AI displacement or demand expansion.');
   lines.push('- this report is for calibration and review, not runtime scoring.');
   lines.push('');
@@ -670,12 +781,14 @@ async function main() {
       return {
         ...row,
         anyPriority: row.human_constraint_review !== 'ok' ||
+          row.adoption_context_review !== 'ok' ||
           row.demand_context_review !== 'ok' ||
           row.wage_leverage_review !== 'ok' ||
           row.routine_pressure_review !== 'ok' ||
           row.specialization_resilience_review !== 'ok' ||
           row.role_heterogeneity_review !== 'ok',
         anyHigh: row.human_constraint_review === 'high' ||
+          row.adoption_context_review === 'high' ||
           row.demand_context_review === 'high' ||
           row.wage_leverage_review === 'high' ||
           row.routine_pressure_review === 'high' ||
@@ -683,6 +796,7 @@ async function main() {
           row.role_heterogeneity_review === 'high',
         maxGap: Math.max(
           row.human_constraint_gap,
+          row.adoption_context_gap,
           row.demand_context_gap,
           row.wage_leverage_gap,
           row.routine_pressure_gap,
@@ -703,10 +817,10 @@ async function main() {
   if (!priorityRows.length) {
     lines.push('- No structural mismatches rose above `ok` under the current thresholds.');
   } else {
-    lines.push('| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap | Heterogeneity gap |');
-    lines.push('| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |');
+    lines.push('| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Adoption gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap | Heterogeneity gap |');
+    lines.push('| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
     priorityRows.slice(0, 10).forEach((row) => {
-      lines.push(`| ${row.title} | ${row.highest_review_tier} | ${row.primary_review_layer} | ${row.primary_review_strength} | ${formatMaybe(row.human_constraint_gap)} (${row.human_constraint_review}) | ${formatMaybe(row.demand_context_gap)} (${row.demand_context_review}) | ${formatMaybe(row.wage_leverage_gap)} (${row.wage_leverage_review}) | ${formatMaybe(row.routine_pressure_gap)} (${row.routine_pressure_review}) | ${formatMaybe(row.specialization_resilience_gap)} (${row.specialization_resilience_review}) | ${formatMaybe(row.role_heterogeneity_gap)} (${row.role_heterogeneity_review}) |`);
+      lines.push(`| ${row.title} | ${row.highest_review_tier} | ${row.primary_review_layer} | ${row.primary_review_strength} | ${formatMaybe(row.human_constraint_gap)} (${row.human_constraint_review}) | ${formatMaybe(row.adoption_context_gap)} (${row.adoption_context_review}) | ${formatMaybe(row.demand_context_gap)} (${row.demand_context_review}) | ${formatMaybe(row.wage_leverage_gap)} (${row.wage_leverage_review}) | ${formatMaybe(row.routine_pressure_gap)} (${row.routine_pressure_review}) | ${formatMaybe(row.specialization_resilience_gap)} (${row.specialization_resilience_review}) | ${formatMaybe(row.role_heterogeneity_gap)} (${row.role_heterogeneity_review}) |`);
     });
   }
   lines.push('');
@@ -771,6 +885,7 @@ async function main() {
   lines.push('## Interpretation');
   lines.push('');
   lines.push('- Treat `Human Guardrail Plausibility` as the most useful current structural check.');
+  lines.push('- Treat `Adoption Context Plausibility` as the best current outer-layer check on whether the model is over- or under-stating organizational AI conversion relative to observed sector uptake.');
   lines.push('- Treat `Role Heterogeneity Plausibility` as the best current check on whether the model is making an occupation look too uniform or too split.');
   lines.push('- Treat `Demand Context Plausibility` and `Wage Leverage Plausibility` as weak calibration layers that can surface suspicious outliers, not as truth labels.');
   lines.push('- Occupations with repeated high-priority gaps should be reviewed at the layer that likely caused the disagreement: function anchors, accountability weights, task evidence coverage, or role-shape assumptions.');
@@ -778,7 +893,8 @@ async function main() {
   lines.push('## Next Data Upgrades');
   lines.push('');
   lines.push('- Extend ORS coverage or mapping so fewer launch occupations remain unscored on the strongest human-guardrail check.');
-  lines.push('- Add `BTOS` AI adoption context for a stronger non-runtime adoption calibration layer.');
+  lines.push('- Use the new BTOS review queue to decide whether adoption-realization tuning should remain calibration-only or graduate into a later controlled runtime parameter review.');
+  lines.push('- Refresh `O*NET` after the current official calibration layers are stable, so structural tuning is not confounded with a database-version jump.');
   lines.push('- Consider whether the ACS heterogeneity layer is strong enough to justify future multi-variant occupation modeling rather than one default role shape per occupation.');
   lines.push('');
 
@@ -789,6 +905,7 @@ async function main() {
     targetPath,
     reportPath,
     humanGuardrailCorrelation: spearmanCorrelation(rows, 'human_constraint_target', 'model_human_guardrail'),
+    adoptionContextCorrelation: spearmanCorrelation(rows, 'adoption_context_target', 'model_adoption_context'),
     demandContextCorrelation: spearmanCorrelation(rows, 'demand_context_target', 'model_demand_context'),
     wageLeverageCorrelation: spearmanCorrelation(rows, 'wage_leverage_target', 'model_wage_leverage'),
     routinePressureCorrelation: spearmanCorrelation(rows, 'routine_pressure_target', 'model_routine_pressure'),

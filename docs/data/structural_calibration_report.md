@@ -8,6 +8,8 @@ It checks whether the model’s structural claims line up directionally with the
 Generated from:
 - `data/normalized/occupation_ors_structural_context.csv`
 - `data/normalized/occupation_heterogeneity_context.csv`
+- `data/normalized/industry_ai_adoption_context.csv`
+- `data/normalized/occupation_btos_sector_mix.csv`
 - `data/normalized/occupation_quality_indicators.csv`
 - `data/normalized/occupation_labor_market_context.csv`
 - `data/normalized/occupation_adaptation_priors.csv`
@@ -18,6 +20,8 @@ Current limitations:
 - occupations without usable ORS structural rows are currently left unscored for that strongest check instead of being silently folded back into a weaker proxy.
 - `occupation_heterogeneity_context.csv` is calibration-only context. It is useful for checking whether the model is overstating role uniformity, but it is still an external structural proxy rather than a runtime role-definition input.
 - the heterogeneity check is not raw ACS alone; the target is scaled into a fragmentation-pressure range and conditioned on lower people-intensity so it stays closer to the model’s actual role-splitting claim.
+- `industry_ai_adoption_context.csv` is also calibration-only context. It measures observed sector AI use and deployment change, not direct task automability.
+- the BTOS adoption check is not compared on raw business-use percentages; the BTOS signal is mapped into the model’s organizational-conversion range so it behaves as a directional review target rather than a literal prevalence label.
 - labor-market checks are contextual and should not be treated as proof of AI displacement or demand expansion.
 - this report is for calibration and review, not runtime scoring.
 
@@ -35,6 +39,14 @@ Current limitations:
 - high-priority mismatches: `5`
 - medium-priority mismatches: `7`
 - description: Compares the model’s retained human/accountability guardrails to the normalized ORS structural index where ORS coverage exists. Occupations without usable ORS rows are left unscored for this strongest check.
+
+### Adoption Context Plausibility
+- strength: `medium`
+- coverage: `32/34`
+- spearman correlation: `0.157`
+- high-priority mismatches: `0`
+- medium-priority mismatches: `0`
+- description: Compares organizational conversion and default adoption pressure to a BTOS adoption-context signal joined from sector-level AI-use estimates through ACS-derived occupation sector mix, then rescaled into the model’s adoption-realization range.
 
 ### Demand Context Plausibility
 - strength: `weak`
@@ -78,18 +90,18 @@ Current limitations:
 
 ## Highest-Priority Mismatches
 
-| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap | Heterogeneity gap |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Customer Service Representatives | high | bargaining_power | weak | 0.073 (ok) | 0.088 (ok) | 0.526 (high) | 0.039 (ok) | 0.205 (medium) | 0.039 (ok) |
-| Bookkeeping, Accounting, and Auditing Clerks | high | bargaining_power | weak | 0.218 (medium) | 0.075 (ok) | 0.448 (high) | 0.207 (medium) | 0.159 (low) | 0.175 (low) |
-| Statistical Assistants | high | bargaining_power | weak | n/a (ok) | 0.129 (low) | 0.430 (high) | 0.068 (ok) | 0.025 (ok) | 0.145 (low) |
-| Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | high | task_pressure | medium | 0.217 (medium) | 0.046 (ok) | 0.342 (high) | 0.381 (medium) | 0.205 (medium) | 0.098 (ok) |
-| Office Clerks, General | high | task_pressure | medium | 0.181 (medium) | 0.047 (ok) | 0.333 (high) | 0.365 (medium) | 0.182 (medium) | 0.109 (ok) |
-| Data Scientists | high | bargaining_power | weak | n/a (ok) | 0.194 (medium) | 0.347 (high) | 0.170 (low) | 0.205 (medium) | 0.093 (ok) |
-| Software Developers | high | bargaining_power | weak | 0.164 (low) | 0.142 (low) | 0.343 (high) | 0.158 (low) | 0.207 (medium) | 0.014 (ok) |
-| Advertising Sales Agents | high | demand_and_adoption | weak | n/a (ok) | 0.311 (high) | 0.226 (high) | 0.074 (ok) | 0.067 (ok) | 0.101 (ok) |
-| Paralegals and Legal Assistants | high | accountability_guardrails | strong | 0.306 (high) | 0.122 (low) | 0.265 (high) | 0.081 (ok) | 0.103 (ok) | 0.003 (ok) |
-| Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel | high | accountability_guardrails | strong | 0.278 (high) | 0.054 (ok) | 0.218 (medium) | 0.029 (ok) | 0.260 (low) | 0.071 (ok) |
+| Occupation | Highest tier | Review layer | Layer strength | Human guardrail gap | Adoption gap | Demand gap | Wage leverage gap | Routine gap | Specialization gap | Heterogeneity gap |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Customer Service Representatives | high | bargaining_power | weak | 0.073 (ok) | 0.154 (low) | 0.088 (ok) | 0.526 (high) | 0.039 (ok) | 0.205 (medium) | 0.039 (ok) |
+| Bookkeeping, Accounting, and Auditing Clerks | high | bargaining_power | weak | 0.218 (medium) | 0.148 (low) | 0.075 (ok) | 0.448 (high) | 0.207 (medium) | 0.159 (low) | 0.175 (low) |
+| Statistical Assistants | high | bargaining_power | weak | n/a (ok) | 0.037 (ok) | 0.129 (low) | 0.430 (high) | 0.068 (ok) | 0.025 (ok) | 0.145 (low) |
+| Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | high | task_pressure | medium | 0.217 (medium) | 0.154 (low) | 0.046 (ok) | 0.342 (high) | 0.381 (medium) | 0.205 (medium) | 0.098 (ok) |
+| Office Clerks, General | high | task_pressure | medium | 0.181 (medium) | 0.171 (low) | 0.047 (ok) | 0.333 (high) | 0.365 (medium) | 0.182 (medium) | 0.109 (ok) |
+| Data Scientists | high | bargaining_power | weak | n/a (ok) | n/a (ok) | 0.194 (medium) | 0.347 (high) | 0.170 (low) | 0.205 (medium) | 0.093 (ok) |
+| Software Developers | high | bargaining_power | weak | 0.164 (low) | 0.022 (ok) | 0.142 (low) | 0.343 (high) | 0.158 (low) | 0.207 (medium) | 0.014 (ok) |
+| Advertising Sales Agents | high | demand_and_adoption | weak | n/a (ok) | 0.067 (ok) | 0.311 (high) | 0.226 (high) | 0.074 (ok) | 0.067 (ok) | 0.101 (ok) |
+| Paralegals and Legal Assistants | high | accountability_guardrails | strong | 0.306 (high) | 0.007 (ok) | 0.122 (low) | 0.265 (high) | 0.081 (ok) | 0.103 (ok) | 0.003 (ok) |
+| Sales Representatives of Services, Except Advertising, Insurance, Financial Services, and Travel | high | accountability_guardrails | strong | 0.278 (high) | 0.000 (ok) | 0.054 (ok) | 0.218 (medium) | 0.029 (ok) | 0.260 (low) | 0.071 (ok) |
 
 ## Most Common Review Layers
 
@@ -147,6 +159,18 @@ Current limitations:
 | Computer Systems Analysts | 0.583 | 0.328 | 0.255 | 0.721 | high |
 | Lawyers | 0.810 | 0.571 | 0.239 | 0.763 | high |
 | Bookkeeping, Accounting, and Auditing Clerks | 0.641 | 0.423 | 0.218 | 0.806 | medium |
+
+### Adoption Context Plausibility
+| Occupation | Model | Target | Gap | Confidence | Review |
+| --- | ---: | ---: | ---: | ---: | --- |
+| Office Clerks, General | 0.439 | 0.268 | 0.171 | 0.822 | low |
+| Mechanical Engineers | 0.400 | 0.240 | 0.160 | 0.879 | low |
+| Customer Service Representatives | 0.408 | 0.254 | 0.154 | 0.872 | low |
+| Secretaries and Administrative Assistants, Except Legal, Medical, and Executive | 0.430 | 0.275 | 0.154 | 0.850 | low |
+| Bookkeeping, Accounting, and Auditing Clerks | 0.438 | 0.290 | 0.148 | 0.864 | low |
+| General and Operations Managers | 0.390 | 0.247 | 0.142 | 0.869 | low |
+| Training and Development Specialists | 0.415 | 0.283 | 0.132 | 0.832 | low |
+| Business Operations Specialists, All Other | 0.428 | 0.304 | 0.124 | 0.838 | low |
 
 ### Demand Context Plausibility
 | Occupation | Model | Target | Gap | Confidence | Review |
@@ -211,6 +235,7 @@ Current limitations:
 ## Interpretation
 
 - Treat `Human Guardrail Plausibility` as the most useful current structural check.
+- Treat `Adoption Context Plausibility` as the best current outer-layer check on whether the model is over- or under-stating organizational AI conversion relative to observed sector uptake.
 - Treat `Role Heterogeneity Plausibility` as the best current check on whether the model is making an occupation look too uniform or too split.
 - Treat `Demand Context Plausibility` and `Wage Leverage Plausibility` as weak calibration layers that can surface suspicious outliers, not as truth labels.
 - Occupations with repeated high-priority gaps should be reviewed at the layer that likely caused the disagreement: function anchors, accountability weights, task evidence coverage, or role-shape assumptions.
@@ -218,6 +243,7 @@ Current limitations:
 ## Next Data Upgrades
 
 - Extend ORS coverage or mapping so fewer launch occupations remain unscored on the strongest human-guardrail check.
-- Add `BTOS` AI adoption context for a stronger non-runtime adoption calibration layer.
+- Use the new BTOS review queue to decide whether adoption-realization tuning should remain calibration-only or graduate into a later controlled runtime parameter review.
+- Refresh `O*NET` after the current official calibration layers are stable, so structural tuning is not confounded with a database-version jump.
 - Consider whether the ACS heterogeneity layer is strong enough to justify future multi-variant occupation modeling rather than one default role shape per occupation.
 
