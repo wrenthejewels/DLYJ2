@@ -89,6 +89,10 @@ Current first pass:
 - `Compliance Officers` now includes a reviewed issue-remediation supplemental anchor so remediation follow-through, evidence readiness, and issue closure can sit below higher-level compliance interpretation and control ownership in the accountability layer
 - `Training and Development Specialists` now includes a reviewed learning-content-enablement supplemental anchor so curriculum and learning-asset production can sit below higher-level learning-program ownership in the accountability layer
 - `Mechanical Engineers` now includes a reviewed validation-integration supplemental anchor so prototyping, test execution, integration, and production-readiness work can sit below higher-level system-design ownership in the accountability layer
+- `Business Operations Specialists, All Other` now includes a reviewed operational-followthrough supplemental anchor so trackers, recurring follow-through, workflow upkeep, and cross-functional action management can sit below higher-level diagnosis and operating-design work in the accountability layer
+- `Computer Systems Analysts` now includes a reviewed implementation-enablement supplemental anchor so release support, issue triage, rollout follow-through, and workflow-adoption work can sit below higher-level systems-fit analysis and requirements translation in the accountability layer
+- `Executive Secretaries and Executive Administrative Assistants` now includes a reviewed executive-coordination supplemental anchor so executive gatekeeping, stakeholder routing, and decision-cadence support can sit above lower-authority workflow execution without forcing the occupation into explicit runtime variants
+- `Human Resources Specialists` now includes a reviewed people-process-admin supplemental anchor so onboarding, employee records, benefits administration, and HRIS-heavy process work can sit below higher-context people guidance and recruiting judgment in the accountability layer
 
 ### `occupation_function_map.csv`
 
@@ -295,7 +299,7 @@ Current live role-variant rule:
 - once the baseline is chosen, the normal editable composition flow still has final authority because users can continue adding/removing tasks and functions and changing workflow links
 - the current reviewed runtime-variant subset now includes `Accountants and Auditors` alongside market research, editors, technical writing, journalism, management consulting, and web development
 - a nearby structural pattern now exists too: some occupations can carry reviewed supplemental anchors in the default function graph without being promoted into explicit role variants when the evidence supports a richer purpose layer but not yet multiple stable baseline role shapes
-- current examples of that structural-anchor path now include `Financial and Investment Analysts`, `Software Developers`, `Graphic Designers`, `Paralegals and Legal Assistants`, `Compliance Officers`, `Training and Development Specialists`, and `Mechanical Engineers`
+- current examples of that structural-anchor path now include `Financial and Investment Analysts`, `Software Developers`, `Graphic Designers`, `Paralegals and Legal Assistants`, `Compliance Officers`, `Training and Development Specialists`, `Mechanical Engineers`, `Business Operations Specialists, All Other`, `Computer Systems Analysts`, `Executive Secretaries and Executive Administrative Assistants`, and `Human Resources Specialists`
 
 ## Current limitations
 

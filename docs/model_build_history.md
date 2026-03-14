@@ -626,6 +626,10 @@ The next concrete example was the expert-versus-signoff cleanup:
   - `Compliance Officers` gained a reviewed `issue_remediation` anchor so complaints, evidence readiness, and issue-closure work no longer inherited the same sign-off assumptions as higher-level compliance interpretation and control ownership
   - `Training and Development Specialists` gained a reviewed `learning_content_enablement` anchor so curriculum and courseware production no longer inherited the same ownership assumptions as learning-program priorities and program effectiveness
   - `Mechanical Engineers` gained a reviewed `validation_integration` anchor so prototyping, testing, integration, and readiness work no longer inherited the same sign-off assumptions as higher-level system-design ownership
+  - `Business Operations Specialists, All Other` gained a reviewed `operational_followthrough` anchor so trackers, handoffs, recurring follow-through, and workflow upkeep no longer inherited the same sign-off assumptions as higher-level diagnosis and operating-design work
+  - `Computer Systems Analysts` gained a reviewed `implementation_enablement` anchor so release support, issue triage, documentation follow-through, and workflow-adoption work no longer inherited the same sign-off assumptions as higher-level systems-fit analysis and requirements translation
+  - `Executive Secretaries and Executive Administrative Assistants` gained a reviewed `executive_coordination` anchor so gatekeeping, board support, stakeholder routing, and decision-cadence support no longer inherited the same authority assumptions as lower-authority workflow execution
+  - `Human Resources Specialists` gained a reviewed `people_process_admin` anchor so onboarding, records, benefits, and HRIS-heavy process work no longer inherited the same ownership assumptions as higher-context people guidance and recruiting judgment
 - this was the key structural lesson: some occupations did not need full runtime role variants, but they still needed richer default function graphs because one flat purpose layer was too reductive
 
 The next concrete example was the low-scarcity bargaining cleanup:

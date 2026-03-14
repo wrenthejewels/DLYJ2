@@ -95,6 +95,34 @@ async function main() {
   if (!Array.isArray(mechanicalEngineerComposition.functions) || mechanicalEngineerComposition.functions.length < 2) {
     throw new Error('Expected Mechanical Engineers to expose at least two reviewed function anchors after structural expansion.');
   }
+  const businessOpsComposition = engine.getRoleComposition('occ_13_1199_00');
+  if (!businessOpsComposition.defaults?.function_ids?.includes('fn_occ_13_1199_00_operational_followthrough')) {
+    throw new Error('Expected Business Operations Specialists defaults to include the reviewed operational-followthrough function anchor.');
+  }
+  if (!Array.isArray(businessOpsComposition.functions) || businessOpsComposition.functions.length < 2) {
+    throw new Error('Expected Business Operations Specialists to expose at least two reviewed function anchors after structural expansion.');
+  }
+  const systemsAnalystComposition = engine.getRoleComposition('occ_15_1211_00');
+  if (!systemsAnalystComposition.defaults?.function_ids?.includes('fn_occ_15_1211_00_implementation_enablement')) {
+    throw new Error('Expected Computer Systems Analysts defaults to include the reviewed implementation-enablement function anchor.');
+  }
+  if (!Array.isArray(systemsAnalystComposition.functions) || systemsAnalystComposition.functions.length < 3) {
+    throw new Error('Expected Computer Systems Analysts to expose at least three reviewed function anchors after structural expansion.');
+  }
+  const executiveAssistantComposition = engine.getRoleComposition('occ_43_6011_00');
+  if (!executiveAssistantComposition.defaults?.function_ids?.includes('fn_occ_43_6011_00_executive_coordination')) {
+    throw new Error('Expected Executive Secretaries defaults to include the reviewed executive-coordination function anchor.');
+  }
+  if (!Array.isArray(executiveAssistantComposition.functions) || executiveAssistantComposition.functions.length < 2) {
+    throw new Error('Expected Executive Secretaries to expose at least two reviewed function anchors after structural expansion.');
+  }
+  const hrSpecialistComposition = engine.getRoleComposition('occ_13_1071_00');
+  if (!hrSpecialistComposition.defaults?.function_ids?.includes('fn_occ_13_1071_00_people_process_admin')) {
+    throw new Error('Expected Human Resources Specialists defaults to include the reviewed people-process-admin function anchor.');
+  }
+  if (!Array.isArray(hrSpecialistComposition.functions) || hrSpecialistComposition.functions.length < 3) {
+    throw new Error('Expected Human Resources Specialists to expose at least three reviewed function anchors after structural expansion.');
+  }
   const sampleLinkedTask = roleComposition.onet_tasks.find((task) => Array.isArray(task.linked_functions) && task.linked_functions.length);
   if (!sampleLinkedTask) {
     throw new Error('Expected at least one editable task to expose linked function explanations.');
